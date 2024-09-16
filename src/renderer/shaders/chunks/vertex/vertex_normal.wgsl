@@ -1,0 +1,1 @@
+output.vNormal = mvp.modelMatrix * vec4f(input.normal, 0.0)).xyz;
