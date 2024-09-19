@@ -22,3 +22,5 @@ class InstancedMesh extends Object3D {
 	}
 
 }
+
+export { InstancedMesh };

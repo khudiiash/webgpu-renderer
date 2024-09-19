@@ -13,6 +13,7 @@ class Geometry {
         this.boundningBox = null;
         this.boundingSphere = null;
         this.attributes = {};
+        this.isIndexed = false;
     }
     
     setAttribute(name, data) {
@@ -63,11 +64,24 @@ class Geometry {
     
     
     setIndices(indices) {
-        if (Array.isArray(indices)) {
-            this.indices = new Uint16Array(indices);
-        } else {
+        if (indices instanceof Uint32Array) {
             this.indices = indices;
+            this.isIndexed = true;
+            this.indexFormat = 'uint32';
+        } else if (indices instanceof Uint16Array) {
+            this.indices = indices;
+            this.isIndexed = true;
+            this.indexFormat = 'uint16';
+        } else if (indices instanceof Uint8Array) {
+            this.indices = indices;
+            this.isIndexed = true;
+            this.indexFormat = 'uint8';
+        } else if (indices instanceof Array) {
+            this.indices = new Uint16Array(indices);
+            this.isIndexed = true;
+            this.indexFormat = 'uint16';
         }
+
         return this;
     }
     
@@ -102,23 +116,18 @@ class Geometry {
             const offset = i * vertexSize; // offset in the interleaved array
 
             // Position
-            this.packed[offset] = vertices[vi];
+            this.packed[offset + 0] = vertices[vi + 0];
             this.packed[offset + 1] = vertices[vi + 1];
             this.packed[offset + 2] = vertices[vi + 2];
 
             // Normal
-            this.packed[offset + 3] = normals[ni];
+            this.packed[offset + 3] = normals[ni + 0];
             this.packed[offset + 4] = normals[ni + 1];
             this.packed[offset + 5] = normals[ni + 2];
 
             // UV
-            this.packed[offset + 6] = uvs[uvi];
+            this.packed[offset + 6] = uvs[uvi + 0];
             this.packed[offset + 7] = uvs[uvi + 1];
-        }
-        
-        
-        if (indices) {
-            this.indices = new Uint16Array(indices);
         }
         
         this.setAttribute('position', new Float32BufferAttribute(vertices, 3));
@@ -145,9 +154,6 @@ class Geometry {
     getAttributes() {
         return Object.values(this.attributes);
     }
-
-    getVertexBufferLayout() {
-        return     }
 }
 
 export { Geometry };

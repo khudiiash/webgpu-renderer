@@ -10,13 +10,9 @@ import vertex_shadow_depth from './chunks/vertex/vertex_shadow_depth.wgsl?raw';
 
 import fragment_diffuse_map from './chunks/fragment/fragment_diffuse_map.wgsl?raw';
 import fragment_fog from './chunks/fragment/fragment_fog.wgsl?raw';
-import fragment_light_ambient from './chunks/fragment/fragment_light_ambient.wgsl?raw';
-import fragment_light_diffuse from './chunks/fragment/fragment_light_diffuse.wgsl?raw';
 import fragment_light_phong from './chunks/fragment/fragment_light_phong.wgsl?raw';
 import fragment_shadowmap from './chunks/fragment/fragment_shadowmap.wgsl?raw';
-
-import { ShaderValueType } from '../utils/ShaderValueType';
-import { GPUType } from '../utils/Constants';
+import { Varying } from './Varying';
 
 class ShaderChunk {
     constructor(name, code, varyings) {
@@ -44,22 +40,20 @@ class FragmentChunk extends ShaderChunk {
 class ShaderChunks {
     static common = new ShaderChunk('common', common, []);
     static vertex = {
-        vertex_default: new VertexChunk('vertex_default', vertex_default, []),
-        vertex_uv: new VertexChunk('vertex_uv', vertex_uv, [ new ShaderValueType('vUv', GPUType.Vec2f) ]),
-        vertex_view_direction: new VertexChunk('vertex_view_direction', vertex_view_direction, [ new ShaderValueType('vViewDirection', GPUType.Vec3f) ]),
-        vertex_normal: new VertexChunk('vertex_normal', vertex_normal, [ new ShaderValueType('vNormal', GPUType.Vec3f) ]),
-        vertex_world_position: new VertexChunk('vertex_world_position', vertex_world_position, [ new ShaderValueType('vWorldPosition', GPUType.Vec3f) ]),
-        vertex_fog: new VertexChunk('vertex_fog', vertex_fog, [ new ShaderValueType('vFogDepth', GPUType.Float) ]),
-        vertex_shadow_depth: new VertexChunk('vertex_shadow_depth', vertex_shadow_depth),
-        vertex_shadowmap: new VertexChunk('vertex_shadowmap', vertex_shadowmap, [ new ShaderValueType('vShadowPosition', GPUType.Vec3f) ]),
+        default: new VertexChunk('vertex_default', vertex_default, []),
+        uv: new VertexChunk('vertex_uv', vertex_uv, [ new Varying('vUv', 'vec2f')]),
+        view_direction: new VertexChunk('vertex_view_direction', vertex_view_direction, [ new Varying('vViewDirection', 'vec3f')]),
+        normal: new VertexChunk('vertex_normal', vertex_normal, [ new Varying('vNormal', 'vec3f')]),
+        world_position: new VertexChunk('vertex_world_position', vertex_world_position, [ new Varying('vWorldPosition', 'vec3f')]),
+        shadow_depth: new VertexChunk('vertex_shadow_depth', vertex_shadow_depth, []),
+        fog: new VertexChunk('vertex_fog', vertex_fog, [ new Varying('vFogDistance', 'f32') ]),
+        shadowmap: new VertexChunk('vertex_shadowmap', vertex_shadowmap, [ new Varying('vShadowCoord', 'vec4f') ]),
     }
     static fragment = {
-        fragment_diffuse_map: new FragmentChunk('fragment_diffuse', fragment_diffuse_map),
-        fragment_fog: new FragmentChunk('fragment_fog', fragment_fog),
-        fragment_light_ambient: new FragmentChunk('fragment_light_ambient', fragment_light_ambient),
-        fragment_light_diffuse: new FragmentChunk('fragment_light_diffuse', fragment_light_diffuse),
-        fragment_light_phong: new FragmentChunk('fragment_light_phong', fragment_light_phong),
-        fragment_shadowmap: new FragmentChunk('fragment_shadowmap', fragment_shadowmap),
+        diffuse_map: new FragmentChunk('fragment_diffuse_map', fragment_diffuse_map),
+        fog: new FragmentChunk('fragment_fog', fragment_fog),
+        light_phong: new FragmentChunk('fragment_light_phong', fragment_light_phong),
+        shadowmap: new FragmentChunk('fragment_shadowmap', fragment_shadowmap),
     }
 }
 

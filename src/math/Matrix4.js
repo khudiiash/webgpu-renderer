@@ -4,6 +4,7 @@ const _v1 = new Vector3();
 
 class Matrix4 {
     static byteSize = 16 * Float32Array.BYTES_PER_ELEMENT;
+    
 
     constructor(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) {
         this.data = mat4.create(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);

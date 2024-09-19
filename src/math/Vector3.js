@@ -67,6 +67,7 @@ class Vector3 {
     
     set(x, y, z) {
         vec3.set(x, y, z, this.data);
+        this._onChangeCallback();
         return this;
     }
     
@@ -165,6 +166,14 @@ class Vector3 {
     crossVectors(a, b) {
         vec3.cross(a.data, b.data, this.data);
         return this;
+    }
+    
+    static subVectors(a, b) {
+        return new Vector3().subVectors(a, b);
+    }
+    
+    static crossVectors(a, b) {
+        return new Vector3().crossVectors(a, b);
     }
     
 }

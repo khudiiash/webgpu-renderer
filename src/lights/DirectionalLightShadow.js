@@ -6,38 +6,26 @@ class DirectionalLightShadow extends LightShadow {
 
 	constructor() {
 
-		super( new OrthographicCamera( -50, 50, -50, 50, -50, 100) );
+		super( new OrthographicCamera( -100, 100, -100, 100, -100, 100) );
 
 		this.isDirectionalLightShadow = true;
 
 	}
 	
 	updateMatrices( light, aspect ) {
-			// directional light does not move, it only rotates
-			// so we need to update the camera's view to look at the light direction
-			const shadowCamera = this.camera;
-			if (aspect && aspect !== shadowCamera.aspect) {
-				shadowCamera.aspect = aspect;
-				shadowCamera.updateProjectionMatrix();
-			}
-
-		  // Calculate the light's direction
-		  const lightDirection = light.direction.clone();
-	  
-		  // Set the shadow camera's position and orientation
-		  const shadowCameraPosition = new Vector3();
-		  shadowCameraPosition.copy(light.position);
-	  
-		  const shadowCameraTarget = new Vector3();
-		  shadowCameraTarget.copy(lightDirection).mulScalar(-1).add(shadowCameraPosition);
-	  
-		  shadowCamera.position.copy(shadowCameraPosition);
-		  shadowCamera.target.copy(shadowCameraTarget);
-	  
-		  // Update the shadow camera's view matrix
-		  shadowCamera.updateMatrixWorld();
-		shadowCamera
-		  this.projectionViewMatrix.multiplyMatrices(shadowCamera.projectionMatrix, shadowCamera.viewMatrix);
+		const shadowCamera = this.camera;
+		if (aspect && aspect !== shadowCamera.aspect) {
+			shadowCamera.aspect = aspect;
+			shadowCamera.updateProjectionMatrix();
+		}
+		
+	  	const lightDirection = light.direction.clone();
+	  	const shadowCameraTarget = new Vector3();
+	  	shadowCameraTarget.copy(lightDirection).mulScalar(-1);
+	  	shadowCamera.target.copy(shadowCameraTarget);
+  
+	  	shadowCamera.updateMatrixWorld();
+	  	this.projectionViewMatrix.multiplyMatrices(shadowCamera.projectionMatrix, shadowCamera.viewMatrix);
 	}
 
 }

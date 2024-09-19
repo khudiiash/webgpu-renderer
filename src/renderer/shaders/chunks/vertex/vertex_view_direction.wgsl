@@ -1,1 +1,1 @@
-output.vViewDirection = normalize(-transpose(mvp.viewMatrix)[3].xyz - (mvp.modelMatrix *vec4f(input.position, 1.0)).xyz); 
+output.vViewDirection = camera.direction;

@@ -1,1 +1,0 @@
-output.worldPosition = uniforms.modelMatrix * vec4(input.position, 1.0);

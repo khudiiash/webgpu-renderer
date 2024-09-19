@@ -1,7 +1,7 @@
 import { Vector3 }  from '../math/Vector3';
 import { Matrix4 } from '../math/Matrix4';
 import { Camera } from './Camera';
-import { MathUtils } from '../math/MathUtils';
+import { DEG2RAD } from '../math/MathUtils';
 
 class PerspectiveCamera extends Camera {
     constructor(fov = 45, aspect = 1, near = 0.1, far = 1000) {
@@ -21,14 +21,9 @@ class PerspectiveCamera extends Camera {
     }
   
     updateProjectionMatrix() {
-        this.projectionMatrix.perspective(this.fov * MathUtils.DEG2RAD, this.aspect, this.near, this.far);
-        this.projectionMatrixInverse.copy(this.projectionMatrix).invert();
+        this.projectionMatrix.perspective(this.fov * DEG2RAD, this.aspect, this.near, this.far);
+        this._data.set(this.projectionMatrix.data);
     }
-    
-    updateViewMatrix() {
-        this.viewMatrix.lookAt(this.position, this.target, this.up);
-    }
-    
     
 }
 

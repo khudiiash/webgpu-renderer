@@ -11,6 +11,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@loaders.gl/core": "^4.2.3",
+    "@loaders.gl/gltf": "^4.2.3",
+    "gltf2parser": "^0.0.1",
+    "stats.js": "^0.17.0",
     "wgpu-matrix": "^3.2.0"
   },
   "devDependencies": {

@@ -1,14 +1,17 @@
-import { GPUTypeSize } from '../utils/Constants.js';
-import { UniformUtils } from './UniformUtils.js';
 import { Color } from '../../math/Color.js';
+import { Vector3 } from '../../math/Vector3.js';
 import { Matrix4 } from '../../math/Matrix4.js';
+import { Utils } from '../utils/Utils.js';
+import { StringUtils } from '../utils/StringUtils.js';
 
 class Uniform {
     constructor(name) {
         this.name = name;
         this.isUniform = true;
         this.byteSize = 0;
+        this.bufferOffset = 0;
         this._needsUpdate = true;
+        this._data = new Float32Array([]);
     }
     
     setBuffer(buffer) {
@@ -16,33 +19,48 @@ class Uniform {
         return this;
     }
     
+    uint(value) {
+        this.value = value || 0;
+        this.isUint = true;
+        this.type = 'u32';
+        this.byteSize = 4;
+        this._data = new Float32Array([value]);
+        return this;
+    }
+    
     color(value) {
-        if (!value instanceof Color) {
-            throw new Error('Uniform.color: value must be an instance of Color');
-        }
-        this.value = value;
+        this.value = value || new Color();
         this.isColor = true;
         this.type = 'vec4f';
-        this.byteSize = value.byteSize;
-        this._data = new Float32Array(value.data);
+        this.byteSize = Color.byteSize;
+        this._data = this.value.data;
         return this;
     }
     
-    textureDepth(value) {
-        this.value = value;
-        this.isTextureDepth = true;
-        this.type = 'texture_depth_2d<f32>';
-        this.byteSize = 0;
-        this._data = new Float32Array([]);
+    vec2(value) {
+        this.value = value || [0, 0];
+        this.isVector2 = true;
+        this.type = 'vec2f';
+        this.byteSize = 8;
+        this._data = new Float32Array(this.value);
         return this;
     }
     
-    samplerComparison(value) {
-        this.value = value;
-        this.isSamplerComparison = true;
-        this.type = 'sampler_comparison';
-        this.byteSize = 0;
-        this._data = new Float32Array([]);
+    vec3(value) {
+        this.value = value || [0, 0, 0];
+        this.isVector3 = true;
+        this.type = 'vec3f';
+        this.byteSize = 12;
+        this._data = new Float32Array(this.value);
+        return this;
+    }
+    
+    vec4(value) {
+        this.value = value || [0, 0, 0, 0];
+        this.isVector4 = true;
+        this.type = 'vec4f';
+        this.byteSize = 16;
+        this._data = new Float32Array(this.value.data);
         return this;
     }
     
@@ -60,71 +78,74 @@ class Uniform {
         this.byteSize = 4;
         this.isInt = true;
         this.type = 'i32';
-        this._data = new Int32Array([value]);
+        this._data = new Float32Array([value]);
         return this;
     }
     
     mat4(value) {
-        this.value = value;
+        this.value = value || new Matrix4().identity()
         this.byteSize = Matrix4.byteSize;
         this.isMat4 = true;
         this.type = 'mat4x4f';
-        this._data = new Float32Array(value.data);
+        this._data = this.value.data;
+        return this;
+    }
+    
+    mat4Array(count) {
+        this.value = [];
+        this.byteSize = Matrix4.byteSize * count;
+        this.isMat4Array = true;
+        this.type = `array<mat4x4f, ${count}>`;
+        this._data = new Float32Array(this.byteSize / Float32Array.BYTES_PER_ELEMENT);
         return this;
     }
     
     mat3(value) {
         this.value = value;
-        this.byteSize = 36;
+        this.byteSize = 64;
         this.isMat3 = true;
         this.type = 'mat3x3f';
         this._data = new Float32Array(value.data);
         return this;
     }
     
+    struct(structName, struct) {
+        this.isStruct = true;
+        this.structString = StringUtils.structToString(structName, struct);
+        this.type = structName;
+        const size = Object.values(struct).reduce((acc, type) => {
+            return acc + Utils.getTypeSize(type);
+        }, 0);
+        this.byteSize = Math.ceil(size / 16) * 16;
+        this._data = new Float32Array(size / Float32Array.BYTES_PER_ELEMENT);
+        return this;
+    }
     
-    structArray(value, struct, count = 1) {
-        this.value = value; 
-        this.struct = struct;
-        this.byteSize = struct.byteSize * count;
+    
+    structArray(structName, struct, count = 1) {
+        this.isStructArray = true;
+        this.structString = StringUtils.structToString(structName, struct);
+        const size = Utils.getStructSize(struct) * count;
+        this.byteSize = Math.ceil(size / 16) * 16;
+        this.type = `array<${structName}, ${count}>`;
         this._data = new Float32Array(this.byteSize / Float32Array.BYTES_PER_ELEMENT);
-        this._data.set(value);
-        this.type = `array<${struct.name}, ${count}>`;
-        this.isArray = true;
-        return this;
-    }
-    
-    floatArray(value = 1) {
-        this.value = value;
-        this.byteSize = value.length * 4;
-        this.isFloatArray = true;
-        this._data = new Float32Array(value);
-        return this;
-    }
-    
-    vec3Array(value, count = 1) {
-        this.value = value;
-        this.byteSize = value.length * 12;
-        this.isVec3Array = true;
-        this._data = new Float32Array(value);
-        return this;
-    }
-    
-    vec4Array(value, count = 1) {
-        this.value = value;
-        this.byteSize = value.length * 16;
-        this.isVec4Array = true;
-        this._data = new Float32Array(value);
         return this;
     }
     
     set(value) {
         this.value = value;
-        if (this.isColor || this.isMat4 || this.isMat3) {
+        if (value.data) {
             this._data.set(value.data);
         }
-        if (this.isFloat || this.isInt) {
+        if (typeof value === 'number') {
             this._data[0] = value;
+        }
+        if (Array.isArray(value) && value[0].data) {
+            let offset = 0;
+            for (let i = 0; i < value.length; i++) {
+                this._data.set(value[i].data, offset);
+                offset += value[i].data.length;
+            }
         }
         return this;
     }
@@ -140,6 +161,14 @@ class Uniform {
     getString() {
         return `${this.name}: ${this.type},\n`;
     }
+    
+    clone() {
+        const uniform = new Uniform(this.name);
+        Object.assign(uniform, this);
+        uniform._data = new Float32Array(this._data);
+        return uniform;
+    }
+    
 }
 
 export { Uniform };

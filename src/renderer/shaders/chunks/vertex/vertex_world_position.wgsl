@@ -1,0 +1,1 @@
+output.vWorldPosition = (model * vec4f(input.position, 1.0)).xyz;

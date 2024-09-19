@@ -1,6 +1,6 @@
 import { Matrix4 } from './Matrix4';
 import { Quaternion } from './Quaternion';
-import { clamp, MathUtils } from './MathUtils';
+import { clamp, DEG2RAD, RAD2DEG } from './MathUtils';
 
 const _matrix = new Matrix4();
 const _quaternion = new Quaternion();
@@ -65,7 +65,7 @@ class Euler {
     }
     
     print() {
-        console.log(`Euler { x: ${this._x * MathUtils.RAD2DEG}, y: ${this._y * MathUtils.RAD2DEG}, z: ${this._z * MathUtils.RAD} }`);
+        console.log(`Euler { x: ${this._x * RAD2DEG}, y: ${this._y * RAD2DEG}, z: ${this._z * RAD2DEG } }`);
     }
     
     _onChange(callback) {

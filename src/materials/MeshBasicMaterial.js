@@ -11,7 +11,6 @@ class MeshBasicMaterial extends Material {
         this.type = 'MeshBasicMaterial';
         this.color = new Color(params.color ? params.color : 0xffffff);
         this.uniforms = [ 
-            UniformLib.generic,
             UniformLib.fog,
         ];
         this.chunks = {
@@ -20,7 +19,7 @@ class MeshBasicMaterial extends Material {
                 ShaderChunks.vertex.vertex_fog,
             ],
             fragment: [
-                ShaderChunks.fragment.fragment_fog,
+                ShaderChunks.fragment.fragment_diffuse_map,
             ]
 
         }

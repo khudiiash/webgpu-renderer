@@ -91,6 +91,7 @@ class Quaternion {
         const forwardZ = 1 - 2 * (x * x + y * y);
         
         const magnitude = Math.sqrt(forwardX * forwardX + forwardY * forwardY + forwardZ * forwardZ);
+        if (magnitude === 0) return out.set(0, 0, 0);
         out.set(forwardX / magnitude, forwardY / magnitude, forwardZ / magnitude);
     }
 

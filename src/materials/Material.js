@@ -13,7 +13,7 @@ class Material {
     }
     
     set diffuseMap(texture) {
-        this._diffuseMap = te;
+        this._diffuseMap = texture;
         this.textures?.find(texture => texture.name === 'diffuseMap')?.setResource(texture);
     }
     

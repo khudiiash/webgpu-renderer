@@ -226,6 +226,15 @@ class Object3D {
         }
     }
     
+    clone() {
+        const clone = new Object3D();
+        clone.position.copy(this.position);
+        clone.rotation.copy(this.rotation);
+        clone.quaternion.copy(this.quaternion);
+        clone.scale.copy(this.scale);
+        return clone;
+    }
+    
 }
 
-export { }
+export { Object3D }

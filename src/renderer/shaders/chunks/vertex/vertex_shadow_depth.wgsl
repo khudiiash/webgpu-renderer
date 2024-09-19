@@ -1,12 +1,11 @@
-@group(0) @binding(0) var<storage> modelViews : array<mat4x4<f32>>;
-@group(0) @binding(1) var<uniform> lightProjection : mat4x4<f32>;
+@group(0) @binding(0) var<uniform> model: mat4x4f;
+@group(0) @binding(1) var<uniform> lightProjectionView: mat4x4f;
 
 @vertex
 fn main(
-    @location(0) position : vec3<f32>,
-    @location(1) normal : vec3<f32>,
-    @location(2) uv : vec2<f32>,
-) -> @builtin(position) vec4<f32> {
-    let pos = vec4(position, 1.0);
-    return mvp.lightProjection * mlp.* pos;
+    @location(0) position: vec3f,
+    @location(1) normal: vec3f,
+    @location(2) uv: vec2f,
+) -> @builtin(position) vec4f {
+    return lightProjectionView * model * vec4f(position, 1.0);
 }

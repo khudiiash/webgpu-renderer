@@ -3,6 +3,13 @@ import { Matrix4 } from '../math/Matrix4';
 import { Vector3 } from '../math/Vector3';
 
 class Camera extends Object3D {
+	
+	static struct = {
+		projection: 'mat4x4f',
+		view: 'mat4x4f',
+		position: 'vec3f',
+		direction: 'vec3f',
+	}
     
     constructor() {
 
@@ -19,6 +26,9 @@ class Camera extends Object3D {
 		this.viewMatrix = new Matrix4();
 		this.projectionMatrixInverse = new Matrix4();
 		this.projectionViewMatrix = new Matrix4();
+		let size = 64 + 64 + 12 + 12;
+		size = Math.ceil(size / 16) * 16;
+		this._data = new Float32Array(size / Float32Array.BYTES_PER_ELEMENT);
 	}
 
 	copy( source, recursive ) {
@@ -32,19 +42,24 @@ class Camera extends Object3D {
 
 
 		return this;
-
 	}
 	
 	updateViewMatrix() {
-		this.viewMatrix.lookAt( this.position, this.target, this.up );
-		this.projectionViewMatrix.multiplyMatrices( this.projectionMatrix, this.viewMatrix );
+		this.viewMatrix.lookAt(this.position, this.target, this.up);
+		this._data.set(this.viewMatrix.data, 16);
+		this._data.set(this.position.data, 32);
+		this._data.set(this.direction.data, 35);
 	}
-
+	
+	updateProjectionMatrix() {
+		// Implemented in subclasses
+	}
+	
 	updateMatrixWorld( force ) {
 
 		super.updateMatrixWorld( force );
 
-		this.matrixWorldInverse.copy( this.matrixWorld ).invert();
+		this.updateViewMatrix();
 
 	}
 	
@@ -53,13 +68,16 @@ class Camera extends Object3D {
 
 		super.updateWorldMatrix( updateParents, updateChildren );
 
-		this.matrixWorldInverse.copy( this.matrixWorld ).invert();
-
+		this.updateViewMatrix();
 	}
 	
 	clone() {
 		return new this.constructor().copy( this );
 	}
+	
+	get data() {
+		return this._data;
+	}	
 }
 
 export { Camera };

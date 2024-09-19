@@ -1,16 +1,26 @@
+
 class TextureAttachment {
-    constructor(name, type, resourceLayout, resourceBinding, resource, visibility = GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT) {
+    constructor(name, type, texture, visibility = GPUShaderStage.FRAGMENT) {
         this.name = name;
         this.type = type;
-        this.resourceLayout = resourceLayout; 
-        this.resourceBinding = resourceBinding;
-        this.resource = resource;
+        this.texture = texture;
+        this.layout = this.getLayoutByType(type);
         this.visibility = visibility;
     }
     
     setResource(resource) {
         this.resource = resource;
         return this;
+    }
+    
+    getLayoutByType(type) { 
+        if (type === 'texture_2d<f32>') {
+            return { };
+        }
+        
+        if (type === 'texture_depth_2d') {
+            return { sampleType: 'depth' };
+        }
     }
     
     getBindGroupString(group = 0, binding = 0) {

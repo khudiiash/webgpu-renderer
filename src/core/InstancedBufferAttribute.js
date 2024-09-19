@@ -4,6 +4,6 @@ class InstancedBufferAttribute extends BufferAttribute {
         this.isInstancedBufferAttribute = true;
         this.meshPerAttribute = meshPerAttribute;
     }
-    
-    
 }
+
+export { InstancedBufferAttribute };

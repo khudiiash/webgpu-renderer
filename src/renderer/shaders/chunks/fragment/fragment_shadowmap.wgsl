@@ -1,43 +1,60 @@
 let shadowMapSize = f32(textureDimensions(shadowMap).x);
-let lightDirection = lights.directionalLights[0].direction;
-let texelSize = vec2f(1.0) / shadowMapSize;
-let size = f32(textureDimensions(shadowMap).x);
-var shadowCoord = input.vShadowPosition;
-shadowCoord.z += 0.0001;
-var shadow : f32 = 0.0;
+let DIR_LIGHT_NUM = u32(scene.directionalLightsNum);
 
-var totalWeight : f32 = 0.0;
+for (var i = 0u; i < DIR_LIGHT_NUM; i = i + 1u) {
+	let lightDirection = scene.directionalLights[0].direction;
+	let texelSize = vec2f(1.0) / shadowMapSize;
+	let size = f32(textureDimensions(shadowMap).x);
+	let shadowConfig = scene.directionalLightShadows[0];
+	let posFromLight = (scene.directionalLightMatrices[0] * vec4f(input.vWorldPosition, 1)).xyz;
+	var shadowCoord = vec3f(
+		posFromLight.xy * vec2f(0.5, -0.5) + vec2f(0.5, 0.5), 
+		posFromLight.z
+	);
+	shadowCoord.z += shadowConfig.shadowBias;
+	var shadow : f32 = 0.0;
 
-var dx = texelSize.x;
-var dy = texelSize.y;
+	var totalWeight : f32 = 0.0;
 
-var uv = shadowCoord.xy;
-var f = fract( uv * shadowMapSize + 0.5 );
-uv -= f * texelSize;
+	var dx = texelSize.x;
+	var dy = texelSize.y;
 
-// Calculate the blur factor based on the distance from the object casting the shadow
-var blurFactor : f32 = 0.001 * (1.0 - shadowCoord.z); // Increased blur factor to cover a larger area
+	var uv = shadowCoord.xy;
+	var f = fract( uv * shadowMapSize + 0.5 );
+	uv -= f * texelSize;
 
-// Smooth linear gradient weights for a larger kernel
-let kernelSize : i32 = 5;
-for(var x : i32 = -kernelSize; x <= kernelSize; x = x + 1) {
-    for(var y : i32 = -kernelSize; y <= kernelSize; y = y + 1) {
-        var offset : vec2f = vec2f(f32(x), f32(y)) * blurFactor;
-        var distance : f32 = length(vec2f(f32(x), f32(y))) / f32(kernelSize);
-        var weight : f32 = 1.0 - distance; // Linear gradient weight
-        shadow = shadow + textureSampleCompare(shadowMap, shadowSampler, uv + offset, shadowCoord.z) * weight;
-        totalWeight = totalWeight + weight;
-    }
+	shadow = (
+		textureSampleCompare( shadowMap, samplerComparison, uv, shadowCoord.z ) +
+		textureSampleCompare( shadowMap, samplerComparison, uv + vec2( dx, 0.0 ), shadowCoord.z ) +
+		textureSampleCompare( shadowMap, samplerComparison, uv + vec2( 0.0, dy ), shadowCoord.z ) +
+		textureSampleCompare( shadowMap, samplerComparison, uv + texelSize, shadowCoord.z ) +
+		mix( textureSampleCompare( shadowMap, samplerComparison, uv + vec2( -dx, 0.0 ), shadowCoord.z ),
+			 textureSampleCompare( shadowMap, samplerComparison, uv + vec2( 2.0 * dx, 0.0 ), shadowCoord.z ),
+			 f.x ) +
+		mix( textureSampleCompare( shadowMap, samplerComparison, uv + vec2( -dx, dy ), shadowCoord.z ),
+			 textureSampleCompare( shadowMap, samplerComparison, uv + vec2( 2.0 * dx, dy ), shadowCoord.z ),
+			 f.x ) +
+		mix( textureSampleCompare( shadowMap, samplerComparison, uv + vec2( 0.0, -dy ), shadowCoord.z ),
+			 textureSampleCompare( shadowMap, samplerComparison, uv + vec2( 0.0, 2.0 * dy ), shadowCoord.z ),
+			 f.y ) +
+		mix( textureSampleCompare( shadowMap, samplerComparison, uv + vec2( dx, -dy ), shadowCoord.z ),
+			 textureSampleCompare( shadowMap, samplerComparison, uv + vec2( dx, 2.0 * dy ), shadowCoord.z ),
+			 f.y ) +
+		mix( mix( textureSampleCompare( shadowMap, samplerComparison, uv + vec2( -dx, -dy ), shadowCoord.z ),
+				  textureSampleCompare( shadowMap, samplerComparison, uv + vec2( 2.0 * dx, -dy ), shadowCoord.z ),
+				  f.x ),
+			 mix( textureSampleCompare( shadowMap, samplerComparison, uv + vec2( -dx, 2.0 * dy ), shadowCoord.z ),
+				  textureSampleCompare( shadowMap, samplerComparison, uv + vec2( 2.0 * dx, 2.0 * dy ), shadowCoord.z ),
+				  f.x ),
+			 f.y )
+	) * ( 1.0 / 9.0 );
+
+	let lambertFactor = max(dot(lightDirection, normalize(input.vNormal)), 0.0);
+	let lightFactor = min(scene.ambientLight.a + shadow * lambertFactor, 1.0);
+
+	// Apply the light factor to the color
+	color = vec4(
+		color.rgb * lightFactor,
+		color.a);
+
 }
-
-shadow = shadow / totalWeight; // Average the samples with weights
-
-
-// Calculate the light factor based on the shadow value, lambert factor, and fade factor
-let lambertFactor = max(dot(input.vNormal, lightDirection), 0.0);
-let lightFactor = min(0. + shadow * lambertFactor, 1.0);
-
-// Apply the light factor to the color
-color = vec4(
-    color.rgb * lightFactor,
-    color.a);

@@ -1,0 +1,1 @@
+output.vUv = input.uv;

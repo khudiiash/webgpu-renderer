@@ -127,6 +127,11 @@ class TextureLoader {
         const source = await this.getBitmap(url);
         return this.createTexture(source, { mips: true, url });
     }
+  
+    async loadFromBlob(blob) {
+      const source = await createImageBitmap(blob, { colorSpaceConversion: 'none' });
+      return this.createTexture(source, { mips: true });
+    }
     
     numMipLevels(...sizes) {
         const maxSize = Math.max(...sizes);

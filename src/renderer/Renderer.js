@@ -1,7 +1,12 @@
 import { DirectionalLight } from '../lights/DirectionalLight';
 import { ShaderLib } from './shaders/ShaderLib';
 import { UniformLib } from './shaders/UniformLib';
-import { BindingUtils, PipelineUtils } from './utils';
+import { BindGroups} from './BindGroups';
+import { Pipelines } from './Pipelines';
+import { Textures } from './Textures';
+import { Samplers } from './Samplers';
+import { Buffers } from './Buffers';
+import { RenderObject } from './RenderObject';
 
 class Renderer {
     constructor(canvas) {
@@ -39,12 +44,13 @@ class Renderer {
         this.width = this.canvas.width;
         this.height = this.canvas.height;
         this.aspect = this.width / this.height;
-        this.createShadowTexture();
-        this.createDepthTexture();
+        this.textures = new Textures(this);
+        this.samplers = new Samplers(this);
+
         this.createRenderPassDescriptor();
-        this.createDefaultTexture();
-        this.bindingUtils = new BindingUtils(this.device, this);
-        this.pipelineUtils = new PipelineUtils(this.device, this);
+        this.bindGroups = new BindGroups(this.device, this);
+        this.pipelines = new Pipelines(this.device, this);
+        this.buffers = new Buffers(this.device, this);
 
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
@@ -57,13 +63,27 @@ class Renderer {
                 this.height = entry.target.height;
                 this.aspect = this.width / this.height;
             }
-            this.createDepthTexture();
+            this.textures.createDepthTexture();
             this.createRenderPassDescriptor();
         });
         
         observer.observe(this.canvas);
         this.initialized = true;
     }
+    
+    createSamplers() {
+        this.samplers = {
+            sampler_comparison: this.device.createSampler({
+                compare: 'less'
+            }),
+            
+            sampler: this.device.createSampler({
+                magFilter: 'linear',
+                minFilter: 'linear',
+            }),
+        }
+    }
+    
     
     createShadowTexture() {
         this.shadowTexture = this.device.createTexture({
@@ -72,6 +92,7 @@ class Renderer {
             format: 'depth32float'
         });
         this.shadowTextureView = this.shadowTexture.createView({ label: "Shader Depth Texture" });
+        this.textures.shadowMap = this.shadowTextureView;
     }
     
     createRenderPassDescriptor() {
@@ -79,13 +100,13 @@ class Renderer {
             colorAttachments: [
                 {
                     view: null,
-                    clearValue: [0.4, 0.4, 0.7, 1],
+                    clearValue: [0.0, 0.05, 0.1, 1],
                     loadOp: 'clear',
                     storeOp: 'store',
                 }
             ],
             depthStencilAttachment: {
-                view: this.depthTextureView,
+                view: this.textures.getView('depth'),
                 depthClearValue: 1.0,
                 depthLoadOp: 'clear',
                 depthStoreOp: 'store',
@@ -103,6 +124,7 @@ class Renderer {
             usage: GPUTextureUsage.RENDER_ATTACHMENT,
         });
         this.depthTextureView = this.depthTexture.createView({ label: 'Depth Texture View' });
+        this.textures.depth = this.depthTextureView;
     }
     
     get(object) {
@@ -141,61 +163,25 @@ class Renderer {
         });
     }
        
-    createMeshBuffers(mesh) {
-        const vertexBuffer = this.device.createBuffer({
-            size: mesh.geometry.vertexBufferSize,
-            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-        });
-        const indexBuffer = this.device.createBuffer({
-            size: mesh.geometry.indices.byteLength,
-            usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
-        });
-        const lightBuffer = this.device.createBuffer({
-            size: 64,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-        });
-        const modelMatrixBuffer = this.device.createBuffer({
-            size: 64,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-        });
 
-        this.device.queue.writeBuffer(vertexBuffer, 0, mesh.geometry.packed);
-        try {
-            this.device.queue.writeBuffer(indexBuffer, 0, mesh.geometry.indices);
-            mesh.isIndexed = true;
-        } catch(e) {
-            mesh.isIndexed = false;
-        }
+    createRenderObject(mesh) {
+        const renderObject = new RenderObject(mesh);
+        const renderBindGroupLayout = this.bindGroups.createRenderBindGroupLayout(renderObject);
+        const vertex = this.buffers.createVertexBuffer(mesh.geometry.packed);
+        const index = this.buffers.createIndexBuffer(mesh.geometry.indices);
+        const modelMatrixBuffer = this.buffers.createUniformBuffer(UniformLib.model, mesh.matrixWorld.data);
+        renderObject.setVertexBuffer(vertex);
+        renderObject.setIndexBuffer(index);
+        const shadowPipeline = this.pipelines.createShadowPipeline(renderObject);
+        const renderPipeline = this.pipelines.createRenderPipeline(renderObject, renderBindGroupLayout);
+        renderObject.setShadowPipeline(shadowPipeline);
+        renderObject.setRenderPipeline(renderPipeline);
+        const renderBindGroup = this.bindGroups.createRenderBindGroup(renderObject, renderBindGroupLayout);
+        const shadowBindGroup = this.bindGroups.createShadowBindGroup(modelMatrixBuffer, shadowPipeline.getBindGroupLayout(0));
+        renderObject.setRenderBindGroup(renderBindGroup);
+        renderObject.setShadowBindGroup(shadowBindGroup);
 
-        return { vertexBuffer, indexBuffer, lightBuffer, modelMatrixBuffer };
-    }
-    
-
-    createBindGroups(object, buffers) {
-        const objectBindGroupLayout = this.bindingUtils.getObjectBindGroupLayout(object, buffers);
-        const materialBindGroupLayout = this.bindingUtils.createMaterialBindGroupLayout(object, '');
-        const objectBindGroup = this.bindingUtils.createObjectBindGroup(object, objectBindGroupLayout, buffers);
-        const materialBindGroup = this.bindingUtils.createMaterialBindGroup(object, materialBindGroupLayout, buffers);
-        const layouts = [objectBindGroupLayout, materialBindGroupLayout];
-        const bindGroups = [objectBindGroup, materialBindGroup];
-
-        return { layouts, bindGroups };
-    }
-    
-    
-    createRenderObject(object) {
-        const renderObject = {};
-        const buffers = this.createMeshBuffers(object);
-        const bindGroups = this.createBindGroups(object, buffers);
-        const shadowDepthPipeline = this.pipelineUtils.createShadowDepthPipeline(object, bindGroups);
-        const shadowBindGroup = this.bindingUtils.createShadowBindGroup(shadowDepthPipeline, buffers);
-        const renderPipeline = this.pipelineUtils.createRenderPipeline(object, bindGroups);
-        renderObject.shadowDepthPipeline = shadowDepthPipeline;
-        renderObject.shadowBindGroup = shadowBindGroup;
-        renderObject.renderPipeline = renderPipeline;
-        renderObject.bindGroups = bindGroups;
-        renderObject.buffers = buffers;
-        this.set(object, renderObject);
+        this.set(mesh, renderObject);
         return renderObject;
     }
     
@@ -205,36 +191,24 @@ class Renderer {
             const renderObject = existing ? 
                 this.get(object) : 
                 this.createRenderObject(object);
+            
 
             if (object.matrixWorld.needsUpdate) {
-                this.device.queue.writeBuffer(renderObject.buffers.mvp, 0, object.matrixWorld.data);
+                this.device.queue.writeBuffer(renderObject.buffers.model, 0, object.matrixWorld.data);
                 object.matrixWorld.needsUpdate = false;
             }
-            //if (camera.viewMatrix.needsUpdate) {
-                this.device.queue.writeBuffer(renderObject.buffers.mvp, 64, camera.viewMatrix.data);
-                camera.viewMatrix.needsUpdate = false;
-            //}
-            //if (camera.projectionMatrix.needsUpdate) {
-                this.device.queue.writeBuffer(renderObject.buffers.mvp, 128, camera.projectionMatrix.data);
-                camera.projectionMatrix.needsUpdate = false;
-            //}
 
-            if (renderObject.buffers.lights) {
-                for (const light of lights) {
-                    if (light.isDirectionalLight) {
-                        this.device.queue.writeBuffer(renderObject.buffers.lights, 16, light.data);
-                        light.matrixWorld.needsUpdate = false;
-                    }
-                }
+            this.device.queue.writeBuffer(renderObject.buffers.index, 0, object.geometry.indices);
+            if (object.name === 'Cube') {
+                console.log(object.geometry.indices);                
             }
 
-            pass.setPipeline(renderObject.renderPipeline);
-            for (let i = 0; i < renderObject.bindGroups.bindGroups.length; i++) {
-                pass.setBindGroup(i, renderObject.bindGroups.bindGroups[i]);
-            }
-            pass.setVertexBuffer(0, renderObject.buffers.vertexBuffer);
-            pass.setIndexBuffer(renderObject.buffers.indexBuffer, 'uint16');
-            if (object.isIndexed) {
+            pass.setPipeline(renderObject.render.pipeline);
+            pass.setBindGroup(0, renderObject.render.bindGroup);
+            pass.setVertexBuffer(0, renderObject.buffers.vertex);
+            pass.setIndexBuffer(renderObject.buffers.index, 'uint16');
+
+            if (object.geometry.isIndexed) {
                 pass.drawIndexed(object.geometry.indices.length);
             } else {
                 pass.draw(object.geometry.vertexCount);
@@ -249,47 +223,39 @@ class Renderer {
         }
     }
     
-    createDefaultTexture() {
-        const texture = this.device.createTexture({
-            size: [1, 1],
-            format: this.format,
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-            label: 'Default Texture'
-        });
-        this.defaultTexture = texture;
-        this.defaultTextureView = texture.createView();
-        return texture;
-    }
     
     drawShadowDepth(object, pass, lights) {
         if (!lights.length) return;
-        const light = lights[0];
-        light.shadow.updateMatrices(light, this.aspect);
 
         if (object.isMesh) {
-            const exists = this.has(object);
-            const renderObject = exists ? this.get(object) : this.createRenderObject(object);
+            for (const light of lights) {
+                //light.shadow.updateMatrices(light, this.aspect);
+                const exists = this.has(object);
+                const renderObject = exists ? this.get(object) : this.createRenderObject(object);
 
-            if (object.matrixWorld.needsUpdate) {
-                this.device.queue.writeBuffer(renderObject.buffers.modelMatrixBuffer, 0, object.matrixWorld.data);
-                //this.device.queue.writeBuffer(renderObject.buffers.mvp, 0, object.matrixWorld.data);
-                //object.matrixWorld.needsUpdate = false;
-            }
-            if (light.matrixWorld.needsUpdate || light.shadow.camera.projectionMatrix.needsUpdate) {
-                this.device.queue.writeBuffer(renderObject.buffers.lightBuffer, 0, light.shadow.projectionViewMatrix.data);
-                //this.device.queue.writeBuffer(renderObject.buffers.lights, 0, light.data);
-                //light.matrixWorld.needsUpdate = false;
-            }
+                if (object.matrixWorld.needsUpdate) {
+                    this.device.queue.writeBuffer(renderObject.buffers.model, 0, object.matrixWorld.data);
+                    //this.device.queue.writeBuffer(renderObject.buffers.mvp, 0, object.matrixWorld.data);
+                    //object.matrixWorld.needsUpdate = false;
+                }
+                //if (light.matrixWorld.needsUpdate || light.shadow.camera.projectionViewMatrix.needsUpdate) {
+                    this.device.queue.writeBuffer(this.buffers.get('lightProjViewMatrix'), 0, light.shadow.projectionViewMatrix.data);
+                    //this.device.queue.writeBuffer(renderObject.buffers.lights, 0, light.data);
+                    //light.matrixWorld.needsUpdate = false;
+                //}
 
-            pass.setPipeline(renderObject.shadowDepthPipeline);
-            pass.setBindGroup(0, renderObject.shadowBindGroup);
-            pass.setVertexBuffer(0, renderObject.buffers.vertexBuffer)
-            pass.setIndexBuffer(renderObject.buffers.indexBuffer, 'uint16')
-            if (object.isIndexed) {
-                pass.drawIndexed(object.geometry.indices.length);
-            } else {
-                pass.draw(object.geometry.vertexCount);
+                pass.setPipeline(renderObject.shadow.pipeline);
+                pass.setBindGroup(0, renderObject.shadow.bindGroup);
+                pass.setVertexBuffer(0, renderObject.buffers.vertex)
+                pass.setIndexBuffer(renderObject.buffers.index, object.geometry.indexFormat);
+
+                if (object.geometry.isIndexed) {
+                    pass.drawIndexed(object.geometry.indices.length);
+                } else {
+                    pass.draw(object.geometry.vertexCount);
+                }
             }
+                
         }
 
         if (object.children.length) {
@@ -301,12 +267,30 @@ class Renderer {
     
     render(scene, camera) {
         if ( scene.matrixWorldAutoUpdate === true ) scene.updateMatrixWorld();
-        camera.updateViewMatrix();
+        if (!this.buffers.has('camera')) {
+            this.buffers.createUniformBuffer(UniformLib.camera, camera.data);
+        }
+        if (!this.buffers.has('scene')) {
+            this.buffers.createUniformBuffer(UniformLib.scene, scene.data);
+        }
+        if (camera.viewMatrix.needsUpdate) {
+            this.device.queue.writeBuffer(this.buffers.get('camera'), 0, camera.data);
+            camera.viewMatrix.needsUpdate = false;
+        }
+        if (camera.projectionMatrix.needsUpdate) {
+            this.device.queue.writeBuffer(this.buffers.get('camera'), 0, camera.data);
+            camera.projectionMatrix.needsUpdate = false;
+        }
+        if (scene.needsUpdate) {
+            this.device.queue.writeBuffer(this.buffers.get('scene'), 0, scene.data);
+            scene.needsUpdate = false;
+        }
 
         const encoder = this.device.createCommandEncoder();
         if (this.aspect !== camera.aspect) {
             camera.aspect = this.aspect;
             camera.updateProjectionMatrix();
+            this.device.queue.writeBuffer(this.buffers.get('camera'), 0, camera.data);
         }
         
         this.renderPassDescriptor.colorAttachments[0].view = this.context
@@ -316,13 +300,13 @@ class Renderer {
         const shadowDepthPass = encoder.beginRenderPass({
             colorAttachments: [],
             depthStencilAttachment: {
-                view: this.shadowTextureView,
+                view: this.textures.getView('shadowMap'),
                 depthLoadOp: 'clear',
                 depthClearValue: 1.0,
                 depthStoreOp: 'store',
             }
         });
-        this.drawShadowDepth(scene, shadowDepthPass, scene.lights);
+        this.drawShadowDepth(scene, shadowDepthPass, scene.directionalLights);
         shadowDepthPass.end();
 
         const renderPass = encoder.beginRenderPass(this.renderPassDescriptor);

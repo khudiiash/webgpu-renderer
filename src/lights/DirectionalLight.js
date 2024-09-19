@@ -2,6 +2,12 @@ import { Light } from './Light.js';
 import { DirectionalLightShadow } from './DirectionalLightShadow.js';
 
 class DirectionalLight extends Light {
+    static struct = {
+        color: 'vec4f',
+        direction: 'vec3f',
+        intensity: 'f32',
+    }
+
     constructor(...args) {
         super(...args);
         this.isDirectionalLight = true;
@@ -10,7 +16,6 @@ class DirectionalLight extends Light {
             this.quaternion.setFromEuler(this.rotation);
             this.rotationMatrix.setFromQuaternion(this.quaternion);
             this.updateMatrix();
-            this._data.set(this.direction.data, 4);
             this.needsUpdate = true;
         });
         this.shadow = new DirectionalLightShadow();
@@ -19,7 +24,6 @@ class DirectionalLight extends Light {
             ...this.color.data,
             ...this.direction.data,
             this.intensity,
-            ...this.shadow.camera.projectionMatrix.data
         ])
         this.byteSize = this._data.byteLength;
     }
@@ -29,7 +33,6 @@ class DirectionalLight extends Light {
         this.shadow.updateMatrices(this);
         this.quaternion.getForwardVector(this.direction);
         this._data.set(this.direction.data, 4);
-        this._data.set(this.shadow.camera.projectionViewMatrix.data, 8);
     }
     
     updateMatrixWorld(force) {
@@ -37,14 +40,12 @@ class DirectionalLight extends Light {
         this.quaternion.getForwardVector(this.direction);
         this.shadow.updateMatrices(this);
         this._data.set(this.direction.data, 4);
-        this._data.set(this.shadow.camera.projectionViewMatrix.data, 8);
     }
     
     lookAt(x, y, z) {
         super.lookAt(x, y, z);
         this.quaternion.getForwardVector(this.direction);
         this._data.set(this.direction.data, 4);
-        this._data.set(this.shadow.projectionView.data, 8);
     }
     
     get data() {

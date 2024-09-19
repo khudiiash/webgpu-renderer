@@ -1,59 +1,95 @@
-import { Color } from '../../math/Color';
-import { UniformUtils } from './UniformUtils';
 import { UniformGroup } from './UniformGroup';
 import { Uniform } from './Uniform';
-import { ShaderValueType } from '../utils/ShaderValueType';
-import { GPUType } from '../utils/Constants';
-import { Struct } from './Struct';
+import { DirectionalLight } from '../../lights/DirectionalLight';
+import { Fog } from '../../core/Fog';
+import { Camera } from '../../cameras/Camera';
 
 class UniformLib {
-    static get generic() {
-        return new UniformGroup({
-            name: 'generic',
-            uniforms: [
-                new Uniform('color').color(new Color(0xffffff)),
-                new Uniform('tint').color(new Color(0xffffff)),
-                new Uniform('opacity').float(1.0),
-            ],
-            visibility: GPUShaderStage.FRAGMENT,
-            resource: { buffer: { type: 'uniform' } },
-            varyings: [],
-        })
-    }
     
-    static fog = new UniformGroup({
-        name: 'fog',
+    static model = new UniformGroup({
+        name: 'model',
+        bindGroup: 0,
+        perMesh: true,
+        visibility: GPUShaderStage.VERTEX,
         uniforms: [
-            new Uniform('fogDensity').float(0.012),
-            new Uniform('fogNear').float(50),
-            new Uniform('fogFar').float(110),
-            new Uniform('_padding').float(0),
-            new Uniform('fogColor').color(new Color(0.4, 0.4, 0.7)),
-        ],
-        visibility: GPUShaderStage.FRAGMENT,
-        resource: { buffer: { type: 'uniform' } },
-    })
+            new Uniform('model').mat4()
+        ]
+    });
     
-    
-    static lights = new UniformGroup({
-            name: 'lights',
-            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-            uniforms: [
-                new Uniform('ambientLightColor').color(new Color(1, 1, 1, )),
-                new Uniform('directionalLights').structArray(
-                    [],
-                    new Struct('DirectionalLight', [
-                        new ShaderValueType('color', GPUType.Vec4f), 
-                        new ShaderValueType('direction', GPUType.Vec3f),
-                        new ShaderValueType('intensity', GPUType.Float),
-                        new ShaderValueType('projection', GPUType.Mat4x4f),
-                    ]),
-                    4
-                ),
-            ],
-            resource: { buffer: { type: 'uniform' } },
-        });
+    static camera = new UniformGroup({
+        name: 'camera',
+        bindGroup: 0,
+        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+        perMesh: false,
+        uniforms: [
+            new Uniform('camera').struct('Camera', Camera.struct)
+        ]
+    });
 
+    static scene = new UniformGroup({
+        name: 'scene',
+        bindGroup: 0,
+        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+        perMesh: false,
+        uniforms: [
+            new Uniform('fog').struct('Fog', Fog.struct),
+            new Uniform('ambientLight').color(),            
+            new Uniform('directionalLights').structArray('DirectionalLight', DirectionalLight.struct, 4),
+            new Uniform('directionalLightShadows').structArray('DirectionalLightShadow', {
+                shadowIntensity: 'f32',
+                shadowBias: 'f32',
+                shadowNormalBias: 'f32',
+                shadowRadius: 'f32',
+            }, 4),
+            
+            new Uniform('directionalLightMatrices').mat4Array(4),
+            
+            // new Uniform('pointLights').structArray('PointLight', {
+            //     color: 'vec4f',
+            //     position: 'vec3f',
+            //     intensity: 'f32',
+            // }, 12),
+            
+            // new Uniform('pointLightShadows').structArray('PointLightShadow', {
+            //     shadowIntensity: 'f32',
+            //     shadowBias: 'f32',
+            //     shadowNormalBias: 'f32',
+            //     shadowRadius: 'f32',
+            // }, 12),
+                
+
+            new Uniform('directionalLightsNum').float(0),
+            new Uniform('pointLightsNum').float(0),
+            new Uniform('pad1').float(0),
+            new Uniform('pad2').float(0),
+        ]
+    });
+    
+    static meshStandardMaterial = new UniformGroup({
+        name: 'MeshStandardMaterial',
+        uniforms: [
+            new Uniform('color').color(),
+            new Uniform('emissive').color(),
+            new Uniform('emissiveIntensity').float(),
+            new Uniform('metallic').float(),
+            new Uniform('roughness').float(),
+            new Uniform('normalScale').vec2(),
+        ]
+    });
+    
+    static meshPhongMaterial = new UniformGroup({
+        name: 'MeshPhongMaterial',
+        bindGroup: 0,
+        uniforms: [
+            new Uniform('color').color(),
+            new Uniform('emissive').color(),
+            new Uniform('emissiveIntensity').float(),
+            new Uniform('specular').color(),
+            new Uniform('shininess').float(),
+
+        ]
+    });
+    
     
     static compose(material) {
         const uniformGroups = material.uniforms;
@@ -69,7 +105,7 @@ class UniformLib {
                 if (!uniform.value) {
                     continue;
                 }
-                structs += `    ${key}: ${UniformUtils.getValueFormat(uniform.value)},\n`;
+                structs += `    ${key}: ${uniform.type},\n`;
             }
             structs += '}\n';
             bindingIndex++;
