@@ -1,3 +1,5 @@
+import { BufferAttribute } from './BufferAttribute.js';
+
 class InstancedBufferAttribute extends BufferAttribute {
     constructor(array, itemSize, normalized, meshPerAttribute = 1) {
         super(array, itemSize, normalized);

@@ -26,6 +26,7 @@ class Camera extends Object3D {
 		this.viewMatrix = new Matrix4();
 		this.projectionMatrixInverse = new Matrix4();
 		this.projectionViewMatrix = new Matrix4();
+		this.rightDirection = new Vector3();
 		let size = 64 + 64 + 12 + 12;
 		size = Math.ceil(size / 16) * 16;
 		this._data = new Float32Array(size / Float32Array.BYTES_PER_ELEMENT);
@@ -46,10 +47,13 @@ class Camera extends Object3D {
 	
 	updateViewMatrix() {
 		this.viewMatrix.lookAt(this.position, this.target, this.up);
+		this.direction.subVectors(this.target, this.position).normalize();
+		this.rightDirection.crossVectors(this.direction, this.up).normalize();
 		this._data.set(this.viewMatrix.data, 16);
 		this._data.set(this.position.data, 32);
 		this._data.set(this.direction.data, 35);
 	}
+	
 	
 	updateProjectionMatrix() {
 		// Implemented in subclasses
@@ -62,7 +66,6 @@ class Camera extends Object3D {
 		this.updateViewMatrix();
 
 	}
-	
 
 	updateWorldMatrix( updateParents, updateChildren ) {
 
@@ -74,6 +77,7 @@ class Camera extends Object3D {
 	clone() {
 		return new this.constructor().copy( this );
 	}
+	
 	
 	get data() {
 		return this._data;

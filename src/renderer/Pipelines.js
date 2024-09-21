@@ -8,30 +8,37 @@ class Pipelines {
         this.pipelines = new Map();
     }
     
-    createPipelineLayout(bindGroupLayout) {
-        return this.device.createPipelineLayout({
-            bindGroupLayouts: [bindGroupLayout]
-        });
-    }
     
-    
-    createShadowPipeline(renderObject) {
+    createShadowPipeline(renderObject, bindGroupLayout) {
+        const code = renderObject.mesh.isInstancedMesh ? 
+            ShaderChunks.vertex.shadow_depth_instanced.code :
+            ShaderChunks.vertex.shadow_depth.code;
+
         const pipelineDesc = { 
             label: 'Shadow Depth Pipline',
-            layout:  'auto',
+            layout:  this.device.createPipelineLayout({
+                bindGroupLayouts: [bindGroupLayout]
+            }),
             vertex: {
-                module: this.device.createShaderModule({ code: ShaderChunks.vertex.shadow_depth.code }),
+                module: this.device.createShaderModule({ code }),
                 buffers: [ renderObject.mesh.geometry.getVertexAttributesLayout() ] 
             },
             primitive: {
                 topology: 'triangle-list',
-                cullMode: 'front',
+                cullMode: 'back',
             },
             depthStencil: {
                 depthWriteEnabled: true,
                 depthCompare: 'less',
                 format: 'depth32float',
             },
+        }
+        if (renderObject.mesh.material.diffuseMap) {
+            const fragmentShader = ShaderChunks.fragment.shadow_depth.code;
+            pipelineDesc.fragment = {
+                module: this.device.createShaderModule({ code: fragmentShader }),
+                targets: []
+            }
         }
         this.shadowDepthPipeline = this.device.createRenderPipeline(pipelineDesc);
         return this.shadowDepthPipeline;

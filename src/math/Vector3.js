@@ -88,6 +88,7 @@ class Vector3 {
     
     subVectors(a, b) {
         vec3.sub(a.data, b.data, this.data);
+        this._onChangeCallback();
         return this;
     }
     
@@ -108,8 +109,8 @@ class Vector3 {
         return vec3.dot(this.data, v.data);
     }
     
-    cross(v1, v2) {
-        vec3.cross(v1.data, v2.data, this.data);
+    cross(v) {
+        vec3.cross(this.data, v.data, this.data);
         return this;
     }
     
@@ -170,6 +171,10 @@ class Vector3 {
     
     static subVectors(a, b) {
         return new Vector3().subVectors(a, b);
+    }
+    
+    static addVectors(a, b) {
+        return new Vector3().addVectors(a, b);
     }
     
     static crossVectors(a, b) {

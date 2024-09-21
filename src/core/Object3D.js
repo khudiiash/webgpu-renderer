@@ -131,13 +131,19 @@ class Object3D {
 		}
         
         _m1.extractRotation(this.matrixWorld);
-        this.direction.set(this.matrixWorld.data[8], this.matrixWorld.data[9], this.matrixWorld.data[10]).normalize();
+
+        // if (this.target) {
+        //     this.direction.subVectors(this.target, this.position).normalize();
+        // } else {
+            this.direction.set(this.matrixWorld.data[8], this.matrixWorld.data[9], this.matrixWorld.data[10]).normalize();
+        //}
 	}
     
     setScale(x, y, z) {
         if (y === undefined) y = x;
         if (z === undefined) z = x;
         this.scale.set(x, y, z);
+        this.updateWorldMatrix(false, true);
     }
     
     setPosition(x = 0, y = 0, z = 0) {
@@ -202,11 +208,8 @@ class Object3D {
     
     getWorldDirection() {
         this.updateWorldMatrix( true, false );
-
 		const e = this.matrixWorld.data;
-        this.direction.set( e[ 8 ], e[ 9 ], e[ 10 ] ).normalize();
-
-		return this.direction;
+        return new Vector3( e[ 8 ], e[ 9 ], e[ 10 ] ).normalize();
     }
 
 

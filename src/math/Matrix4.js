@@ -6,8 +6,14 @@ class Matrix4 {
     static byteSize = 16 * Float32Array.BYTES_PER_ELEMENT;
     
 
-    constructor(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) {
-        this.data = mat4.create(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
+    constructor() {
+        this.isMatrix4 = true;
+        this.data = new Float32Array([
+            1, 0, 0, 0,
+			0, 1, 0, 0,
+			0, 0, 1, 0,
+			0, 0, 0, 1
+        ]);
         this.up = new Vector3(0, 1, 0);
         this.needsUpdate = true;
     }
@@ -122,13 +128,6 @@ class Matrix4 {
 
 	}
     
-    translate(v) {
-        if (mat4.equals(this.data, mat4.translate(this.data, v.data))) return this;
-        mat4.translate(v.data, this.data);
-        this.needsUpdate = true;   
-        return this;
-    }
-    
     cameraAim(eye, target, up) {
         if (mat4.equals(this.data, mat4.cameraAim(eye.data, target.data, up.data))) return this;
         mat4.cameraAim(eye.data, target.data, up.data, this.data);
@@ -203,12 +202,109 @@ class Matrix4 {
             this.data[6]*vector.data[0] + this.data[7]*vector.data[1] + this.data[8]*vector.data[2]
         )
     }
-        
+    
+    translate(x, y, z) {
+        if (x instanceof Vector3) {
+            mat4.translate(this.data, x.data, this.data);
+            this.needsUpdate = true;   
+        } else if (typeof x === 'number' && typeof y === 'number' && typeof z === 'number') {
+            mat4.translate(this.data, [x, y, z], this.data);
+            this.needsUpdate = true;
+        }
+
+        return this;
+    }
+    
+    setPosition(x, y, z) {
+        if (x.isVector3) {
+            this.data[12] = x.data[0];
+            this.data[13] = x.data[1];
+            this.data[14] = x.data[2];
+            this.needsUpdate = true;
+        } else if (typeof x === 'number' && typeof y === 'number' && typeof z === 'number') {
+            this.data[12] = x;
+            this.data[13] = y;
+            this.data[14] = z;
+            this.needsUpdate = true;
+        }
+    }
+    
+    transformPoint(v) {
+        const x = v.x;
+        const y = v.y;
+        const z = v.z;
+        const data = this.data;
+        v.x = data[0] * x + data[4] * y + data[8] * z + data[12];
+        v.y = data[1] * x + data[5] * y + data[9] * z + data[13];
+        v.z = data[2] * x + data[6] * y + data[10] * z + data[14];
+        return v;
+    }
+    
+    transformDirection(v) {
+        const x = v.x;
+        const y = v.y;
+        const z = v.z;
+        const data = this.data;
+        v.x = data[0] * x + data[4] * y + data[8] * z;
+        v.y = data[1] * x + data[5] * y + data[9] * z;
+        v.z = data[2] * x + data[6] * y + data[10] * z;
+        return v;
+    }
+    
+    getPosition() {
+        return new Vector3(this.data[12], this.data[13], this.data[14]);
+    }
+    
+    rotateX(angle) {
+        mat4.rotateX(this.data, angle, this.data);
+        this.needsUpdate = true;
+    }
+    
+    rotateY(angle) {
+        mat4.rotateY(this.data, angle, this.data);
+        this.needsUpdate = true;
+    }
+    
+    rotateZ(angle) {
+        mat4.rotateZ(this.data, angle, this.data);
+        this.needsUpdate = true;
+    }
+    
+    
+    scale(x, y, z) {
+        if (x instanceof Vector3) {
+            mat4.scale(this.data, x.data, this.data);
+            this.needsUpdate = true;
+        } else if (typeof x === 'number' && y === undefined) {
+            mat4.uniformScale(this.data, x, this.data);
+            this.needsUpdate = true;
+        } else if (typeof x === 'number' && typeof y === 'number' && z === 'number') {
+            mat4.scale(this.data, [x, y, z], this.data);
+            this.needsUpdate = true;
+        }
+    }
+    
+    fromArray( array, offset = 0 ) {
+		for ( let i = 0; i < 16; i ++ ) {
+			this.data[ i ] = array[ i + offset ];
+		}
+
+		return this;
+	}
+
+	toArray( array = [], offset = 0 ) {
+        const data = this.data;
+        for ( let i = 0; i < 16; i ++ ) {
+            array[ offset + i ] = data[ i ];
+        }
+
+		return array;
+	} 
     
     static multiply(a, b, out) {
         if (mat4.equals(out.data, mat4.multiply(a.data, b.data))) return out;
         mat4.multiply(a.data, b.data, out.data);
-        out.needsUpdate
+        out.needsUpdate = true;
         return out;
     }
     

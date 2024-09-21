@@ -1,11 +1,26 @@
 import { StringUtils } from "../utils/StringUtils";
 
 class UniformGroup {
-    constructor({ name, uniforms, bindGroup = 0, visibility = GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT }) {
+    constructor({ 
+        name, 
+        uniforms, 
+        bindGroup = 0, 
+        perMesh = false, 
+        isMaterial = false, 
+        type = 'uniform', 
+        typeString = 'uniform', 
+        bufferType = 'uniform',
+        visibility = GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+    }) {
         this.name = name;
         this.uniforms = uniforms;
         this.visibility = visibility;
+        this.perMesh = perMesh;
+        this.isMaterial = isMaterial;
+        this.type = type;
+        this.typeString = typeString;
         this.bindGroup = bindGroup;
+        this.bufferType = bufferType;
         this.byteSize = this.calculateGroupSize();
         this._data = new Float32Array(this.byteSize / Float32Array.BYTES_PER_ELEMENT);
     }
@@ -69,7 +84,7 @@ class UniformGroup {
     getBindGroupString(bindGroup = 0, binding = 0) {
         const isComplex = this.uniforms.length > 1 || this.uniforms[0].isStruct || this.uniforms[0].isStructArray;
         const type = isComplex ? StringUtils.capitalize(this.name) : this.uniforms[0].type;
-        return `@group(${bindGroup}) @binding(${binding}) var<uniform> ${this.name}: ${type};\n`;
+        return `@group(${bindGroup}) @binding(${binding}) var<${this.typeString}> ${this.name}: ${type};\n`;
     }
     
     clone() {

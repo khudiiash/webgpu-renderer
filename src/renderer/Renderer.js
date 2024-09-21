@@ -100,7 +100,7 @@ class Renderer {
             colorAttachments: [
                 {
                     view: null,
-                    clearValue: [0.0, 0.05, 0.1, 1],
+                    clearValue: [0.3, 0.3, 0.3, 1],
                     loadOp: 'clear',
                     storeOp: 'store',
                 }
@@ -167,17 +167,20 @@ class Renderer {
     createRenderObject(mesh) {
         const renderObject = new RenderObject(mesh);
         const renderBindGroupLayout = this.bindGroups.createRenderBindGroupLayout(renderObject);
+        const shadowBindGroupLayout = this.bindGroups.createShadowBindGroupLayout(renderObject);
+        const renderBindGroup = this.bindGroups.createRenderBindGroup(renderObject, renderBindGroupLayout);
+        const shadowBindGroup = this.bindGroups.createShadowBindGroup(renderObject, shadowBindGroupLayout);
+
         const vertex = this.buffers.createVertexBuffer(mesh.geometry.packed);
         const index = this.buffers.createIndexBuffer(mesh.geometry.indices);
-        const modelMatrixBuffer = this.buffers.createUniformBuffer(UniformLib.model, mesh.matrixWorld.data);
+            
         renderObject.setVertexBuffer(vertex);
         renderObject.setIndexBuffer(index);
-        const shadowPipeline = this.pipelines.createShadowPipeline(renderObject);
+
+        const shadowPipeline = this.pipelines.createShadowPipeline(renderObject, shadowBindGroupLayout);
         const renderPipeline = this.pipelines.createRenderPipeline(renderObject, renderBindGroupLayout);
         renderObject.setShadowPipeline(shadowPipeline);
         renderObject.setRenderPipeline(renderPipeline);
-        const renderBindGroup = this.bindGroups.createRenderBindGroup(renderObject, renderBindGroupLayout);
-        const shadowBindGroup = this.bindGroups.createShadowBindGroup(modelMatrixBuffer, shadowPipeline.getBindGroupLayout(0));
         renderObject.setRenderBindGroup(renderBindGroup);
         renderObject.setShadowBindGroup(shadowBindGroup);
 
@@ -185,7 +188,7 @@ class Renderer {
         return renderObject;
     }
     
-    drawObject(object, camera, pass, lights) {
+    drawObject(object, camera, pass) {
         if (object.isMesh) {
             const existing = this.has(object);
             const renderObject = existing ? 
@@ -197,28 +200,32 @@ class Renderer {
                 this.device.queue.writeBuffer(renderObject.buffers.model, 0, object.matrixWorld.data);
                 object.matrixWorld.needsUpdate = false;
             }
-
-            this.device.queue.writeBuffer(renderObject.buffers.index, 0, object.geometry.indices);
-            if (object.name === 'Cube') {
-                console.log(object.geometry.indices);                
+            if (object.material.needsUpdate) {
+                this.device.queue.writeBuffer(renderObject.buffers.material, 0, object.material.data);
+                object.material.needsUpdate = false;
+            }
+            if (object.isInstancedMesh && object.needsUpdate) {
+                this.device.queue.writeBuffer(renderObject.buffers.model, 0, object.instanceMatrix);
+                object.needsUpdate = false;
             }
 
             pass.setPipeline(renderObject.render.pipeline);
             pass.setBindGroup(0, renderObject.render.bindGroup);
             pass.setVertexBuffer(0, renderObject.buffers.vertex);
             pass.setIndexBuffer(renderObject.buffers.index, 'uint16');
+            const instanceCount = object.isInstancedMesh ? object.count : 1;
 
             if (object.geometry.isIndexed) {
-                pass.drawIndexed(object.geometry.indices.length);
+                pass.drawIndexed(object.geometry.indices.length, instanceCount);
             } else {
-                pass.draw(object.geometry.vertexCount);
+                pass.draw(object.geometry.vertexCount, instanceCount);
             }
             
         }
         
         if (object.children.length) {
             for (let i = 0; i < object.children.length; i++) {
-                this.drawObject(object.children[i], camera, pass, lights);
+                this.drawObject(object.children[i], camera, pass);
             }
         }
     }
@@ -248,11 +255,12 @@ class Renderer {
                 pass.setBindGroup(0, renderObject.shadow.bindGroup);
                 pass.setVertexBuffer(0, renderObject.buffers.vertex)
                 pass.setIndexBuffer(renderObject.buffers.index, object.geometry.indexFormat);
+                const instanceCount = object.isInstancedMesh ? object.count : 1;
 
                 if (object.geometry.isIndexed) {
-                    pass.drawIndexed(object.geometry.indices.length);
+                    pass.drawIndexed(object.geometry.indices.length, instanceCount);
                 } else {
-                    pass.draw(object.geometry.vertexCount);
+                    pass.draw(object.geometry.vertexCount, instanceCount);
                 }
             }
                 
@@ -267,6 +275,7 @@ class Renderer {
     
     render(scene, camera) {
         if ( scene.matrixWorldAutoUpdate === true ) scene.updateMatrixWorld();
+        if ( camera.parent === null ) camera.updateMatrixWorld();
         if (!this.buffers.has('camera')) {
             this.buffers.createUniformBuffer(UniformLib.camera, camera.data);
         }
@@ -310,7 +319,7 @@ class Renderer {
         shadowDepthPass.end();
 
         const renderPass = encoder.beginRenderPass(this.renderPassDescriptor);
-        this.drawObject(scene, camera, renderPass, scene.lights);
+        this.drawObject(scene, camera, renderPass);
         renderPass.end();
 
         this.device.queue.submit([encoder.finish()]);

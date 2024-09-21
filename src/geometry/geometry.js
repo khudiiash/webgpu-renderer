@@ -1,7 +1,9 @@
 import { Float32BufferAttribute } from '../core/BufferAttribute.js';
+import { generateID } from '../math/MathUtils.js';
 
 class Geometry {
     constructor() {
+        this.id = generateID();
         this.vertices = [];
         this.normals = [];
         this.indices = [];
@@ -14,6 +16,7 @@ class Geometry {
         this.boundingSphere = null;
         this.attributes = {};
         this.isIndexed = false;
+        this.instancesCount = 1;
     }
     
     setAttribute(name, data) {

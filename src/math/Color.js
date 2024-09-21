@@ -2,7 +2,7 @@ class Color {
     gpuType = 'vec4f';
     static byteSize = 16;
 
-    constructor(r = 1, g = 1, b = 1, a = 1) {
+    constructor(r = 1, g, b, a = 1) {
         this._data = new Float32Array(4);
         if (typeof r === 'string') {
             if (r[0] === '#') {
@@ -12,7 +12,7 @@ class Color {
             }
             return;
         }
-        if (typeof r === 'number' && r > 1) {
+        if (typeof r === 'number' && g === undefined) {
             this.fromHex(r);
             return;
         }
@@ -32,6 +32,7 @@ class Color {
     set r(value) {
         this._r = value;
         this._data[0] = value;
+        this.onChangeCallback();
     }
 
     get g() {
@@ -41,6 +42,7 @@ class Color {
     set g(value) {
         this._g = value;
         this._data[1] = value;
+        this.onChangeCallback();
     }
 
     get b() {
@@ -50,6 +52,7 @@ class Color {
     set b(value) {
         this._b = value;
         this._data[2] = value;
+        this.onChangeCallback();
     }
 
     get a() {
@@ -59,6 +62,7 @@ class Color {
     set a(value) {
         this._a = value;
         this._data[3] = value;
+        this.onChangeCallback();
     }
 
     get data() {
@@ -71,6 +75,7 @@ class Color {
         this._b = (hex & 255) / 255;
         this._a = 1;
         this._data.set([this._r, this._g, this._b, this._a]);
+        this.onChangeCallback();
         return this;
     }
     
@@ -81,6 +86,7 @@ class Color {
         this._b = (color & 255) / 255;
         this._a = 1;
         this._data.set([this._r, this._g, this._b, this._a]);
+        this.onChangeCallback();
         return this;
     }
     
@@ -92,7 +98,7 @@ class Color {
                 return this.fromHex(parseInt(r));
             }
         }
-        if (typeof r === 'number') {
+        if (typeof r === 'number' && g === undefined) {
             return this.fromHex(r);
         }
         this._r = r;
@@ -100,6 +106,7 @@ class Color {
         this._b = b;
         this._a = a || 1;
         this._data.set([this._r, this._g, this._b, this._a]);
+        this.onChangeCallback();
         return this;
     }
     
@@ -108,6 +115,8 @@ class Color {
         this._g = color.g;
         this._b = color.b;
         this._a = color.a;
+        this._data.set([this._r, this._g, this._b, this._a]);
+        this.onChangeCallback();
         return this;
     }
     
@@ -122,6 +131,13 @@ class Color {
     printHex() {
         return `#${((this._r * 255) << 16 | (this._g * 255) << 8 | (this._b * 255)).toString(16)}`;
     }
+    
+    onChange(callback) {
+        this.onChangeCallback = callback;
+    }
+    
+    onChangeCallback() { }
+
     
 }
 

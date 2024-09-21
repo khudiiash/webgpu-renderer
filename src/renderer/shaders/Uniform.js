@@ -91,6 +91,14 @@ class Uniform {
         return this;
     }
     
+    storage(count, type) {
+        this.byteSize = count * Float32Array.BYTES_PER_ELEMENT;
+        this.isStorage = true;
+        this.type = type;
+        this._data = new Float32Array(count);
+        return this;
+    }
+    
     mat4Array(count) {
         this.value = [];
         this.byteSize = Matrix4.byteSize * count;

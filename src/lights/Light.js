@@ -10,7 +10,7 @@ class Light extends Object3D {
         this.bufferOffset = 0;
         this.type = 'Light';
         this.target = new Vector3();
-        this._color = new Color(color);
+        this._color = color.isColor ? color : new Color(color);
         this._intensity = intensity;
         this._castShadow = false;
     }

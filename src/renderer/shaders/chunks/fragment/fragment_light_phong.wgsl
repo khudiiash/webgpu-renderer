@@ -2,25 +2,24 @@ let DIR_NUM : u32 = u32(scene.directionalLightsNum);
 
 for (var i = 0u; i < DIR_NUM; i = i + 1u) {
      let light = scene.directionalLights[i];
-     if (light.color.a == 0.0) {
-         continue;
-     }
      let lightDot = dot(input.vNormal, light.direction);
      let lightColor = vec3f(light.color.rgb * lightDot * light.intensity);
      let diffuseFactor = max(lightDot, 0.0);
-     var specularFactor = 0.0;
-     let specularColor = vec3f(1.0, 1.0, 1.0);
-     if (diffuseFactor > 0.0) {
-         let viewDirection = normalize(input.vViewDirection);
-         let halfVector = normalize(-light.direction + viewDirection);
-         let specularAngle = max(dot(halfVector, input.vNormal), 0.0);
-         specularFactor = pow(specularAngle, 32.0);
+     
+     // Phong Specular Calculation
+     var finalSpecular = vec3f(0);
+     if (material.shininess > 0) {
+         let viewDir = normalize(camera.position - input.vWorldPosition);
+         let reflectDir = reflect(-light.direction, input.vNormal);
+         let spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+         let phongSpecular = material.specularColor.rgb * spec;
+         finalSpecular = phongSpecular;
      }
 
-     color = vec4f(
-         color.rgb * scene.ambientLight.rgb * scene.ambientLight.a +
-         color.rgb * diffuseFactor * lightColor +
-         color.rgb * specularFactor * specularColor,
-         color.a
-     );
+    color = vec4f(
+        color.rgb * scene.ambientColor.rgb * scene.ambientColor.a +
+        color.rgb * diffuseFactor * lightColor +
+        finalSpecular,
+        color.a
+    );
 }

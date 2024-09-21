@@ -1,1 +1,1 @@
-output.vNormal = normalize((model * vec4f(input.normal, 0.0)).xyz);
+output.vNormal = normalize((modelMatrix * vec4f(input.normal, 0.0)).xyz);

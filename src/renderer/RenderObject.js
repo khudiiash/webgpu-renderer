@@ -19,6 +19,10 @@ class RenderObject {
         }
     }
     
+    setModelBuffer(buffer) {
+        this.buffers.model = buffer;
+    }
+    
     setVertexBuffer(vertex) {
         this.buffers.vertex = vertex;
     }

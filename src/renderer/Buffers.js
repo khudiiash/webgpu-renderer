@@ -2,6 +2,7 @@ class Buffers {
     constructor(device, renderer) {
         this.device = device;
         this.renderer = renderer;
+        this.materials = new Map(); 
         this._buffers = new Map();
     }
     
@@ -9,7 +10,7 @@ class Buffers {
         const buffer = this.device.createBuffer({
             label: uniform.name,
             size: uniform.byteSize,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            usage: GPUBufferUsage[uniform.type.toUpperCase()] | GPUBufferUsage.COPY_DST,
         });
 
         if (uniform.data) {
@@ -24,12 +25,16 @@ class Buffers {
         return buffer;
     }
     
-    createBuffer(name, size, usage) {
+    
+    createBuffer(name, size, usage, data) {
         const buffer = this.device.createBuffer({
             label: name,
-            size,
-            usage,
+            size: size,
+            usage: usage,
         });
+        if (data) {
+            this.device.queue.writeBuffer(buffer, 0, data);
+        }
         this._buffers.set(name, buffer);
         return buffer;
     }

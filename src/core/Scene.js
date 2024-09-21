@@ -2,11 +2,11 @@ import { Object3D }  from './Object3D.js';
 import { Fog } from './Fog.js';
 import { Color } from '../math/Color.js';
 import { UniformLib } from '../renderer/shaders/UniformLib.js';
-import { AmbientLight } from '../lights/AmbientLight.js';
 
 class Scene extends Object3D {
     constructor() {
         super();
+        this.instances = new Map(); 
         this.isScene = true;
         this.name = 'Scene';
         this.cameras = [];
@@ -15,13 +15,13 @@ class Scene extends Object3D {
         this.meshes = [];
 
         this._needsUpdate = true;
-        this._fog = new Fog({ color: new Color(0.0, 0.05, 0.1, 1), start: 10, end: 180, density: 0.0025, type: Fog.LINEAR});
-        this._ambientLight = new Color(1, 1, 1, 0.5);
-
+        this._fog = new Fog({ color: new Color(0.3, 0.3, 0.3, 1), start: 30, end: 100, density: 0.0025, type: Fog.LINEAR});
+        this._ambientColor = new Color(1, 1, 1, 0.3);
+        
         this.uniformGroup = UniformLib.scene.clone();
 
         this.uniformGroup.set('fog', this.fog);
-        this.uniformGroup.set('ambientLight', this.ambientLight);
+        this.uniformGroup.set('ambientColor', this.ambientColor);
         this._data = new Float32Array(this.uniformGroup.byteSize / 4);
     }
     
@@ -35,13 +35,13 @@ class Scene extends Object3D {
         this.updateData();
     }
     
-    get ambientLight() {
-        return this._ambientLight;
+    get ambientColor() {
+        return this._ambientColor;
     }
 
-    set ambientLight(value) {
-        this._ambientLight = value;
-        this.uniformGroup.set('ambientLight', value);
+    set ambientColor(value) {
+        this._ambientColor = value;
+        this.uniformGroup.set('ambientColor', value);
         this.updateData();
     }
     

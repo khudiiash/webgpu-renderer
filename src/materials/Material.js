@@ -1,11 +1,11 @@
 import { Color } from '../math/Color.js';
+import { generateID } from '../math/MathUtils.js';
 
 class Material {
     constructor(params = {}) {
+        this.id = generateID();
         this.isMaterial = true;
         this.type = 'Material';
-        this.color = new Color(params.color ? params.color : 0xffffff);
-        this.tint = new Color(params.tint ? params.tint : 0xffffff);
     }
     
     get diffuseMap() {

@@ -18,9 +18,11 @@ class LightShadow {
         this.projectionMatrixInverse = new Matrix4();
         this.camera.updateProjectionMatrix();
         this._shadowIntensity = 1;
-        this._shadowBias = 0.005;
+        this._shadowBias = 0.1;
         this._shadowNormalBias = 0;
         this._shadowRadius = 1;
+        this.camera.isShadowCamera = true;
+
         this._data = new Float32Array([
             this._shadowIntensity,
             this._shadowBias,

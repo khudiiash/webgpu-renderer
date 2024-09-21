@@ -1,6 +1,6 @@
 import { Color } from "../math/Color";
 
-class AmbientLight {
+class ambientColor {
     static byteSize = 20;
 
     constructor({ color = '#ffffff', intensity = 1}) {
@@ -17,4 +17,4 @@ class AmbientLight {
     }
 }
 
-export { AmbientLight };
+export { ambientColor };

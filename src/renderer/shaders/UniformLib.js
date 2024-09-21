@@ -15,7 +15,7 @@ class UniformLib {
             new Uniform('model').mat4()
         ]
     });
-    
+
     static camera = new UniformGroup({
         name: 'camera',
         bindGroup: 0,
@@ -33,7 +33,7 @@ class UniformLib {
         perMesh: false,
         uniforms: [
             new Uniform('fog').struct('Fog', Fog.struct),
-            new Uniform('ambientLight').color(),            
+            new Uniform('ambientColor').color(),            
             new Uniform('directionalLights').structArray('DirectionalLight', DirectionalLight.struct, 4),
             new Uniform('directionalLightShadows').structArray('DirectionalLightShadow', {
                 shadowIntensity: 'f32',
@@ -62,31 +62,6 @@ class UniformLib {
             new Uniform('pointLightsNum').float(0),
             new Uniform('pad1').float(0),
             new Uniform('pad2').float(0),
-        ]
-    });
-    
-    static meshStandardMaterial = new UniformGroup({
-        name: 'MeshStandardMaterial',
-        uniforms: [
-            new Uniform('color').color(),
-            new Uniform('emissive').color(),
-            new Uniform('emissiveIntensity').float(),
-            new Uniform('metallic').float(),
-            new Uniform('roughness').float(),
-            new Uniform('normalScale').vec2(),
-        ]
-    });
-    
-    static meshPhongMaterial = new UniformGroup({
-        name: 'MeshPhongMaterial',
-        bindGroup: 0,
-        uniforms: [
-            new Uniform('color').color(),
-            new Uniform('emissive').color(),
-            new Uniform('emissiveIntensity').float(),
-            new Uniform('specular').color(),
-            new Uniform('shininess').float(),
-
         ]
     });
     

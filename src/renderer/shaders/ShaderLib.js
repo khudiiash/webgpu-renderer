@@ -46,8 +46,9 @@ class ShaderLib {
             ${structs}
             
             ${bindings}
-
+            
             struct VertexInput { 
+                @builtin(instance_index) instanceIndex: u32,
                 ${attributes} 
             } 
             struct VertexOutput {
@@ -57,10 +58,7 @@ class ShaderLib {
             
             @vertex
             fn main(input: VertexInput) -> VertexOutput {
-                let pos = vec4f(input.position, 1.0);
-                var position = camera.projection * camera.view * model * pos;
                 var output: VertexOutput;
-                output.position = position;
                 ${vertexChunks}
                 return output;
             }
@@ -86,13 +84,14 @@ class ShaderLib {
             @fragment
             fn main(input: FragmentInput) -> FragmentOutput {
                 var output: FragmentOutput;
-                var color = vec4f(1);
+                var color = material.color;
                 ${fragmentChunks}
                 output.color = color;
                 return output;
             }
         `);
-
+        
+        
         return {
             vertexShader,
             fragmentShader,
