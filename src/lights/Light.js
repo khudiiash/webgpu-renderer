@@ -47,12 +47,6 @@ class Light extends Object3D {
         this.target.set(x, y, z);
         this.shadow?.updateMatrices(this);
     }
-    
-    setPosition(x, y, z) {
-        super.setPosition(x, y, z);
-        this.lookAt(this.target.x, this.target.y, this.target.z);
-        this.shadow?.updateMatrices(this);
-    }
 }
 
 export { Light };

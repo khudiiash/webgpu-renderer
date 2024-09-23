@@ -2,36 +2,40 @@ let shadowMapSize = f32(textureDimensions(shadowMap).x);
 let DIR_LIGHT_NUM = u32(scene.directionalLightsNum);
 
 
-
 for (var i = 0u; i < DIR_LIGHT_NUM; i = i + 1u) {
     let light = scene.directionalLights[i];
-    let shadowConfig = scene.directionalLightShadows[i];
-    let matrix = scene.directionalLightMatrices[i];
     var visibility = 0.0;
-    
-    let posFromLight = matrix * vec4f(input.vWorldPosition, 1.0);
-    let shadowPos = vec3f(
-        posFromLight.xy * vec2f(0.5, -0.5) + vec2f(0.5, 0.5), 
-        posFromLight.z
-    );
+    var intensity = 1.0;
+    if (light.direction.y < 0.0) {
+        visibility = 1.0;
+        intensity = 0.0;
+    } else {
+        let shadowConfig = scene.directionalLightShadows[i];
+        let matrix = scene.directionalLightMatrices[i];
+        visibility = 0.0;
+        let intensity = max(light.direction.y, 0.5);
+        
+        let posFromLight = matrix * vec4f(input.vWorldPosition, 1.0);
+        let shadowPos = vec3f(
+            posFromLight.xy * vec2f(0.5, -0.5) + vec2f(0.5, 0.5), 
+            posFromLight.z
+        );
 
-    let oneOverShadowDepthTextureSize = 1.0 / shadowMapSize;
-    for (var y = -1; y <= 1; y++) {
-        for (var x = -1; x <= 1; x++) {
-            let offset = vec2f(vec2(x, y)) * oneOverShadowDepthTextureSize;
+        let oneOverShadowDepthTextureSize = 1.0 / shadowMapSize;
+        for (var y = -1; y <= 1; y++) {
+            for (var x = -1; x <= 1; x++) {
+                let offset = vec2f(vec2(x, y)) * oneOverShadowDepthTextureSize;
 
-            visibility += textureSampleCompare(
-                shadowMap, samplerComparison,
-                shadowPos.xy + offset, shadowPos.z - 0.0005
-            );
+                visibility += textureSampleCompare(
+                    shadowMap, samplerComparison,
+                    shadowPos.xy + offset, shadowPos.z - 0.0005
+                );
+            }
         }
+      visibility /= 9.0;
     }
-  visibility /= 9.0;
 
   let lambertFactor = max(dot(normalize(light.direction), normalize(input.vNormal)), 0.0);
   let lightingFactor = min(scene.ambientColor.a + visibility * lambertFactor, 1.0);
-
-  if (shadowPos.x < shadowMapSize && shadowPos.y < shadowMapSize) {
-    color = vec4(color.rgb * lightingFactor, color.a);
-  }
+  color = vec4(color.rgb * lightingFactor, color.a);
 }

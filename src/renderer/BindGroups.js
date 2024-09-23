@@ -65,12 +65,12 @@ class BindGroups {
             let buffer = null;
 
             if (uniform.perMesh) {
-                buffer = this.renderer.buffers.createUniformBuffer(uniform);
+                console.log(renderObject.buffers[uniform.name]);
+                buffer = renderObject.buffers[uniform.name.replace('instances', 'model')] ?? this.renderer.buffers.createUniformBuffer(uniform);
             } else if (uniform.isMaterial) {
-                buffer = this.renderer.buffers.materials.get(mesh.material.name) ?? this.renderer.buffers.createUniformBuffer(uniform, mesh.material.data);
-                this.renderer.buffers.materials.set(mesh.material, buffer);
+                buffer = renderObject.buffers.material || this.renderer.buffers.createUniformBuffer(uniform, mesh.material.data);
             } else {
-                buffer = this.renderer.buffers.get(uniform.name) ?? this.renderer.buffers.createUniformBuffer(uniform); 
+                buffer = renderObject.buffers[uniform.name] ?? this.renderer.buffers.get(uniform.name) ?? this.renderer.buffers.createUniformBuffer(uniform); 
             }
 
             renderObject.setUniformBuffer(uniform.name.replace('instances', 'model'), buffer);
@@ -81,9 +81,9 @@ class BindGroups {
                 resource: { buffer }
             }
         });
-        const textures = mesh.material.textures.map(texture => {
-            let resource = texture.texture?.createView() || this.renderer.textures.getView(texture.name);
 
+        const textures = mesh.material.textures.map(texture => {
+            let resource = texture.texture?.createView() || this.renderer.textures.getView(texture.name) || this.renderer.textures.getView('default');
 
             return {
                 binding: binding++,

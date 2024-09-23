@@ -30,16 +30,11 @@ class GLTFLoader {
     }
     
     async load(url, instances = 0) {
-        if (this.cache.has(url)) {
-            return this.cache.get(url);
-        }
-        const parsed = await load(url, GLTF);
-        const mesh = await this.extractMeshData(parsed, instances);
-        this.cache.set(url, mesh);
-        return mesh;
+        this.data = await load(url, GLTF);
+        return this.extractMeshData(this.data, instances);
     }
     
-    async extractMeshData(data, instances) {
+    extractMeshData(data, instances) {
         const gltf = data.json;
         const buffers = data.buffers;
         if (!gltf.meshes) {
@@ -48,8 +43,8 @@ class GLTFLoader {
         }
         if (gltf.meshes.length === 1) {
             const geometry = this.createGeometry(gltf.meshes[0], gltf, buffers);
-            const material = await this.createMaterial(gltf.meshes[0], gltf, buffers);
-            const Constructor = instances > 0 ? InstancedMesh : Mesh;
+            const material = this.createMaterial(gltf.meshes[0], gltf, buffers);
+            const Constructor = instances ? InstancedMesh : Mesh;
             const mesh = new Constructor(geometry, material, instances);
             return mesh;
         }
@@ -58,7 +53,7 @@ class GLTFLoader {
 
         for (const mesh of gltf.meshes) {
             const geometry = this.createGeometry(mesh, gltf, buffers);
-            const material = await this.createMaterial(mesh, gltf, buffers);
+            const material = this.createMaterial(mesh, gltf, buffers);
             group.add(new Mesh(geometry, material));
         }
         return group;
@@ -88,20 +83,20 @@ class GLTFLoader {
         const uvs = new Float32Array(uvBuffer.arrayBuffer, uvBuffer.byteOffset + uvBufferView.byteOffset, uvAccessor.count * 2);
         let indices = new COMPONENT_TYPES[indexAccessor.componentType](indexBuffer.arrayBuffer, indexBuffer.byteOffset + indexBufferView.byteOffset, indexAccessor.count);
 
-        if (indices.length % 4 !== 0) {
-          const newSizeMultipleOf4 = Math.ceil(indices.length / 4) * 4;
-          const newIndices = new COMPONENT_TYPES[indexAccessor.componentType](newSizeMultipleOf4);  
-          newIndices.set(indices);
-          indices = newIndices;
-        }
+        // if (indices.length % 4 !== 0) {
+        //   const newSizeMultipleOf4 = Math.ceil(indices.length / 4) * 4;
+        //   const newIndices = new COMPONENT_TYPES[indexAccessor.componentType](newSizeMultipleOf4);  
+        //   newIndices.set(indices);
+        //   indices = newIndices;
+        // }
         geometry.setFromArrays(positions, normals, uvs, indices);
         return geometry;        
       }
     
-     async createMaterial(mesh, gltf, buffers) {
+     createMaterial(mesh, gltf, buffers) {
+         const material = new MeshPhongMaterial({ color: '#ffffff' });
          try {
             const primitive = mesh.primitives[0];
-            let diffuseMap;
             if (primitive.material !== undefined) {
                    const gltfMaterial = gltf.materials[primitive.material];
                   const pbrMetallicRoughness = gltfMaterial.pbrMetallicRoughness;
@@ -114,14 +109,16 @@ class GLTFLoader {
                       const buffer = buffers[bufferView.buffer];
                       const slice = buffer.arrayBuffer.slice(buffer.byteOffset + bufferView.byteOffset, buffer.byteOffset + bufferView.byteOffset + bufferView.byteLength);
                       const blob = new Blob([slice], { type: image.mimeType });
-                      diffuseMap = await this.textureLoader.loadFromBlob(blob);
+                      this.textureLoader.loadFromBlob(blob).then((texture) => {
+                            material.diffuseMap = texture;
+                      })
                   }
             }
-            return new MeshPhongMaterial({ diffuseMap });
          } catch(e) {
-            console.error(e);
-            return new MeshPhongMaterial({ color: '#ffffff' });
+                console.error(e);
          }
+         
+         return material;
      }
 }
 export { GLTFLoader };

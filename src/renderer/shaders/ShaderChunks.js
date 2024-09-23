@@ -2,6 +2,7 @@ import common from './chunks/common.wgsl?raw';
 import vertex_default from './chunks/vertex/vertex_default.wgsl?raw';
 import vertex_position from './chunks/vertex/vertex_position.wgsl?raw';
 import vertex_instance_position from './chunks/vertex/vertex_instance_position.wgsl?raw';
+import vertex_culling from './chunks/vertex/vertex_culling.wgsl?raw';
 import vertex_uv from './chunks/vertex/vertex_uv.wgsl?raw';
 import vertex_world_position from './chunks/vertex/vertex_world_position.wgsl?raw';
 import vertex_fog from './chunks/vertex/vertex_fog.wgsl?raw';
@@ -46,6 +47,7 @@ class ShaderChunks {
     static common = new ShaderChunk('common', common);
     static vertex = {
         default: new VertexChunk('default', vertex_default),
+        culling: new VertexChunk('culling', vertex_culling, [ new Varying('vVisible', 'f32')]),
         position: new VertexChunk('vertex_position', vertex_position),
         instance_position: new VertexChunk('vertex_instance_position', vertex_instance_position),
         uv: new VertexChunk('vertex_uv', vertex_uv, [ new Varying('vUv', 'vec2f')]),

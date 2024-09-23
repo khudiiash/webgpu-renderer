@@ -38,6 +38,10 @@ class Mesh extends Object3D {
             const v1 = _v1.set(positions[i1 * 3], positions[i1 * 3 + 1], positions[i1 * 3 + 2]);
             const v2 = _v2.set(positions[i2 * 3], positions[i2 * 3 + 1], positions[i2 * 3 + 2]);
             const v3 = _v3.set(positions[i3 * 3], positions[i3 * 3 + 1], positions[i3 * 3 + 2]);
+            if (x < v1.x && x < v2.x && x < v3.x) continue;
+            if (x > v1.x && x > v2.x && x > v3.x) continue;
+            if (z < v1.z && z < v2.z && z < v3.z) continue;
+            if (z > v1.z && z > v2.z && z > v3.z) continue;
 
             const intersection = this.rayTriangleIntersection(localRayOrigin, localRayDirection, v1, v2, v3);
             

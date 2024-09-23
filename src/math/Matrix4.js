@@ -25,6 +25,22 @@ class Matrix4 {
         return this;
     }
     
+    lookAtRotation(eye, target, up = this.up) {
+        const zAxis = Vector3.subVectors(target, eye).normalize();
+        const xAxis = Vector3.crossVectors(up, zAxis).normalize();
+        const yAxis = Vector3.crossVectors(zAxis, xAxis);
+
+        this.set(
+            xAxis.x, yAxis.x, zAxis.x, 0,
+            xAxis.y, yAxis.y, zAxis.y, 0,
+            xAxis.z, yAxis.z, zAxis.z, 0,
+            0, 0, 0, 1
+        );
+
+        this.needsUpdate = true;
+        return this;
+    }
+    
     identity() {
         mat4.identity(this.data);
         return this;
@@ -43,6 +59,14 @@ class Matrix4 {
         this.needsUpdate = true;
         return this;
     }
+    
+    cameraAim(eye, target, up = this.up) {
+        if (mat4.equals(this.data, mat4.cameraAim(eye.data, target.data, up.data))) return this;
+        mat4.cameraAim(eye.data, target.data, up.data, this.data);
+        this.needsUpdate = true;
+        return this
+    }
+    
     
     compose(position, quaternion, scale) {
         this.data[0] = scale.data[0] * (1 - 2 * quaternion.data[1] * quaternion.data[1] - 2 * quaternion.data[2] * quaternion.data[2]);
@@ -94,7 +118,6 @@ class Matrix4 {
     }
     
     extractRotation( m ) {
-
 		// this method does not support reflection matrices
 
 		const te = this.data;
@@ -127,13 +150,6 @@ class Matrix4 {
 		return this;
 
 	}
-    
-    cameraAim(eye, target, up) {
-        if (mat4.equals(this.data, mat4.cameraAim(eye.data, target.data, up.data))) return this;
-        mat4.cameraAim(eye.data, target.data, up.data, this.data);
-        this.needsUpdate = true;   
-        return this;
-    }
     
     rotate(m, axis, angleInRadians) {
         if (mat4.equals(this.data, mat4.rotate(m.data, axis.data, angleInRadians))) return this;
@@ -185,13 +201,8 @@ class Matrix4 {
         return this;
     }
     
-    
-    getTranslation() {
-        return mat4.getTranslation(this.data);
-    }
-    
-    getScaling() {
-        return mat4.getScaling(this.data);
+    getScale() {
+        return new Vector3().fromArray(mat4.getScaling(this.data));
     }
     
     multiplyVec3(vector, out) {

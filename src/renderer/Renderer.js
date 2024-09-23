@@ -100,7 +100,7 @@ class Renderer {
             colorAttachments: [
                 {
                     view: null,
-                    clearValue: [0.3, 0.3, 0.3, 1],
+                    clearValue: [0.4, 0.5, 0.5, 1],
                     loadOp: 'clear',
                     storeOp: 'store',
                 }
@@ -179,8 +179,8 @@ class Renderer {
 
         const shadowPipeline = this.pipelines.createShadowPipeline(renderObject, shadowBindGroupLayout);
         const renderPipeline = this.pipelines.createRenderPipeline(renderObject, renderBindGroupLayout);
-        renderObject.setShadowPipeline(shadowPipeline);
-        renderObject.setRenderPipeline(renderPipeline);
+        renderObject.setShadowPipeline(shadowPipeline, shadowBindGroupLayout);
+        renderObject.setRenderPipeline(renderPipeline, renderBindGroupLayout);
         renderObject.setRenderBindGroup(renderBindGroup);
         renderObject.setShadowBindGroup(shadowBindGroup);
 
@@ -199,6 +199,11 @@ class Renderer {
             if (object.matrixWorld.needsUpdate) {
                 this.device.queue.writeBuffer(renderObject.buffers.model, 0, object.matrixWorld.data);
                 object.matrixWorld.needsUpdate = false;
+            }
+            if (object.material.needsBindGroupUpdate) {
+                renderObject.render.bindGroup = this.bindGroups.createRenderBindGroup(renderObject, renderObject.render.layout);
+                renderObject.shadow.bindGroup = this.bindGroups.createShadowBindGroup(renderObject, renderObject.shadow.layout);
+                object.material.needsBindGroupUpdate = false;
             }
             if (object.material.needsUpdate) {
                 this.device.queue.writeBuffer(renderObject.buffers.material, 0, object.material.data);
@@ -236,20 +241,17 @@ class Renderer {
 
         if (object.isMesh) {
             for (const light of lights) {
-                //light.shadow.updateMatrices(light, this.aspect);
                 const exists = this.has(object);
                 const renderObject = exists ? this.get(object) : this.createRenderObject(object);
 
                 if (object.matrixWorld.needsUpdate) {
                     this.device.queue.writeBuffer(renderObject.buffers.model, 0, object.matrixWorld.data);
-                    //this.device.queue.writeBuffer(renderObject.buffers.mvp, 0, object.matrixWorld.data);
-                    //object.matrixWorld.needsUpdate = false;
+                    object.matrixWorld.needsUpdate = false;
                 }
-                //if (light.matrixWorld.needsUpdate || light.shadow.camera.projectionViewMatrix.needsUpdate) {
+                if (light.shadow.projectionViewMatrix.needsUpdate) {
                     this.device.queue.writeBuffer(this.buffers.get('lightProjViewMatrix'), 0, light.shadow.projectionViewMatrix.data);
-                    //this.device.queue.writeBuffer(renderObject.buffers.lights, 0, light.data);
-                    //light.matrixWorld.needsUpdate = false;
-                //}
+                    light.shadow.projectionViewMatrix.needsUpdate = false;
+                }
 
                 pass.setPipeline(renderObject.shadow.pipeline);
                 pass.setBindGroup(0, renderObject.shadow.bindGroup);
@@ -290,7 +292,9 @@ class Renderer {
             this.device.queue.writeBuffer(this.buffers.get('camera'), 0, camera.data);
             camera.projectionMatrix.needsUpdate = false;
         }
-        if (scene.needsUpdate) {
+        if (scene.needsUpdate || scene.lights.some(light => light.needsUpdate)) {
+            scene.updateData();
+            this.renderPassDescriptor.colorAttachments[0].clearValue = scene.background.data;
             this.device.queue.writeBuffer(this.buffers.get('scene'), 0, scene.data);
             scene.needsUpdate = false;
         }

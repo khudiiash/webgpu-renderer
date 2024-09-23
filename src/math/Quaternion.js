@@ -61,7 +61,7 @@ class Quaternion {
     }
     
     setFromMatrix(matrix) {
-        quat.fromMat(matrix, this.data);
+        quat.fromMat(matrix.data, this.data);
         this._onChangeCallback();
         this.needsUpdate = true; 
         return this;
@@ -130,7 +130,7 @@ class Quaternion {
 
     
     setFromRotationMatrix(m) {
-        quat.fromMat(m, this.data);
+        quat.fromMat(m.data, this.data);
         this._onChangeCallback();
         this.needsUpdate = true;
         return this;

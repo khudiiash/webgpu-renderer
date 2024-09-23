@@ -21,6 +21,8 @@ import { FirstPersonControls } from "./cameras/FirstPersonControls";
 
 import { InstancedMesh } from "./core/InstancedMesh";
 import { OrbitControls } from "./cameras/OrbitControls";
+import { Boids } from "./extra/Boids";
+import { BoundingBox } from "./math/BoundingBox";
 
 class App {
     constructor() {
@@ -43,42 +45,45 @@ class App {
         this.camera.name = 'MainCamera';
         
         const terrain = await new GLTFLoader(this.renderer).load('../assets/terrain.gltf');  
+        terrain.name = 'Terrain';
         terrain.material.shininess = 0;
         terrain.roughness = 1;
         this.terrain = terrain;
         this.scene.add(terrain);
         
         const tower = await new GLTFLoader(this.renderer).load('../assets/tower.glb');
+        tower.name = 'Tower';
         tower.material.shininess = 32;
-        tower.setPosition(0, 4.9, 0);
-        tower.setScale(0.03);
+        tower.setPosition(2, 4.9 * 3.33, 2);
+        tower.setScale(0.1);
+        this.tower = tower;
         this.scene.add(tower);
+        const bird = await new GLTFLoader(this.renderer).load('../assets/bird.glb');
+        this.boids = new Boids(
+            bird.geometry,
+            bird.material,
+            400, 
+            new BoundingBox(new Vector3(-100, 3, -100), new Vector3(100, 50, 100))
+        );
+        this.scene.add(this.boids);
+
         
-        const trees = await new GLTFLoader(this.renderer).load('../assets/tree.glb', 1000);
+        const trees = await new GLTFLoader(this.renderer).load('../assets/tree.glb', 2000);
+        trees.name = 'Trees';
         const pos = new Vector3();
         for (let i = 0; i < trees.count; i++) {
-            const x = randomFloat(-50, 50);
-            const z = randomFloat(-50, 50);
+            const x = randomFloat(-100, 100);
+            const z = randomFloat(-100, 100);
             const y = terrain.getHeightAt(x, z);
             pos.set(x, y, z);
             trees.setPositionAt(pos, i);
+            trees.setScaleAt(randomFloat(0.8, 1.2), i);
             trees.rotateYAt(randomFloat(0, Math.PI * 2), i);
             trees.rotateXAt(randomFloat(-0.1, 0.1), i);
             trees.rotateZAt(randomFloat(-0.1, 0.1), i);
             trees.setScaleAt(randomFloat(0.4, 0.5), i);
         }
         this.scene.add(trees);
-        // const rows = 10;
-        // const cols = 100;
-        // const v = new Vector3();
-        // const sph = new InstancedMesh(
-        //     new SphereGeometry(0.1, 8, 8),
-        //     new MeshPhongMaterial({ color: '#ffffff' }),
-        //     rows * cols 
-        // )
-        // this.scene.add(sph);
-
-
 
         // const floorGeometry = new PlaneGeometry(10, 10);
         // const floorMaterial = new MeshPhongMaterial({ color: '#333333', shininess: 152 });  
@@ -87,6 +92,15 @@ class App {
         // floor.name = 'Floor';
         // this.scene.add(floor);
         
+        // const box = new InstancedMesh(new BoxGeometry(1, 1, 1), new MeshPhongMaterial({ color: '#ff0000', shininess: 152 }), 10);
+        // for (let i = 0; i < 10; i++) {
+        //     box.setPositionAt(new Vector3(randomFloat(-5, 5), 0.5, randomFloat(-5, 5)), i);
+        // }
+        // box.name = 'Box';
+        // this.scene.add(box);
+        // this.box = box;
+
+        
         // Shadow alpha test
         // const plane = new Mesh(new PlaneGeometry(1, 1), new MeshPhongMaterial({ diffuseMap: await new TextureLoader(this.renderer).load('../assets/leaf.png') }));
         // plane.rotation.x = -Math.PI / 2;
@@ -94,8 +108,7 @@ class App {
         // this.scene.add(plane);
 
     
-        this.controls = new OrbitControls(this.camera, canvas);
-        
+        //this.controls = new OrbitControls(this.camera, canvas);
         
         this.light = new DirectionalLight();
         this.light.name = 'DirectionalLight';
@@ -121,11 +134,15 @@ class App {
     
     update(dt) {
         this.stats.update(); 
-        const cameraDistance = 10;
+        const cameraDistance = 100;
         const cameraSpeed = 0.1;
-        //this.camera.setPosition(-Math.sin(this.elapsed * cameraSpeed) * cameraDistance, (Math.sin(this.elapsed * 0.5) + 1) + cameraDistance / 2, Math.cos(this.elapsed * cameraSpeed) * cameraDistance);
+        this.boids.update(dt);
+        this.light.rotation.x = this.elapsed * 0.05 % Math.PI * 2;
+        this.light.rotation.y = this.elapsed * 0.05 % Math.PI * 2;
+        this.scene.needsUpdate = true;
+        this.camera.setPosition(-Math.sin(this.elapsed * cameraSpeed) * cameraDistance, (Math.sin(this.elapsed * 0.5) + 1) + cameraDistance / 3, Math.cos(this.elapsed * cameraSpeed) * cameraDistance);
         this.renderer.render(this.scene, this.camera);
-        this.controls.update(dt);
+        //this.controls.update(dt);
 
     }
 }

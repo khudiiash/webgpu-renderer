@@ -5,9 +5,12 @@ import { UniformGroup } from '../renderer/shaders/UniformGroup';
 import { Uniform } from '../renderer/shaders/Uniform';
 import { Mesh } from './Mesh';
 import { ShaderChunks } from '../renderer/shaders/ShaderChunks';
+import { Quaternion } from '../math/Quaternion';
 
 const _identity = new Matrix4();
 const _mat = new Matrix4();  
+const _mat2 = new Matrix4();
+const _quat = new Quaternion();
 
 class InstancedMesh extends Mesh {
     constructor(geometry, material, count) {
@@ -52,8 +55,12 @@ class InstancedMesh extends Mesh {
     
     lookAt(target, index) {
         this.getMatrixAt(_mat, index);
-        const pos = _mat.getPosition();
-        _mat.lookAt(pos, target);
+        const position = _mat.getPosition();
+        const rotationMat = _mat2.extractRotation(_mat).lookAtRotation(position, target);
+        const quat = _quat.setFromRotationMatrix(rotationMat);
+        const scale = _mat.getScale();
+        _mat.compose(position, quat, scale);
+
         this.setMatrixAt(_mat, index);
     }
     
@@ -85,6 +92,8 @@ class InstancedMesh extends Mesh {
 		matrix.toArray( this.instanceMatrix, index * 16 );
         this.needsUpdate = true;
 	}
+    
+    
     
     getMatrixAt( matrix, index ) {
         matrix.fromArray( this.instanceMatrix, index * 16 ); 

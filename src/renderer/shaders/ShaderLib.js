@@ -91,7 +91,6 @@ class ShaderLib {
             }
         `);
         
-        
         return {
             vertexShader,
             fragmentShader,

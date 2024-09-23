@@ -8,8 +8,8 @@ class TextureAttachment {
         this.visibility = visibility;
     }
     
-    setResource(resource) {
-        this.resource = resource;
+    setTexture(texture) {
+        this.texture = texture;
         return this;
     }
     

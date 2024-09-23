@@ -48,7 +48,7 @@ class Vector2 {
         return new Vector2().copy(this);
     }
 
-    distance(v) {
+    distanceTo(v) {
         return vec2.distance(this.data, v.data);
     }
 

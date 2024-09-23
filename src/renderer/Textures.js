@@ -13,8 +13,15 @@ class Textures {
         const texture = this.device.createTexture({
             size: [1, 1],
             format: this.renderer.format,
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
         });
+        const data = new Uint8Array([ 255, 0, 0, 255 ]);
+        this.device.queue.writeTexture(
+            { texture },
+            data,
+            { bytesPerRow: 4 },
+            { width: 1, height: 1 },
+        );
         this._textures.default = texture;
         this._views.default = texture.createView();
     }

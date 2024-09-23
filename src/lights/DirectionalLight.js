@@ -33,6 +33,7 @@ class DirectionalLight extends Light {
         this.shadow.updateMatrices(this);
         this.quaternion.getForwardVector(this.direction);
         this._data.set(this.direction.data, 4);
+        this.needsUpdate = true;
     }
     
     updateMatrixWorld(force) {

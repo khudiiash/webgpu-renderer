@@ -1,11 +1,12 @@
 class Varying {
-    constructor(name, type) {
+    constructor(name, type, interpolation = 'perspective') {
         this.name = name;
         this.type = type;
+        this.interpolation = interpolation;
     }
     
     toString(location) {
-        return `@location(${location}) ${this.name}: ${this.type}`;
+        return `@location(${location}) @interpolate(${this.interpolation}) ${this.name}: ${this.type}`;
     }
 }
 

@@ -2,6 +2,8 @@ import { vec3 } from 'wgpu-matrix';
 
 class Vector3 {
     static byteSize = 3 * Float32Array.BYTES_PER_ELEMENT;
+    
+    static ZERO = new Vector3(0, 0, 0);
 
     static RIGHT = new Vector3(1, 0, 0);
     static LEFT = new Vector3(-1, 0, 0);
@@ -44,7 +46,21 @@ class Vector3 {
     }
     
     print() {
-        console.log(`Vec3 { x: ${this.data[0]}, y: ${this.data[1]}, z: ${this.data[2]} }`);
+        return `Vec3 { x: ${this.data[0]}, y: ${this.data[1]}, z: ${this.data[2]} }`;
+    }
+    
+    equals(v) {
+        return vec3.equals(this.data, v.data);
+    }
+    
+    min(v) {
+        vec3.min(this.data, v.data, this.data);
+        return this;
+    }
+    
+    max(v) {
+        vec3.max(this.data, v.data, this.data);
+        return this;
     }
     
     setFromMatrixColumn(matrix, index) {
@@ -62,6 +78,11 @@ class Vector3 {
         this.data[0] = matrix.data[12];
         this.data[1] = matrix.data[13];
         this.data[2] = matrix.data[14];
+        return this;
+    }
+    
+    divScalar(scalar) {
+        vec3.scale(this.data, 1 / scalar, this.data);
         return this;
     }
     
@@ -101,7 +122,7 @@ class Vector3 {
         return new Vector3().copy(this);
     }
     
-    distance(v) {
+    distanceTo(v) {
         return vec3.distance(this.data, v.data);
     }
     
@@ -166,6 +187,17 @@ class Vector3 {
     
     crossVectors(a, b) {
         vec3.cross(a.data, b.data, this.data);
+        return this;
+    }
+    
+    clampLength(min, max) {
+        const length = this.length();
+        this.mulScalar(Math.max(min, Math.min(max, length)) / length);
+        return this;
+    }
+    
+    clear() {
+        this.data.fill(0);
         return this;
     }
     

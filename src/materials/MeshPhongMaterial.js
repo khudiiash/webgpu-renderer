@@ -65,16 +65,10 @@ class MeshPhongMaterial extends Material {
       ];
       this.textures = [
          new TextureAttachment('shadowMap', 'texture_depth_2d'),
+         new TextureAttachment('diffuseMap', 'texture_2d<f32>', this._diffuseMap),
+         new TextureAttachment('normalMap', 'texture_2d<f32>', this._normalMap),
       ]
 
-      if (this.diffuseMap) {
-         this.textures.push(new TextureAttachment('diffuseMap', 'texture_2d<f32>', this._diffuseMap));
-      }
-
-      if (this.normalMap) {
-         this.textures.push(new TextureAttachment('normalMap', 'texture_2d<f32>', this._normalMap));
-      }
-      
       this.samplers = [
          new SamplerAttachment('sampler2D', 'sampler'),
          new SamplerAttachment('samplerComparison', 'sampler_comparison'),
@@ -90,6 +84,7 @@ class MeshPhongMaterial extends Material {
             ShaderChunks.vertex.fog,
          ],
          fragment: [
+            ShaderChunks.fragment.diffuse_map,
             ShaderChunks.fragment.shadowmap,
             ShaderChunks.fragment.light_phong,
             ShaderChunks.fragment.emission,
@@ -97,9 +92,6 @@ class MeshPhongMaterial extends Material {
          ]
       }
 
-      if (this._diffuseMap) {
-         this.chunks.fragment.unshift(ShaderChunks.fragment.diffuse_map);
-      }
       this._data = new Float32Array([
          this._color.r, this._color.g, this._color.b, this._color.a,
          this._specularColor.r, this._specularColor.g, this._specularColor.b, this._specularColor.a,

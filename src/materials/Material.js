@@ -14,7 +14,8 @@ class Material {
     
     set diffuseMap(texture) {
         this._diffuseMap = texture;
-        this.textures?.find(texture => texture.name === 'diffuseMap')?.setResource(texture);
+        this.textures?.find(texture => texture.name === 'diffuseMap')?.setTexture(texture);
+        this.needsBindGroupUpdate = true;
     }
     
 }

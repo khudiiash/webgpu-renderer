@@ -9,11 +9,13 @@ class RenderObject {
         }
         
         this.render = {
+            layout: null,
             pipeline: null,
             bindGroup: null,
         }
         
         this.shadow = {
+            layout: null,
             pipeline: null,
             bindGroup: null,
         }
@@ -35,13 +37,15 @@ class RenderObject {
         this.buffers[name] = buffer;
     }
 
-    setRenderPipeline(pipeline) {
+    setRenderPipeline(pipeline, layout) {
         this.render.pipeline = pipeline;
+        this.render.layout = layout;
         return this;
     }
     
-    setShadowPipeline(pipeline) {
+    setShadowPipeline(pipeline, layout) {
         this.shadow.pipeline = pipeline;
+        this.shadow.layout = layout;
         return this;
     }
     
