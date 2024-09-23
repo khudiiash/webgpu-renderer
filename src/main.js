@@ -24,6 +24,11 @@ import { OrbitControls } from "./cameras/OrbitControls";
 import { Boids } from "./extra/Boids";
 import { BoundingBox } from "./math/BoundingBox";
 
+import BirdModel from "../assets/bird.glb";
+import TerrainModel from "../assets/terrain.gltf";
+import TowerModel from "../assets/tower.glb";
+import TreeModel from "../assets/tree.glb";
+
 class App {
     constructor() {
         
@@ -44,18 +49,18 @@ class App {
         this.camera.lookAt(0, 0, 0);
         this.camera.name = 'MainCamera';
         
-        const terrain = await new GLTFLoader(this.renderer).load('../assets/terrain.gltf');  
+        const terrain = await new GLTFLoader(this.renderer).load(TerrainModel);  
         terrain.name = 'Terrain';
         this.terrain = terrain;
         this.scene.add(terrain);
         
-        const tower = await new GLTFLoader(this.renderer).load('../assets/tower.glb');
+        const tower = await new GLTFLoader(this.renderer).load(TowerModel);
         tower.name = 'Tower';
         tower.setPosition(2, 4.9 * 3.33, 2);
         tower.setScale(0.1);
         this.tower = tower;
         this.scene.add(tower);
-        const bird = await new GLTFLoader(this.renderer).load('../assets/bird.glb');
+        const bird = await new GLTFLoader(this.renderer).load(BirdModel);
         bird.material.color = new Color(0.0, 0.0, 0.0, 1);
         this.boids = new Boids(
             bird.geometry,
@@ -81,7 +86,7 @@ class App {
         this.scene.add(stars);
 
         
-        const trees = await new GLTFLoader(this.renderer).load('../assets/tree.glb', 2000);
+        const trees = await new GLTFLoader(this.renderer).load(TreeModel, 1500);
         trees.name = 'Trees';
         const pos = new Vector3();
         for (let i = 0; i < trees.count; i++) {

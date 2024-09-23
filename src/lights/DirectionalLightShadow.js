@@ -6,7 +6,7 @@ class DirectionalLightShadow extends LightShadow {
 
 	constructor() {
 
-		super( new OrthographicCamera( -100, 100, -100, 100, -100, 100) );
+		super( new OrthographicCamera( -70, 70, -70, 70, -70, 100) );
 
 		this.isDirectionalLightShadow = true;
 
