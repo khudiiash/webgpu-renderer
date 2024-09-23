@@ -47,7 +47,7 @@ class ShaderChunks {
     static common = new ShaderChunk('common', common);
     static vertex = {
         default: new VertexChunk('default', vertex_default),
-        culling: new VertexChunk('culling', vertex_culling, [ new Varying('vVisible', 'f32')]),
+        culling: new VertexChunk('culling', vertex_culling),
         position: new VertexChunk('vertex_position', vertex_position),
         instance_position: new VertexChunk('vertex_instance_position', vertex_instance_position),
         uv: new VertexChunk('vertex_uv', vertex_uv, [ new Varying('vUv', 'vec2f')]),

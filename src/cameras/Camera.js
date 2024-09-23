@@ -8,7 +8,9 @@ class Camera extends Object3D {
 		projection: 'mat4x4f',
 		view: 'mat4x4f',
 		position: 'vec3f',
+		_padding: 'f32',
 		direction: 'vec3f',
+		_padding2: 'f32',
 	}
     
     constructor() {
@@ -27,7 +29,7 @@ class Camera extends Object3D {
 		this.projectionMatrixInverse = new Matrix4();
 		this.projectionViewMatrix = new Matrix4();
 		this.rightDirection = new Vector3();
-		let size = 64 + 64 + 12 + 12;
+		let size = 64 + 64 + 16 + 16;
 		size = Math.ceil(size / 16) * 16;
 		this._data = new Float32Array(size / Float32Array.BYTES_PER_ELEMENT);
 	}
@@ -47,11 +49,11 @@ class Camera extends Object3D {
 	
 	updateViewMatrix() {
 		this.viewMatrix.lookAt(this.position, this.target, this.up);
-		this.direction.subVectors(this.target, this.position).normalize();
-		this.rightDirection.crossVectors(this.direction, this.up).normalize();
+		this.direction.invert();
+		this.rightDirection.set(this.viewMatrix.data[0], this.viewMatrix.data[1], this.viewMatrix.data[2]);
 		this._data.set(this.viewMatrix.data, 16);
 		this._data.set(this.position.data, 32);
-		this._data.set(this.direction.data, 35);
+		this._data.set(this.direction.data, 36);
 	}
 	
 	
@@ -62,6 +64,7 @@ class Camera extends Object3D {
 	updateMatrixWorld( force ) {
 
 		super.updateMatrixWorld( force );
+		//this.direction.mulScalar(-1).normalize();
 
 		this.updateViewMatrix();
 

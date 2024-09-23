@@ -13,7 +13,7 @@ for (var i = 0u; i < DIR_NUM; i = i + 1u) {
      // Phong Specular Calculation
      var finalSpecular = vec3f(0);
      if (material.shininess > 0) {
-         let viewDir = normalize(camera.position - input.vWorldPosition);
+         let viewDir = camera.direction;
          let reflectDir = reflect(-light.direction, input.vNormal);
          let spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
          let phongSpecular = material.specularColor.rgb * spec;

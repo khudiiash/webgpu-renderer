@@ -146,7 +146,7 @@ class Scene extends Object3D {
         r = Math.max(0, Math.min(1, r));
         g = Math.max(0, Math.min(1, g));
         b = Math.max(0, Math.min(1, b));
-        this.ambientColor.a = clamp(Math.max(0, light.direction.y), 0.2, 0.4);
+        this.ambientColor.a = clamp(Math.max(0, light.direction.y), 0.0, 0.2);
         
         // Set the background color
         this.background.set(r, g, b);

@@ -46,14 +46,11 @@ class App {
         
         const terrain = await new GLTFLoader(this.renderer).load('../assets/terrain.gltf');  
         terrain.name = 'Terrain';
-        terrain.material.shininess = 0;
-        terrain.roughness = 1;
         this.terrain = terrain;
         this.scene.add(terrain);
         
         const tower = await new GLTFLoader(this.renderer).load('../assets/tower.glb');
         tower.name = 'Tower';
-        tower.material.shininess = 32;
         tower.setPosition(2, 4.9 * 3.33, 2);
         tower.setScale(0.1);
         this.tower = tower;
@@ -63,13 +60,13 @@ class App {
         this.boids = new Boids(
             bird.geometry,
             bird.material,
-            600, 
+            300, 
             new BoundingBox(new Vector3(-100, 20, -100), new Vector3(100, 50, 100))
         );
         this.scene.add(this.boids);
         
-        const starsCount = 30000;
-        const stars = new InstancedMesh(new SphereGeometry(0.25, 16, 16), new MeshPhongMaterial({ color: '#ffffff', emissionColor: '#ffffff', emissionIntensity: 1, useFog: false }), starsCount);
+        const starsCount = 1000;
+        const stars = new InstancedMesh(new SphereGeometry(0.25, 8, 8), new MeshPhongMaterial({ color: '#ffffff', emissionColor: '#ffffff', emissionIntensity: 1, useFog: false }), starsCount);
         const distanceFromCenter = 200;
         for (let i = 0; i < starsCount; i++) {
             const radius = distanceFromCenter;
@@ -84,7 +81,7 @@ class App {
         this.scene.add(stars);
 
         
-        const trees = await new GLTFLoader(this.renderer).load('../assets/tree.glb', 3000);
+        const trees = await new GLTFLoader(this.renderer).load('../assets/tree.glb', 2000);
         trees.name = 'Trees';
         const pos = new Vector3();
         for (let i = 0; i < trees.count; i++) {
@@ -126,12 +123,11 @@ class App {
     
         //this.controls = new OrbitControls(this.camera, canvas);
         
-        this.light = new DirectionalLight();
+        this.light = new DirectionalLight({ intensity: 2 });
         this.light.name = 'DirectionalLight';
         this.light.rotation.x = 2.2;
         this.light.rotation.y = -1;
         this.scene.add(this.light);
-        
         
         this.frame = 0;
         requestAnimationFrame(() => this.loop());
@@ -154,14 +150,15 @@ class App {
         const cameraSpeed = 0.1;
         const cameraHeight = 20;
         this.boids.update(dt);
-        this.light.rotation.x = this.elapsed * 0.05 % Math.PI * 2;
-        this.light.rotation.y = this.elapsed * 0.05 % Math.PI * 2;
+        this.light.rotation.x = this.elapsed * 0.1 % Math.PI * 2;
+        this.light.rotation.y = this.elapsed * 0.1 % Math.PI * 2;
         this.scene.needsUpdate = true;
         const cameraX = -Math.sin(this.elapsed * cameraSpeed) * cameraDistance;
         const cameraZ = Math.cos(this.elapsed * cameraSpeed) * cameraDistance;
         this.camera.setPosition(cameraX, this.terrain.getHeightAt(cameraX, cameraZ) + cameraHeight, cameraZ);
-        this.renderer.render(this.scene, this.camera);
         //this.controls.update(dt);
+        this.renderer.render(this.scene, this.camera);
+        //console.log(this.camera.direction.print())
 
     }
 }

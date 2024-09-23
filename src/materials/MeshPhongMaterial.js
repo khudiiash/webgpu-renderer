@@ -86,9 +86,9 @@ class MeshPhongMaterial extends Material {
       this.chunks = {
          vertex: [ 
             ShaderChunks.vertex.position,
+            ShaderChunks.vertex.world_position,
             ShaderChunks.vertex.uv,
             ShaderChunks.vertex.normal,
-            ShaderChunks.vertex.world_position,
             ShaderChunks.vertex.view_direction,
             ShaderChunks.vertex.fog,
          ],

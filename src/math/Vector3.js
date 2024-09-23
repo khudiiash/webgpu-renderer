@@ -49,6 +49,11 @@ class Vector3 {
         return `Vec3 { x: ${this.data[0]}, y: ${this.data[1]}, z: ${this.data[2]} }`;
     }
     
+    invert() {
+        vec3.negate(this.data, this.data);
+        return this;
+    }
+    
     equals(v) {
         return vec3.equals(this.data, v.data);
     }
