@@ -59,16 +59,32 @@ class App {
         this.tower = tower;
         this.scene.add(tower);
         const bird = await new GLTFLoader(this.renderer).load('../assets/bird.glb');
+        bird.material.color = new Color(0.0, 0.0, 0.0, 1);
         this.boids = new Boids(
             bird.geometry,
             bird.material,
-            400, 
-            new BoundingBox(new Vector3(-100, 3, -100), new Vector3(100, 50, 100))
+            600, 
+            new BoundingBox(new Vector3(-100, 20, -100), new Vector3(100, 50, 100))
         );
         this.scene.add(this.boids);
+        
+        const starsCount = 30000;
+        const stars = new InstancedMesh(new SphereGeometry(0.25, 16, 16), new MeshPhongMaterial({ color: '#ffffff', emissionColor: '#ffffff', emissionIntensity: 1, useFog: false }), starsCount);
+        const distanceFromCenter = 200;
+        for (let i = 0; i < starsCount; i++) {
+            const radius = distanceFromCenter;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.random() * Math.PI;
+            const x = radius * Math.sin(phi) * Math.cos(theta);
+            const y = Math.abs(radius * Math.cos(phi));
+            const z = radius * Math.sin(phi) * Math.sin(theta);
+            stars.setPositionAt(new Vector3(x, y, z), i);
+            stars.setScaleAt(randomFloat(0.1, 0.5), i);
+        }
+        this.scene.add(stars);
 
         
-        const trees = await new GLTFLoader(this.renderer).load('../assets/tree.glb', 2000);
+        const trees = await new GLTFLoader(this.renderer).load('../assets/tree.glb', 3000);
         trees.name = 'Trees';
         const pos = new Vector3();
         for (let i = 0; i < trees.count; i++) {
@@ -81,7 +97,7 @@ class App {
             trees.rotateYAt(randomFloat(0, Math.PI * 2), i);
             trees.rotateXAt(randomFloat(-0.1, 0.1), i);
             trees.rotateZAt(randomFloat(-0.1, 0.1), i);
-            trees.setScaleAt(randomFloat(0.4, 0.5), i);
+            trees.setScaleAt(randomFloat(0.6, 0.8), i);
         }
         this.scene.add(trees);
 
@@ -134,13 +150,16 @@ class App {
     
     update(dt) {
         this.stats.update(); 
-        const cameraDistance = 100;
+        const cameraDistance = 90;
         const cameraSpeed = 0.1;
+        const cameraHeight = 20;
         this.boids.update(dt);
         this.light.rotation.x = this.elapsed * 0.05 % Math.PI * 2;
         this.light.rotation.y = this.elapsed * 0.05 % Math.PI * 2;
         this.scene.needsUpdate = true;
-        this.camera.setPosition(-Math.sin(this.elapsed * cameraSpeed) * cameraDistance, (Math.sin(this.elapsed * 0.5) + 1) + cameraDistance / 3, Math.cos(this.elapsed * cameraSpeed) * cameraDistance);
+        const cameraX = -Math.sin(this.elapsed * cameraSpeed) * cameraDistance;
+        const cameraZ = Math.cos(this.elapsed * cameraSpeed) * cameraDistance;
+        this.camera.setPosition(cameraX, this.terrain.getHeightAt(cameraX, cameraZ) + cameraHeight, cameraZ);
         this.renderer.render(this.scene, this.camera);
         //this.controls.update(dt);
 

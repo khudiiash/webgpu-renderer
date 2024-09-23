@@ -91,6 +91,7 @@ class ShaderLib {
             }
         `);
         
+        console.log(fragmentShader)
         return {
             vertexShader,
             fragmentShader,

@@ -16,6 +16,10 @@ class MeshPhongMaterial extends Material {
       roughness: 'f32',
       metalness: 'f32',
       shininess: 'f32',
+      useFog: 'f32',
+      useLighting: 'f32',
+      something1: 'f32',
+      something2: 'f32',
    }
    constructor(params = {}) {
       super(params);
@@ -33,6 +37,11 @@ class MeshPhongMaterial extends Material {
       this._shininess = params.shininess || 0;
       this._roughness = params.roughness || 0.5;
       this._metalness = params.metalness || 0.5;
+
+      this._useFog = params.useFog !== undefined ? Number(params.useFog) : 1;
+      this._useLighting = params.useLighting !== undefined ? Number(params.useLighting) : 1;
+      this._something1 = params.something1 || 0;
+      this._something2 = params.something2 || 0;
 
       this._color.onChange(() => {
          this._data.set(this._color.data, 0);
@@ -99,7 +108,11 @@ class MeshPhongMaterial extends Material {
          this._emissionIntensity,
          this._roughness,
          this._metalness,
-         this._shininess
+         this._shininess,
+         this._useFog,
+         this._useLighting,
+         this._something1,
+         this._something2,
       ]);
 
       this.uniforms[3].set('material', this._data);

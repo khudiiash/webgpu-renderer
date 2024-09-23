@@ -17,7 +17,7 @@ class Scene extends Object3D {
         this.background = new Color(0.4, 0.5, 0.6, 1);
 
         this._needsUpdate = true;
-        this._fog = new Fog({ color: this.background, start: 50, end: 200, density: 0.0025, type: Fog.LINEAR});
+        this._fog = new Fog({ color: this.background, start: 50, end: 150, density: 0.0025, type: Fog.LINEAR});
         this._ambientColor = new Color(1, 1, 1, 0.4);
         
         this.uniformGroup = UniformLib.scene.clone();
@@ -102,8 +102,8 @@ class Scene extends Object3D {
         
         // Define key points for color transition
         const nightColor = { r: 0.1, g: 0.2, b: 0.3 };
-        const twilightColor = { r: 0.6, g: 0.5, b: 0.3 };
-        const dayColor = { r: 0.5, g: 0.7, b: 1.0 };
+        const twilightColor = { r: 0.6, g: 0.5, b: 0.6 };
+        const dayColor = { r: 0.7, g: 0.8, b: 1.0 };
         
         let r, g, b;
         

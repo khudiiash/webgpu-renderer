@@ -55,7 +55,6 @@ class Boids extends InstancedMesh {
         this.elapsed += dt;
         this.cohesionFactor = Math.abs(Math.sin(this.elapsed * 0.3)) * 0.3;
 
-        console.log(this.cohesionFactor);
         for (let i = 0; i < this.count; i++) {
             this.separation.clear();
             this.alignment.clear();
