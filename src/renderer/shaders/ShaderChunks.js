@@ -11,6 +11,7 @@ import vertex_view_direction from './chunks/vertex/vertex_view_direction.wgsl?ra
 import vertex_shadowmap from './chunks/vertex/vertex_shadowmap.wgsl?raw';
 import vertex_shadow_depth from './chunks/vertex/vertex_shadow_depth.wgsl?raw';
 import vertex_shadow_depth_instanced from './chunks/vertex/vertex_shadow_depth_instanced.wgsl?raw';
+import vertex_wind from './chunks/vertex/vertex_wind.wgsl?raw';
 
 import fragment_diffuse_map from './chunks/fragment/fragment_diffuse_map.wgsl?raw';
 import fragment_fog from './chunks/fragment/fragment_fog.wgsl?raw';
@@ -58,6 +59,7 @@ class ShaderChunks {
         shadow_depth_instanced: new VertexChunk('vertex_shadow_depth_instanced', vertex_shadow_depth_instanced),
         fog: new VertexChunk('vertex_fog', vertex_fog, [ new Varying('vFogDistance', 'f32') ]),
         shadowmap: new VertexChunk('vertex_shadowmap', vertex_shadowmap, [ new Varying('vShadowCoord', 'vec4f') ]),
+        wind: new VertexChunk('vertex_wind', vertex_wind),
     }
     static fragment = {
         shadow_depth: new FragmentChunk('fragment_shadow_depth', fragment_shadow_depth),

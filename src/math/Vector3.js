@@ -14,6 +14,7 @@ class Vector3 {
 
     constructor(x = 0, y = 0, z = 0) {
         this.data = new Float32Array([x, y, z]);
+        this.needsUpdate = false;
         this.isVector3 = true;
         vec3.create(x, y, z, this.data);
     }
@@ -51,6 +52,7 @@ class Vector3 {
     
     invert() {
         vec3.negate(this.data, this.data);
+        this._onChangeCallback();
         return this;
     }
     
@@ -60,11 +62,13 @@ class Vector3 {
     
     min(v) {
         vec3.min(this.data, v.data, this.data);
+        this._onChangeCallback();
         return this;
     }
     
     max(v) {
         vec3.max(this.data, v.data, this.data);
+        this._onChangeCallback();
         return this;
     }
     
@@ -76,6 +80,7 @@ class Vector3 {
         this.data[0] = array[offset];
         this.data[1] = array[offset + 1];
         this.data[2] = array[offset + 2];
+        this._onChangeCallback();
         return this
     }
 
@@ -83,11 +88,13 @@ class Vector3 {
         this.data[0] = matrix.data[12];
         this.data[1] = matrix.data[13];
         this.data[2] = matrix.data[14];
+        this._onChangeCallback();
         return this;
     }
     
     divScalar(scalar) {
         vec3.scale(this.data, 1 / scalar, this.data);
+        this._onChangeCallback();
         return this;
     }
     
@@ -172,18 +179,15 @@ class Vector3 {
     }
     
     
-    _onChange(callback) {
-        this._onChangeCallback = callback;
-        return this;
-    }
-    
-    _onChangeCallback() {
-
-    }
     
     subVectors(a, b) {
         vec3.sub(a.data, b.data, this.data);
+        this._onChangeCallback();
         return this;
+    }
+    
+    equalsArray(array, offset = 0) {
+        return this.data[0] === array[offset] && this.data[1] === array[offset + 1] && this.data[2] === array[offset + 2];
     }
     
     lengthSq() {
@@ -192,19 +196,32 @@ class Vector3 {
     
     crossVectors(a, b) {
         vec3.cross(a.data, b.data, this.data);
+        this._onChangeCallback();
         return this;
     }
     
     clampLength(min, max) {
         const length = this.length();
         this.mulScalar(Math.max(min, Math.min(max, length)) / length);
+        this._onChangeCallback();
         return this;
     }
     
     clear() {
         this.data.fill(0);
+        this._onChangeCallback();
         return this;
     }
+
+    onChange(callback) {
+        this._onChangeCallback = callback;
+        return this;
+    }
+
+    _onChangeCallback() {
+
+    }
+    
     
     static subVectors(a, b) {
         return new Vector3().subVectors(a, b);

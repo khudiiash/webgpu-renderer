@@ -9,6 +9,7 @@ class Textures {
         this.createDepthTexture();
     }
     
+    
     createDefaultTexture() {
         const texture = this.device.createTexture({
             size: [1, 1],
@@ -26,11 +27,20 @@ class Textures {
         this._views.default = texture.createView();
     }
     
+    writeDepthToTexture(depthBuffer) {
+        this.device.queue.writeTexture(
+            { texture: this.shadowTexture },
+            depthBuffer,
+            { bytesPerRow: 4 * this.shadowTexture.width },
+            { width: this.shadowTexture.width, height: this.shadowTexture.height },
+        )
+    }
+    
     createShadowDepthTexture() {
         const texture = this.device.createTexture({
-            size: [1024, 1024].map(i => i * 1),
+            size: [1024, 1024].map(i => i * 4),
             format: 'depth32float',
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
         });
         
         this._textures.shadowMap = texture;

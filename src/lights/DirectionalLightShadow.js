@@ -6,10 +6,9 @@ class DirectionalLightShadow extends LightShadow {
 
 	constructor() {
 
-		super( new OrthographicCamera( -70, 70, -70, 70, -70, 100) );
+		super( new OrthographicCamera( -100, 100, -100, 100, -100, 100) );
 
 		this.isDirectionalLightShadow = true;
-
 	}
 	
 	updateMatrices( light, aspect ) {
@@ -23,6 +22,7 @@ class DirectionalLightShadow extends LightShadow {
 	  	const shadowCameraTarget = new Vector3();
 	  	shadowCameraTarget.copy(lightDirection).mulScalar(-1);
 	  	shadowCamera.target.copy(shadowCameraTarget);
+		//shadowCamera.updateViewMatrix();
   
 	  	shadowCamera.updateMatrixWorld();
 	  	this.projectionViewMatrix.multiplyMatrices(shadowCamera.projectionMatrix, shadowCamera.viewMatrix);

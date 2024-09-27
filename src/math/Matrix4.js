@@ -1,5 +1,6 @@
 import { mat4 } from 'wgpu-matrix';
 import { Vector3 } from './Vector3';
+import { arraysEqual } from '../utils/arraysEqual';
 const _v1 = new Vector3();
 
 class Matrix4 {
@@ -8,20 +9,15 @@ class Matrix4 {
 
     constructor() {
         this.isMatrix4 = true;
-        this.data = new Float32Array([
-            1, 0, 0, 0,
-			0, 1, 0, 0,
-			0, 0, 1, 0,
-			0, 0, 0, 1
-        ]);
+        this.data = mat4.identity();
+        this._lastData = new Float32Array([...this.data]);
         this.up = new Vector3(0, 1, 0);
-        this.needsUpdate = true;
+        
     }
     
     lookAt(eye, target, up = this.up) {
-        if (mat4.equals(this.data, mat4.lookAt(eye.data, target.data, up.data))) return this;
         mat4.lookAt(eye.data, target.data, up.data, this.data);
-        this.needsUpdate = true;
+         
         return this;
     }
     
@@ -36,34 +32,35 @@ class Matrix4 {
             xAxis.z, yAxis.z, zAxis.z, 0,
             0, 0, 0, 1
         );
-
-        this.needsUpdate = true;
+         
         return this;
     }
     
     identity() {
         mat4.identity(this.data);
+        this._onChangeCallback();
         return this;
     }
     
+    print() {
+        return `${this.data[0]} ${this.data[1]} ${this.data[2]} ${this.data[3]}\n${this.data[4]} ${this.data[5]} ${this.data[6]} ${this.data[7]}\n${this.data[8]} ${this.data[9]} ${this.data[10]} ${this.data[11]}\n${this.data[12]} ${this.data[13]} ${this.data[14]} ${this.data[15]}`;
+    }
+    
     copy(matrix) {
-        if (mat4.equals(this.data, matrix.data)) return this;
         mat4.copy(matrix.data, this.data);
-        this.needsUpdate = true;
+        this._onChangeCallback();
         return this;
     }
     
     setFromQuaternion(q) {
-        if (mat4.equals(this.data, mat4.fromQuat(q.data))) return this;
         mat4.fromQuat(q.data, this.data);
-        this.needsUpdate = true;
+        this._onChangeCallback();
         return this;
     }
     
     cameraAim(eye, target, up = this.up) {
-        if (mat4.equals(this.data, mat4.cameraAim(eye.data, target.data, up.data))) return this;
         mat4.cameraAim(eye.data, target.data, up.data, this.data);
-        this.needsUpdate = true;
+        this._onChangeCallback();
         return this
     }
     
@@ -85,26 +82,27 @@ class Matrix4 {
         this.data[13] = position.data[1];
         this.data[14] = position.data[2];
         this.data[15] = 1;
-        this.needsUpdate = true;
+
+        this._onChangeCallback();
     }
     
     multiplyMatrices(a, b) {
-        if (mat4.equals(this.data, mat4.multiply(a.data, b.data))) return this;
         mat4.multiply(a.data, b.data, this.data);
-        this.needsUpdate = true;
+        
         return this;
     }
     
     multiply(m) {
-        if (mat4.equals(this.data, mat4.multiply(this.data, m.data))) return this;
         mat4.multiply(this.data, m.data, this.data);
-        this.needsUpdate = true;
+        
+        this._onChangeCallback();
         return this;
     }
     
     ortho(left, right, bottom, top, near, far) {
         mat4.ortho(left, right, bottom, top, near, far, this.data);
-        this.needsUpdate = true;
+        
+        this._onChangeCallback();
         return this;
     }
     
@@ -113,13 +111,12 @@ class Matrix4 {
             return this;
         }
         mat4.perspective(fov, aspect, near, far, this.data);
-        this.needsUpdate = true;
+        
+        this._onChangeCallback();
         return this;
     }
     
     extractRotation( m ) {
-		// this method does not support reflection matrices
-
 		const te = this.data;
 		const me = m.data;
 
@@ -147,6 +144,8 @@ class Matrix4 {
 		te[ 14 ] = 0;
 		te[ 15 ] = 1;
 
+        this._onChangeCallback();
+
 		return this;
 
 	}
@@ -154,20 +153,23 @@ class Matrix4 {
     rotate(m, axis, angleInRadians) {
         if (mat4.equals(this.data, mat4.rotate(m.data, axis.data, angleInRadians))) return this;
         mat4.rotate(m.data, axis.data, angleInRadians, this.data);
-        this.needsUpdate = true;   
+           
+        this._onChangeCallback();
         return this;
     }
     
     transpose() {
         mat4.transpose(this.data, this.data);
-        this.needsUpdate = true;   
+           
+        this._onChangeCallback();
         return this;
     }    
     
     frustum(left, right, bottom, top, near, far) {
         if (mat4.equals(this.data, mat4.frustum(left, right, bottom, top, near, far))) return this;
         mat4.frustum(left, right, bottom, top, near, far, this.data);
-        this.needsUpdate = true;   
+           
+        this._onChangeCallback();
         return this;
     }
     
@@ -181,7 +183,8 @@ class Matrix4 {
     
     invert() {
         mat4.invert(this.data, this.data);
-        this.needsUpdate = true;   
+           
+        this._onChangeCallback();
         return this;
     }
     
@@ -191,13 +194,15 @@ class Matrix4 {
     
     set(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) {
         mat4.set(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, this.data);
-        this.needsUpdate = true;   
+           
+        this._onChangeCallback();
         return this;
     }
     
     scale(s) {
         mat4.scale(this.data, s.data, this.data);
-        this.needsUpdate = true;   
+           
+        this._onChangeCallback();
         return this;
     }
     
@@ -217,10 +222,12 @@ class Matrix4 {
     translate(x, y, z) {
         if (x instanceof Vector3) {
             mat4.translate(this.data, x.data, this.data);
-            this.needsUpdate = true;   
+               
+            this._onChangeCallback();
         } else if (typeof x === 'number' && typeof y === 'number' && typeof z === 'number') {
             mat4.translate(this.data, [x, y, z], this.data);
-            this.needsUpdate = true;
+            
+            this._onChangeCallback();
         }
 
         return this;
@@ -231,12 +238,14 @@ class Matrix4 {
             this.data[12] = x.data[0];
             this.data[13] = x.data[1];
             this.data[14] = x.data[2];
-            this.needsUpdate = true;
+            
+            this._onChangeCallback();
         } else if (typeof x === 'number' && typeof y === 'number' && typeof z === 'number') {
             this.data[12] = x;
             this.data[13] = y;
             this.data[14] = z;
-            this.needsUpdate = true;
+            
+            this._onChangeCallback();
         }
     }
     
@@ -268,30 +277,36 @@ class Matrix4 {
     
     rotateX(angle) {
         mat4.rotateX(this.data, angle, this.data);
-        this.needsUpdate = true;
+        
+        this._onChangeCallback();
     }
     
     rotateY(angle) {
         mat4.rotateY(this.data, angle, this.data);
-        this.needsUpdate = true;
+        
+        this._onChangeCallback();
     }
     
     rotateZ(angle) {
         mat4.rotateZ(this.data, angle, this.data);
-        this.needsUpdate = true;
+        
+        this._onChangeCallback();
     }
     
     
     scale(x, y, z) {
         if (x instanceof Vector3) {
             mat4.scale(this.data, x.data, this.data);
-            this.needsUpdate = true;
+            
+            this._onChangeCallback();
         } else if (typeof x === 'number' && y === undefined) {
             mat4.uniformScale(this.data, x, this.data);
-            this.needsUpdate = true;
+            
+            this._onChangeCallback();
         } else if (typeof x === 'number' && typeof y === 'number' && z === 'number') {
             mat4.scale(this.data, [x, y, z], this.data);
-            this.needsUpdate = true;
+            
+            this._onChangeCallback();
         }
     }
     
@@ -299,6 +314,8 @@ class Matrix4 {
 		for ( let i = 0; i < 16; i ++ ) {
 			this.data[ i ] = array[ i + offset ];
 		}
+        
+        this._onChangeCallback();
 
 		return this;
 	}
@@ -313,11 +330,26 @@ class Matrix4 {
 	} 
     
     static multiply(a, b, out) {
-        if (mat4.equals(out.data, mat4.multiply(a.data, b.data))) return out;
         mat4.multiply(a.data, b.data, out.data);
-        out.needsUpdate = true;
         return out;
     }
+    
+    equalsArray(array, offset = 0) {
+        for (let i = 0; i < 16; i++) {
+            if (this.data[i] !== array[i + offset]) return false;
+        }
+        return true;
+    }
+    
+    onChange(cb) {
+        this._onChangeCallback = cb;
+        return this;
+    }
+    
+    _onChangeCallback() {
+
+    }
+
     
 }
 

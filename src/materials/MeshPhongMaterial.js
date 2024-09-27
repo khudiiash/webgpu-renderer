@@ -18,7 +18,7 @@ class MeshPhongMaterial extends Material {
       shininess: 'f32',
       useFog: 'f32',
       useLighting: 'f32',
-      something1: 'f32',
+      useWind: 'f32',
       something2: 'f32',
    }
    constructor(params = {}) {
@@ -40,21 +40,18 @@ class MeshPhongMaterial extends Material {
 
       this._useFog = params.useFog !== undefined ? Number(params.useFog) : 1;
       this._useLighting = params.useLighting !== undefined ? Number(params.useLighting) : 1;
-      this._something1 = params.something1 || 0;
+      this._useWind = params.useWind || 0;
       this._something2 = params.something2 || 0;
 
       this._color.onChange(() => {
          this._data.set(this._color.data, 0);
-         this.needsUpdate = true;
       })
       this._specularColor.onChange(() => {
          this._data.set(this._specularColor.data, 4);
-         this.needsUpdate = true;
       })
       
       this._emissionColor.onChange(() => {
          this._data.set(this._emissionColor.data, 8);
-         this.needsUpdate = true;
       })
       
       
@@ -62,10 +59,11 @@ class MeshPhongMaterial extends Material {
          UniformLib.model,
          UniformLib.camera,
          UniformLib.scene,
+         UniformLib.time,
          new UniformGroup({
            name: 'material',
            bindGroup: 0,
-           visibility: GPUShaderStage.FRAGMENT,
+           visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
            isMaterial: true,
            uniforms: [
               new Uniform('material').struct('Material', MeshPhongMaterial.struct)
@@ -74,6 +72,7 @@ class MeshPhongMaterial extends Material {
       ];
       this.textures = [
          new TextureAttachment('shadowMap', 'texture_depth_2d'),
+         new TextureAttachment('shadowTexture', 'texture_2d<f32>'),
          new TextureAttachment('diffuseMap', 'texture_2d<f32>', this._diffuseMap),
          new TextureAttachment('normalMap', 'texture_2d<f32>', this._normalMap),
       ]
@@ -91,6 +90,7 @@ class MeshPhongMaterial extends Material {
             ShaderChunks.vertex.normal,
             ShaderChunks.vertex.view_direction,
             ShaderChunks.vertex.fog,
+            ShaderChunks.vertex.wind,
          ],
          fragment: [
             ShaderChunks.fragment.diffuse_map,
@@ -99,6 +99,20 @@ class MeshPhongMaterial extends Material {
             ShaderChunks.fragment.emission,
             ShaderChunks.fragment.fog,
          ]
+      }
+      
+      this.offsets = {
+         color: 0,
+         specularColor: 4,
+         emissionColor: 8,
+         emissionIntensity: 12,
+         roughness: 13,
+         metalness: 14,
+         shininess: 15,
+         useFog: 16,
+         useLighting: 17,
+         useWind: 18,
+         something2: 19,
       }
 
       this._data = new Float32Array([
@@ -111,7 +125,7 @@ class MeshPhongMaterial extends Material {
          this._shininess,
          this._useFog,
          this._useLighting,
-         this._something1,
+         this._useWind,
          this._something2,
       ]);
 
@@ -125,7 +139,7 @@ class MeshPhongMaterial extends Material {
    set emissionColor(color) {
       this._emissionColor = color;
       this._data.set(color.data, 8);
-      this.needsUpdate = true;
+      this.write(color.data, 8);
    }
    
    get emissionIntensity() {
@@ -136,6 +150,7 @@ class MeshPhongMaterial extends Material {
       this._emissionIntensity = value;
       this._data[12] = value;
       this.needsUpdate = true;
+      this.write([value], 12);
    }
    
    get color() {
@@ -186,6 +201,22 @@ class MeshPhongMaterial extends Material {
       this._shininess = value;
       this._data[15] = value;
       this.needsUpdate = true;
+   }
+   
+   set useFog(value) {
+      this._useFog = value;
+      this._data[this.offsets.useFog] = value;
+      this.write([value], this.offsets.useFog * 4);
+   }
+   
+   get useFog() {
+      return this._useFog;
+   }
+   
+   set useWind(value) {
+      this._useWind = value;
+      this._data[this.offsets.useWind] = value;
+      this.write([value], this.offsets.useWind * 4);
    }
    
    get data() {

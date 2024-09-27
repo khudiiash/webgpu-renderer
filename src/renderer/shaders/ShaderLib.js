@@ -63,7 +63,7 @@ class ShaderLib {
                 return output;
             }
         `);
-        const fragmentShader = ShaderLib.formatShaderCode(`
+        const fragmentShader = `
             ${ShaderChunks.common.code}
             
             ${depStructs}
@@ -89,9 +89,10 @@ class ShaderLib {
                 output.color = color;
                 return output;
             }
-        `);
+        `;
         
-        console.log(fragmentShader)
+        console.log(vertexShader);
+        
         return {
             vertexShader,
             fragmentShader,

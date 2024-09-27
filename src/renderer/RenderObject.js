@@ -36,6 +36,10 @@ class RenderObject {
     setUniformBuffer(name, buffer) {
         this.buffers[name] = buffer;
     }
+    
+    setModelBuffer(buffer) {
+        this.buffers.model = buffer;
+    }
 
     setRenderPipeline(pipeline, layout) {
         this.render.pipeline = pipeline;

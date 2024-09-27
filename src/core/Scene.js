@@ -3,6 +3,7 @@ import { Fog } from './Fog.js';
 import { Color } from '../math/Color.js';
 import { UniformLib } from '../renderer/shaders/UniformLib.js';
 import { clamp } from '../math/MathUtils.js';
+import { Wind } from './Wind.js';
 
 class Scene extends Object3D {
     constructor() {
@@ -10,6 +11,7 @@ class Scene extends Object3D {
         this.instances = new Map(); 
         this.isScene = true;
         this.name = 'Scene';
+        this.type = 'scene';
         this.cameras = [];
         this.directionalLights = [];
         this.pointLights = [];
@@ -17,14 +19,19 @@ class Scene extends Object3D {
         this.background = new Color(0.4, 0.5, 0.6, 1);
 
         this._needsUpdate = true;
-        this._fog = new Fog({ color: this.background, start: 50, end: 150, density: 0.0025, type: Fog.LINEAR});
-        this._ambientColor = new Color(1, 1, 1, 0.4);
+        this._fog = new Fog({ color: this.background, start: 50, end: 200, density: 0.01, type: Fog.LINEAR});
+        this._wind = new Wind(); 
+        this._ambientColor = new Color(1, 1, 1, 0.3);
         
         this.uniformGroup = UniformLib.scene.clone();
 
-        this.uniformGroup.set('fog', this.fog);
-        this.uniformGroup.set('ambientColor', this.ambientColor);
-        this._data = new Float32Array(this.uniformGroup.byteSize / 4);
+        this.offsets = this.uniformGroup.offsets;
+        this.byteOffsets = this.uniformGroup.byteOffsets;
+
+        this._data = new Float32Array(this.uniformGroup.byteSize / Float32Array.BYTES_PER_ELEMENT);
+        this._data.set(this._fog.data, this.offsets.fog);
+        this._data.set(this._wind.data, this.offsets.wind);
+        this._data.set(this._ambientColor.data, this.offsets.ambientColor);
     }
     
     get fog() {
@@ -33,8 +40,6 @@ class Scene extends Object3D {
     
     set fog(value) {
         this._fog = value;
-        this.uniformGroup.set('fog', value);
-        this.updateData();
     }
     
     get ambientColor() {
@@ -43,8 +48,6 @@ class Scene extends Object3D {
 
     set ambientColor(value) {
         this._ambientColor = value;
-        this.uniformGroup.set('ambientColor', value);
-        this.updateData();
     }
     
     get needsUpdate() {
@@ -63,22 +66,30 @@ class Scene extends Object3D {
         if (object.isLight) {
             if (object.isDirectionalLight) {
                 this.directionalLights.push(object);
-                object.shadow.updateMatrices(object);
-                this.uniformGroup.set('directionalLights', this.directionalLights);
-                this.uniformGroup.set('directionalLightsNum', this.directionalLights.length);
-                this.uniformGroup.set('directionalLightMatrices', this.directionalLights.map((light) => light.shadow.projectionViewMatrix));
+                this.updateDirectionalLight(object);
+                object.on('write', () => {
+                    this.updateDirectionalLight(object);
+                })
             }
             if (object.isPointLight) {
                 this.pointLights.push(object);
-                this.uniformGroup.set('pointLights', this.pointLights);
-                this.uniformGroup.set('pointLightsNum', this.pointLights.length);
             }
-            this.updateData();
         }
         if (object.isCamera) {
             this.camera = object;
         }
     }
+    
+    updateDirectionalLight(light) {
+        const index = this.directionalLights.findIndex((l) => l === light);
+        this._data.set(light.data, this.offsets['directionalLights'] + light.data.length * index);
+        this._data.set(light.shadow.data, this.offsets['directionalLightShadows'] + light.shadow.data.length * index);
+        this._data.set(light.shadow.projectionViewMatrix.data, this.offsets['directionalLightMatrices'] + light.shadow.projectionViewMatrix.data.length * index);
+        this._data.set(new Float32Array([this.directionalLights.length]), this.offsets['directionalLightsNum']);
+
+        this.write(this._data, 'scene');
+    }
+    
     
     remove(object) {
         super.remove(object);
@@ -176,7 +187,6 @@ class Scene extends Object3D {
     get data() {
         return this._data;
     }
-     
 }
 
 export { Scene };

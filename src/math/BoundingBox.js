@@ -27,12 +27,17 @@ class BoundingBox {
                (point.z >= this.min.z && point.z <= this.max.z);
     }
     
-    randomPoint() {
-        return new Vector3(
+    getSize(out) {
+        return out.copy(this.max).sub(this.min);
+    }
+    
+    randomPoint(out) {
+        out.set(
             randomFloat(this.min.x, this.max.x),
             randomFloat(this.min.y, this.max.y),
             randomFloat(this.min.z, this.max.z)
         );
+        return out;
     }
 }
 

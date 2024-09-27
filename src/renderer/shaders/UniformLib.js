@@ -3,6 +3,8 @@ import { Uniform } from './Uniform';
 import { DirectionalLight } from '../../lights/DirectionalLight';
 import { Fog } from '../../core/Fog';
 import { Camera } from '../../cameras/Camera';
+import { Wind } from '../../core/Wind';
+import { LightShadow } from '../../lights/LightShadow';
 
 class UniformLib {
     
@@ -25,7 +27,17 @@ class UniformLib {
             new Uniform('camera').struct('Camera', Camera.struct)
         ]
     });
-
+    
+    static time = new UniformGroup({
+        name: 'time',
+        bindGroup: 0,
+        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+        perMesh: false,
+        uniforms: [
+            new Uniform('time').float(0)
+        ]
+    });
+    
     static scene = new UniformGroup({
         name: 'scene',
         bindGroup: 0,
@@ -33,34 +45,13 @@ class UniformLib {
         perMesh: false,
         uniforms: [
             new Uniform('fog').struct('Fog', Fog.struct),
+            new Uniform('wind').struct('Wind', Wind.struct),
             new Uniform('ambientColor').color(),            
             new Uniform('directionalLights').structArray('DirectionalLight', DirectionalLight.struct, 4),
-            new Uniform('directionalLightShadows').structArray('DirectionalLightShadow', {
-                shadowIntensity: 'f32',
-                shadowBias: 'f32',
-                shadowNormalBias: 'f32',
-                shadowRadius: 'f32',
-            }, 4),
-            
+            new Uniform('directionalLightShadows').structArray('DirectionalLightShadow', LightShadow.struct, 4),
             new Uniform('directionalLightMatrices').mat4Array(4),
-            
-            // new Uniform('pointLights').structArray('PointLight', {
-            //     color: 'vec4f',
-            //     position: 'vec3f',
-            //     intensity: 'f32',
-            // }, 12),
-            
-            // new Uniform('pointLightShadows').structArray('PointLightShadow', {
-            //     shadowIntensity: 'f32',
-            //     shadowBias: 'f32',
-            //     shadowNormalBias: 'f32',
-            //     shadowRadius: 'f32',
-            // }, 12),
-                
-
             new Uniform('directionalLightsNum').float(0),
             new Uniform('pointLightsNum').float(0),
-            new Uniform('pad1').float(0),
             new Uniform('pad2').float(0),
         ]
     });

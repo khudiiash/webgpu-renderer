@@ -2,6 +2,8 @@ import { Vector3 } from '../math/Vector3.js';
 import { Quaternion } from '../math/Quaternion.js';
 import { Euler } from '../math/Euler.js';
 import { Matrix4 } from '../math/Matrix4.js';
+import { Events } from '../core/Events.js';
+import { generateID } from '../math/MathUtils.js';
 
 const _target = new Vector3();
 const _position = new Vector3();
@@ -13,15 +15,17 @@ const _z = new Vector3();
 const _m1 = new Matrix4();
 const _q1 = new Quaternion();
 
-class Object3D {
+class Object3D extends Events {
     constructor() {
+        super();
         this.children = [];
         this.childrenMap = {};
         this.static = false;
         this.parent = null;
-        this.id = Math.random(); 
-        this.name = 'Unnamed';
+        this.id = generateID();
+        this.name = 'Object';
         this.type = 'Object3D';
+        this.buffers = ['model'];
         this.isObject3D = true;
         this.version = 0;
         this.matrixWorldAutoUpdate = true;
@@ -47,9 +51,9 @@ class Object3D {
             this.updateWorldMatrix(false, true);
         }
         
-        this.rotation._onChange(onRotationChange.bind(this));
-        this.quaternion._onChange(onQuaternionChange.bind(this));
-        this.position._onChange(onPositionChange.bind(this));
+        this.rotation.onChange(onRotationChange.bind(this));
+        this.quaternion.onChange(onQuaternionChange.bind(this));
+        this.position.onChange(onPositionChange.bind(this));
 
         this.up = new Vector3(0, 1, 0);
         this.matrix = new Matrix4();
@@ -65,18 +69,19 @@ class Object3D {
 	}
     
     updateMatrixWorld(force) {
+        const s = performance.now();
         if ( this.matrixAutoUpdate ) this.updateMatrix();
         if ( this.matrixWorldNeedsUpdate || force ) {
             if ( this.parent === null ) {
                 this.matrixWorld.copy(this.matrix);
             } else {
-                if (this.parent.matrixWorld.needsUpdate) {
-                    this.matrixWorld.multiplyMatrices(this.parent.matrixWorld, this.matrix);
-                }
+                this.matrixWorld.multiplyMatrices(this.parent.matrixWorld, this.matrix);
             }
             this.matrixWorldNeedsUpdate = false;
             force = true;
         }
+
+        this.write(this.matrixWorld.data, 'model');
         
         const children = this.children;
 
@@ -132,12 +137,19 @@ class Object3D {
         
         _m1.extractRotation(this.matrixWorld);
 
-        // if (this.target) {
-        //     this.direction.subVectors(this.target, this.position).normalize();
-        // } else {
-            this.direction.set(this.matrixWorld.data[8], this.matrixWorld.data[9], this.matrixWorld.data[10]).normalize();
-        //}
+        if (this.matrixWorld.needsUpdate) {
+            this.write(this.matrixWorld.data, 'model');
+            this.matrixWorld.needsUpdate = false;
+        }
+
+        this.direction.set(this.matrixWorld.data[8], this.matrixWorld.data[9], this.matrixWorld.data[10]).normalize();
+        //if (this.name === 'MainCamera') console.log(this.direction.data);
+        
 	}
+    
+    write(data, name, offset = 0) {
+        this.emit('write', { data, name, offset });
+    }
     
     setScale(x, y, z) {
         if (y === undefined) y = x;
@@ -237,7 +249,6 @@ class Object3D {
         clone.scale.copy(this.scale);
         return clone;
     }
-    
 }
 
 export { Object3D }

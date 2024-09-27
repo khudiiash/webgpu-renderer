@@ -12,13 +12,18 @@ class DirectionalLight extends Light {
         super(...args);
         this.isDirectionalLight = true;
         this.lightType = 'DirectionalLight';
-        this.rotation._onChange(() => {
+        this.buffer = 'scene';
+        this.rotation.onChange(() => {
             this.quaternion.setFromEuler(this.rotation);
             this.rotationMatrix.setFromQuaternion(this.quaternion);
             this.updateMatrix();
             this.needsUpdate = true;
         });
         this.shadow = new DirectionalLightShadow();
+        this.offsets = new Map();
+        this.offsets.set(this.color, 0);
+        this.offsets.set(this.direction, 4);
+        this.offsets.set(this.intensity, 7);
 
         this._data = new Float32Array([
             ...this.color.data,
@@ -30,23 +35,28 @@ class DirectionalLight extends Light {
     
     updateMatrix() {
         super.updateMatrix();
-        this.shadow.updateMatrices(this);
         this.quaternion.getForwardVector(this.direction);
-        this._data.set(this.direction.data, 4);
-        this.needsUpdate = true;
+        this.shadow.updateMatrices(this);
     }
     
     updateMatrixWorld(force) {
         super.updateMatrixWorld(force);
-        this.quaternion.getForwardVector(this.direction);
         this.shadow.updateMatrices(this);
-        this._data.set(this.direction.data, 4);
+        this.quaternion.getForwardVector(this.direction);
+        if (!this.direction.equalsArray(this._data, this.offsets.get(this.direction))) { 
+            this._data.set(this.direction.data, this.offsets.get(this.direction));
+            this.write(this._data, 'directionalLights'); 
+        }
     }
     
     lookAt(x, y, z) {
         super.lookAt(x, y, z);
         this.quaternion.getForwardVector(this.direction);
         this._data.set(this.direction.data, 4);
+        if (!this.direction.equalsArray(this._data, 4)) { 
+            this._data.set(this.direction.data, 4);
+            this.write(this._data, 'directionalLights'); 
+        }
     }
     
     get data() {

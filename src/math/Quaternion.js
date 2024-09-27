@@ -14,7 +14,7 @@ class Quaternion {
     set x(value) {
         this.data[0] = value;
         this._onChangeCallback();
-        this.needsUpdate = true;
+        
     }
     
     get y() {
@@ -24,7 +24,6 @@ class Quaternion {
     set y(value) {
         this.data[1] = value;
         this._onChangeCallback();
-        this.needsUpdate = true;
     }
 
     get z() {
@@ -34,7 +33,6 @@ class Quaternion {
     set z(value) {
         this.data[2] = value;
         this._onChangeCallback();
-        this.needsUpdate = true;
     }
 
     get w() {
@@ -44,26 +42,22 @@ class Quaternion {
     set w(value) {
         this.data[3] = value;
         this._onChangeCallback();
-        this.needsUpdate = true;
     }
     
     add(q1, q2) {
         quat.add(q1.q, q2.q, this.data);
-        this.needsUpdate = true; 
         return this;
     }
     
     rotateY(angle) {
         quat.rotateY(angle, this.data);
         this._onChangeCallback();
-        this.needsUpdate = true;
         return this;
     }
     
     setFromMatrix(matrix) {
         quat.fromMat(matrix.data, this.data);
         this._onChangeCallback();
-        this.needsUpdate = true; 
         return this;
     }
     
@@ -73,14 +67,14 @@ class Quaternion {
         }
         quat.fromAxisAngle(axis.toArray(), angle, this.data);
         this._onChangeCallback();
-        this.needsUpdate = true;
+        
         return this;
     }
     
     set(x, y, z, w) {
         quat.set(x, y, z, w, this.data);
         this._onChangeCallback();
-        this.needsUpdate = true;
+        
         return this;
     }
     
@@ -98,32 +92,32 @@ class Quaternion {
     
     inverse() {
         quat.inverse(this.data, this.data);
-        this.needsUpdate = true;
+        
         return this;
     }
     
     setFromEuler(euler, update) {
         quat.fromEuler(euler.x, euler.y, euler.z, euler.order, this.data);
         if (update) this._onChangeCallback();
-        this.needsUpdate = true;
+        
         return this; 
     }
     
     multiply(q1, q2) {
         quat.mul(q1.q, q2.q, this.data);
-        this.needsUpdate = true;
+        
         return this;
     }
     
     premultiply(q) {
         quat.mul(q.data, this.data, this.data);
-        this.needsUpdate = true;
+        
         this._onChangeCallback();
     }
     
     invert() {
         quat.inverse(this.data, this.data);
-        this.needsUpdate = true;
+        
         this._onChangeCallback();
         return this;
     }
@@ -132,11 +126,11 @@ class Quaternion {
     setFromRotationMatrix(m) {
         quat.fromMat(m.data, this.data);
         this._onChangeCallback();
-        this.needsUpdate = true;
+        
         return this;
     }
     
-    _onChange(callback) {
+    onChange(callback) {
         this._onChangeCallback = callback;
     }
     
@@ -146,7 +140,7 @@ class Quaternion {
     
     copy(q) {
         quat.copy(q.data, this.data);
-        this.needsUpdate = true;
+        
         return this;
     }
 }

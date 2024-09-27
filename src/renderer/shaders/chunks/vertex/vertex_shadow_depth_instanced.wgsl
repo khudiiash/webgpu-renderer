@@ -15,6 +15,6 @@ fn main(
 ) -> VertexOutput {
     var output = VertexOutput();
     output.position = lightProjectionView * instances[instanceIndex] * vec4f(position, 1.0);
-    output.vUv = vec2f(1, 1);
+    output.vUv = uv;
     return output;
 }

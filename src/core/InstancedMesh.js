@@ -11,6 +11,11 @@ const _identity = new Matrix4();
 const _mat = new Matrix4();  
 const _mat2 = new Matrix4();
 const _quat = new Quaternion();
+const _vec1 = new Vector3();
+const _vec2 = new Vector3();
+const _zero = new Vector3();
+const _rotMat = new Matrix4();
+
 
 class InstancedMesh extends Mesh {
     constructor(geometry, material, count) {
@@ -82,6 +87,30 @@ class InstancedMesh extends Mesh {
         this.setMatrixAt(_mat, index);
     }
     
+    setAllPositionsArray(positions) {
+         for (let i = 0; i < this.count; i++) {
+            this.getMatrixAt(_mat, i);
+            _mat.setPosition(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
+		    _mat.toArray( this.instanceMatrix, i * 16 );
+         }
+         this.write(this.instanceMatrix, 'instances');
+    }
+
+    setAllDirectionsArray(directions) {
+        for (let i = 0; i < this.count; i++) {
+            this.getMatrixAt(_mat, i);
+            _vec1.setFromMatrixPosition(_mat);
+            _vec2.set(directions[i * 3], directions[i * 3 + 1], directions[i * 3 + 2]);
+            
+            _rotMat.lookAtRotation(_zero, _vec2);
+            _quat.setFromRotationMatrix(_rotMat);
+            _mat.compose(_vec1, _quat, _mat.getScale());
+            
+            _mat.toArray(this.instanceMatrix, i * 16);
+        }
+        this.write(this.instanceMatrix, 'instances');
+    }
+    
     setScaleAt(scale, index) {
         this.getMatrixAt(_mat, index);
         _mat.scale(scale);
@@ -90,7 +119,7 @@ class InstancedMesh extends Mesh {
     
     setMatrixAt( matrix, index ) {
 		matrix.toArray( this.instanceMatrix, index * 16 );
-        this.needsUpdate = true;
+        this.write(matrix.data, 'instances', index * 16 * 4);
 	}
     
     

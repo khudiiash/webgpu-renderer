@@ -1,9 +1,17 @@
 import { Matrix4 } from '../math/Matrix4.js';
 import { Vector3 } from '../math/Vector3.js';
 import { Vector2 } from '../math/Vector2.js';
+import { Events } from '../core/Events.js';
 
-class LightShadow {
+class LightShadow extends Events {
+    static struct = {
+        shadowIntensity: 'f32',
+        shadowBias: 'f32',
+        shadowNormalBias: 'f32',
+        shadowRadius: 'f32',
+    }
     constructor(camera) {
+        super()
         this.camera = camera;
         this.bias = 0;
         this.radius = 1;

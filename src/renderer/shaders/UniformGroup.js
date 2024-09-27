@@ -23,6 +23,18 @@ class UniformGroup {
         this.bufferType = bufferType;
         this.byteSize = this.calculateGroupSize();
         this._data = new Float32Array(this.byteSize / Float32Array.BYTES_PER_ELEMENT);
+        this.offsets = {};
+        this.byteOffsets = {};
+        let offset = 0;
+        let byteOffset = 0;
+
+        this.uniforms.forEach((uniform) => {
+            uniform.bufferOffset = offset;
+            this.offsets[uniform.name] = offset;
+            offset += uniform.byteSize / Float32Array.BYTES_PER_ELEMENT;
+            this.byteOffsets[uniform.name] = byteOffset;
+            byteOffset += uniform.byteSize;
+        });
     }
     
     mergeData() {
@@ -77,6 +89,9 @@ class UniformGroup {
     
     set(name, value) {
         const uniform = this.uniforms.find(uniform => uniform.name === name);
+        if (!uniform) {
+            return;
+        }
         uniform.set(value);
         //this._data.set(uniform.data, uniform.bufferOffset);
     }
@@ -95,6 +110,10 @@ class UniformGroup {
             perMesh: this.perMesh,
             visibility: this.visibility
         });
+    }
+    
+    has(name) {
+        return this.uniforms.some(uniform => uniform.name === name);
     }
 
     get data() {

@@ -68,7 +68,7 @@ class Euler {
         console.log(`Euler { x: ${this._x * RAD2DEG}, y: ${this._y * RAD2DEG}, z: ${this._z * RAD2DEG } }`);
     }
     
-    _onChange(callback) {
+    onChange(callback) {
         this._onChangeCallback = callback;
         return this;
     }

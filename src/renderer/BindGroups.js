@@ -64,16 +64,19 @@ class BindGroups {
         const uniforms = mesh.material.uniforms.map((uniform, i) => {
             let buffer = null;
 
+            console.log(uniform.name)
             if (uniform.perMesh) {
-                console.log(renderObject.buffers[uniform.name]);
-                buffer = renderObject.buffers[uniform.name.replace('instances', 'model')] ?? this.renderer.buffers.createUniformBuffer(uniform);
+                buffer = this.renderer.buffers.createUniformBuffer(uniform, mesh);
             } else if (uniform.isMaterial) {
-                buffer = renderObject.buffers.material || this.renderer.buffers.createUniformBuffer(uniform, mesh.material.data);
+                buffer = this.renderer.buffers.createUniformBuffer(uniform, mesh.material);
             } else {
-                buffer = renderObject.buffers[uniform.name] ?? this.renderer.buffers.get(uniform.name) ?? this.renderer.buffers.createUniformBuffer(uniform); 
+                buffer = this.renderer.buffers.createUniformBuffer(uniform); 
+                if (uniform.name === 'time') {
+                    console.log('buffer', buffer, uniform);
+                }
             }
-
-            renderObject.setUniformBuffer(uniform.name.replace('instances', 'model'), buffer);
+            
+            renderObject.setUniformBuffer(uniform.name, buffer);
             
             return {
                 label: uniform.name,
@@ -147,11 +150,14 @@ class BindGroups {
     }
 
     createShadowBindGroup(renderObject, layout) {
+        const mesh = renderObject.mesh;
+        const buffers = this.renderer.buffers;
+        const model = buffers.get(mesh, 'model') || buffers.get(mesh, 'instances');
         const entries = [
                 {
                     binding: 0,
                     resource: {
-                        buffer:renderObject.buffers.model 
+                        buffer: model 
                     }
                 },
                 {
