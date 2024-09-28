@@ -23,8 +23,8 @@ class Boids extends InstancedMesh {
         this.boundingBox = boundingBox;
         
         this.separationRange = 20;
-        this.alignmentRange = 5;
-        this.cohesionRange = 10;
+        this.alignmentRange = 8;
+        this.cohesionRange = 15;
 
         this.separationFactor = 3;
         this.alignmentFactor = 1;

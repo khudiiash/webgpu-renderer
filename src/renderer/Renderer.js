@@ -44,6 +44,7 @@ class Renderer extends Events {
         this.context.configure({
             device: this.device,
             format: this.format,
+            alphaMode: 'premultiplied',
         });
         this.shadowNeedsUpdate = true;
         this.width = this.canvas.width;
@@ -275,6 +276,7 @@ class Renderer extends Events {
         this.renderPassDescriptor.colorAttachments[0].view = this.context
             .getCurrentTexture()
             .createView();
+        this.renderPassDescriptor.colorAttachments[0].clearValue = scene.background.data;
 
         if (this.shadowNeedsUpdate) {
             const shadowDepthPass = encoder.beginRenderPass({
@@ -288,7 +290,7 @@ class Renderer extends Events {
             });
             this.drawShadowDepth(scene, shadowDepthPass, scene.directionalLights);
             shadowDepthPass.end();
-            this.shadowNeedsUpdate = this.frames < 5;
+            //this.shadowNeedsUpdate = this.frames < 5;
         }
 
         const renderPass = encoder.beginRenderPass(this.renderPassDescriptor);

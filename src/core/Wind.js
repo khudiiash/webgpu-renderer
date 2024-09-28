@@ -13,11 +13,11 @@ class Wind extends Events {
     constructor(params) {
         super();
         params = {
-            speed: 0.35,
-            strength: 1,
+            speed: 0.4,
+            strength: 10,
             noise: 0,
             frequency: 1,
-            direction: new Vector3(),
+            direction: new Vector3(0.7, 0, 0.7),
 
         }
         this._speed = params.speed;
@@ -39,6 +39,26 @@ class Wind extends Events {
     
     get data() {
         return this._data;
+    }
+    
+    get direction() {
+        return this._direction;
+    }
+    
+    get speed() {
+        return this._speed;
+    }
+    
+    get strength() {
+        return this._strength;
+    }
+    
+    get noise() {
+        return this._noise;
+    }
+    
+    get frequency() {
+        return this._frequency;
     }
 }
 

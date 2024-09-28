@@ -16,12 +16,12 @@ class Scene extends Object3D {
         this.directionalLights = [];
         this.pointLights = [];
         this.meshes = [];
-        this.background = new Color(0.4, 0.5, 0.6, 1);
+        this.background = new Color(0.2, 0.3, 0.4, 1);
 
         this._needsUpdate = true;
         this._fog = new Fog({ color: this.background, start: 50, end: 200, density: 0.01, type: Fog.LINEAR});
         this._wind = new Wind(); 
-        this._ambientColor = new Color(1, 1, 1, 0.3);
+        this._ambientColor = new Color(1, 1, 1, 0.2);
         
         this.uniformGroup = UniformLib.scene.clone();
 
@@ -40,6 +40,10 @@ class Scene extends Object3D {
     
     set fog(value) {
         this._fog = value;
+    }
+    
+    get wind() {
+        return this._wind;
     }
     
     get ambientColor() {

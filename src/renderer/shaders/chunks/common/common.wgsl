@@ -2,6 +2,9 @@ const PI : f32 = 3.14159265359;
 const PI2 : f32 = 6.28318530718;
 const PI_HALF : f32 = 1.57079632679;
 const EPSILON : f32 = 0.0001;
+const m = mat3x3f( 0.00,  0.80,  0.60,
+              -0.80,  0.36, -0.48,
+              -0.60, -0.48,  0.64 );
 
 fn noise1D(x: f32) -> f32 {
     return fract(sin(x) * 43758.5453);
@@ -19,7 +22,12 @@ fn permute(x: vec3<f32>) -> vec3<f32> {
     return mod289_3(((x * 34.) + 1.) * x);
 }
 
-fn snoise(v: vec2<f32>) -> f32 {
+fn bezier(t: f32, p0: vec3f, p1: vec3f, p2: vec3f) -> vec3f {
+    let u = 1.0 - t;
+    return u * u * p0 + 2.0 * u * t * p1 + t * t * p2;
+}
+
+fn noise2D(v: vec2<f32>) -> f32 {
   // Precompute values for skewed triangular grid
   let C = vec4<f32>(
     .211324865405187,
@@ -78,4 +86,49 @@ fn snoise(v: vec2<f32>) -> f32 {
     );
 
     return 130. * dot(m, g);
+}
+
+
+fn saturate(x: f32) -> f32 {
+    return clamp(x, 0.0, 1.0);
+}
+
+fn saturate3(x: vec3<f32>) -> vec3<f32> {
+    return clamp(x, vec3(0.0), vec3(1.0));
+}
+
+fn linearstep(minValue: f32, maxValue: f32, v: f32) -> f32 {
+    return clamp((v - minValue) / (maxValue - minValue), 0.0, 1.0);
+}
+
+fn inverseLerp(minValue: f32, maxValue: f32, v: f32) -> f32 {
+    return (v - minValue) / (maxValue - minValue);
+}
+
+fn inverseLerpSat(minValue: f32, maxValue: f32, v: f32) -> f32 {
+    return saturate((v - minValue) / (maxValue - minValue));
+}
+
+fn remap(v: f32, inMin: f32, inMax: f32, outMin: f32, outMax: f32) -> f32 {
+    let t = inverseLerp(inMin, inMax, v);
+    return mix(outMin, outMax, t);
+}
+
+fn smootherstep(edge0: f32, edge1: f32, x: f32) -> f32 {
+    let t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+    return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+}
+
+fn smootherstep2(edge0: vec2<f32>, edge1: vec2<f32>, x: vec2<f32>) -> vec2<f32> {
+    let t = clamp((x - edge0) / (edge1 - edge0), vec2(0.0), vec2(1.0));
+    return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+}
+
+fn smootherstep3(edge0: vec3<f32>, edge1: vec3<f32>, x: vec3<f32>) -> vec3<f32> {
+    let t = clamp((x - edge0) / (edge1 - edge0), vec3(0.0), vec3(1.0));
+    return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+}
+
+fn circularOut(t: f32) -> f32 {
+    return sqrt((2.0 - t) * t);
 }

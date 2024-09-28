@@ -26,7 +26,7 @@ class LightShadow extends Events {
         this.projectionMatrixInverse = new Matrix4();
         this.camera.updateProjectionMatrix();
         this._shadowIntensity = 1;
-        this._shadowBias = 0.1;
+        this._shadowBias = 0.001;
         this._shadowNormalBias = 0;
         this._shadowRadius = 1;
         this.camera.isShadowCamera = true;

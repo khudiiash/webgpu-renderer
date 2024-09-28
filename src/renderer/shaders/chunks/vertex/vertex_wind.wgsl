@@ -1,27 +1,53 @@
-if (material.useWind == 1) {
-    let noise_scale = 0.01;
-    let noise_input = output.vWorldPosition.xz * noise_scale + time * scene.wind.speed;
-    let distFromOrigin = length(input.position.xz);
-    let dir = input.position.xz;
-    let distFactorX = 1.0 - clamp(distFromOrigin / 10.0, 0.0, 1.0) * dir.x;
-    let distFactorZ = 1.0 - clamp(distFromOrigin / 10.0, 0.0, 1.0) * dir.y;
-    
-    let noise_value = snoise(noise_input) * 2.0 - 1.0;
-    let height_factor = clamp(input.position.y * 0.1, 0.0, 1.0);
-
-    let wind_factor_x = sin(time * scene.wind.speed + input.position.x * 0.1);
-    let wind_factor_z = cos(time * scene.wind.speed + input.position.z * 0.1);
-    let wind_factor = wind_factor_x + wind_factor_z;
-
-    let wind_offset = vec3f(
-        wind_factor_x * scene.wind.strength * height_factor * noise_value * distFactorX,
-        abs(wind_factor) * scene.wind.strength * 0.2 * height_factor,
-        wind_factor_z * scene.wind.strength * height_factor * noise_value * distFactorZ
-    );
-
-    let animated_position = input.position + wind_offset;
-
-    let worldPosition = (modelMatrix * vec4f(input.position + wind_offset, 1.0)).xyz;
-
-    output.position = camera.projection * camera.view * vec4f(worldPosition, 1.0);
+   if (material.useWind == 1) {
+        let windDirection = normalize(scene.wind.direction.xy);
+        let worldPosition = output.vWorldPosition;
+        
+        // Tree properties
+        let treeHeight = 15.0; // Adjust based on your tree's actual height
+        
+        // Calculate normalized height
+        let normalizedHeight = input.position.y / treeHeight;
+        
+        // Coherent wind calculation using world position
+        let worldNoiseScale = 0.01;
+        let worldTimeScale = scene.wind.speed;
+        let worldNoise = noise2D(vec2f(
+            dot(worldPosition.xz, windDirection) * worldNoiseScale + time * worldTimeScale,
+            worldPosition.y * worldNoiseScale * 0.1
+        ));
+        
+        let baseWindStrength = scene.wind.strength * (0.8 + worldNoise * 0.4);
+        let windStrength = baseWindStrength * pow(normalizedHeight, 2.0) * abs(sin(time * 0.5)) * worldNoise;
+        
+        // Calculate primary bending
+        let bendFactor = windStrength;
+        let xzOffset = windDirection * bendFactor * pow(normalizedHeight, 2.0);
+        let yOffset = -bendFactor * normalizedHeight * (1.0 - normalizedHeight);
+        
+        // Apply primary bending
+        let bentPosition = vec3f(
+            input.position.x + xzOffset.x,
+            input.position.y + yOffset,
+            input.position.z + xzOffset.y
+        );
+        
+        // Individual branch movement (local noise)
+        let localNoiseScale = 0.1; // Adjust for desired local noise frequency
+        let localTimeScale = scene.wind.speed;  // Adjust for desired local movement speed
+        let localNoise = noise2D(vec2f(
+            input.position.xz * localNoiseScale + vec2f(f32(input.instanceIndex) * 10.0) + time * localTimeScale
+        ));
+        
+        let branchAmplitude = 0.05 * normalizedHeight; // More movement higher up the tree
+        let branchMovement = vec3f(
+            localNoise * branchAmplitude,
+            abs(localNoise) * branchAmplitude * 0.5,
+            localNoise * branchAmplitude
+        ) * 10.0;
+        
+        // Combine coherent bending with individual branch movement
+        let finalPosition = bentPosition + branchMovement;
+        
+        // Apply final position
+        output.position = camera.projection * camera.view * modelMatrix * vec4f(finalPosition, 1.0);
 }

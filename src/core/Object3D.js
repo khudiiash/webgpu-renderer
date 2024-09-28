@@ -223,6 +223,12 @@ class Object3D extends Events {
 		const e = this.matrixWorld.data;
         return new Vector3( e[ 8 ], e[ 9 ], e[ 10 ] ).normalize();
     }
+    
+    getWorldRight() {
+        this.updateWorldMatrix( true, false );
+        const e = this.matrixWorld.data;
+        return new Vector3( e[ 0 ], e[ 1 ], e[ 2 ] ).normalize();
+    }
 
 
     getLocalPosition() {

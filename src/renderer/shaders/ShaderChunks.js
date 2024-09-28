@@ -1,6 +1,7 @@
-import common from './chunks/common.wgsl?raw';
+import common from './chunks/common/common.wgsl?raw';
 import vertex_default from './chunks/vertex/vertex_default.wgsl?raw';
 import vertex_position from './chunks/vertex/vertex_position.wgsl?raw';
+import vertex_local_position from './chunks/vertex/vertex_local_position.wgsl?raw';
 import vertex_instance_position from './chunks/vertex/vertex_instance_position.wgsl?raw';
 import vertex_culling from './chunks/vertex/vertex_culling.wgsl?raw';
 import vertex_uv from './chunks/vertex/vertex_uv.wgsl?raw';
@@ -50,6 +51,7 @@ class ShaderChunks {
         default: new VertexChunk('default', vertex_default),
         culling: new VertexChunk('culling', vertex_culling),
         position: new VertexChunk('vertex_position', vertex_position),
+        local_position: new VertexChunk('vertex_local_position', vertex_local_position, [ new Varying('vLocalPosition', 'vec3f')]),
         instance_position: new VertexChunk('vertex_instance_position', vertex_instance_position),
         uv: new VertexChunk('vertex_uv', vertex_uv, [ new Varying('vUv', 'vec2f')]),
         view_direction: new VertexChunk('vertex_view_direction', vertex_view_direction, [ new Varying('vViewDirection', 'vec3f')]),
