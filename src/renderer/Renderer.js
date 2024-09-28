@@ -62,8 +62,8 @@ class Renderer extends Events {
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 const { inlineSize, blockSize } = entry.contentBoxSize[0];
-                entry.target.width = inlineSize * window.devicePixelRatio;
-                entry.target.height = blockSize * window.devicePixelRatio;
+                entry.target.width = inlineSize * Math.min(window.devicePixelRatio, 2);
+                entry.target.height = blockSize * Math.min(window.devicePixelRatio, 2);
                 entry.target.width = Math.max(1, Math.min(entry.target.width, this.device.limits.maxTextureDimension2D));
                 entry.target.height = Math.max(1, Math.min(entry.target.height, this.device.limits.maxTextureDimension2D));
                 this.width = entry.target.width;

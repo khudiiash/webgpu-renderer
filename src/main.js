@@ -112,7 +112,7 @@ class App {
         const boids = new Boids(
             bird.geometry, 
             bird.material,
-            1000,
+            500,
             new BoundingBox(new Vector3(-100, 20, -100), new Vector3(100, 100, 100))
         )
         this.boids = boids;
