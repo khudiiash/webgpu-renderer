@@ -88,7 +88,7 @@ class App {
         // box.setScale(2);
         // this.scene.add(box);
         
-        const cloud = await new GLTFLoader(this.renderer).load(CloudModel, 100);
+        const cloud = await new GLTFLoader(this.renderer).load(CloudModel, 500);
         this.clouds = cloud;
         for (let i = 0; i < cloud.count; i++) {
             const x = randomFloat(-200, 200);
@@ -112,7 +112,7 @@ class App {
         const boids = new Boids(
             bird.geometry, 
             bird.material,
-            200,
+            1000,
             new BoundingBox(new Vector3(-100, 20, -100), new Vector3(100, 100, 100))
         )
         this.boids = boids;

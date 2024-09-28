@@ -17,8 +17,8 @@ for (var i = 0u; i < DIR_LIGHT_NUM; i = i + 1u) {
     );
 
     let oneOverShadowDepthTextureSize = 1.0 / shadowMapSize;
-    for (var y = -2; y <= 2; y++) {
-        for (var x = -2; x <= 2; x++) {
+    for (var y = -1; y <= 1; y++) {
+        for (var x = -1; x <= 1; x++) {
             let offset = vec2f(vec2(x, y)) * oneOverShadowDepthTextureSize;
 
             visibility += textureSampleCompare(
@@ -27,7 +27,7 @@ for (var i = 0u; i < DIR_LIGHT_NUM; i = i + 1u) {
             );
         }
     }
-    visibility /= 25.0;
+    visibility /= 9.0;
 
     let lambertFactor = max(dot(normalize(light.direction), normalize(input.vNormal)), 0.0);
     let lightingFactor = min(scene.ambientColor.a + visibility * lambertFactor, 1.0);
