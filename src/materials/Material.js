@@ -8,6 +8,7 @@ class Material extends Events {
         this.id = generateID();
         this.isMaterial = true;
         this.type = 'Material';
+        this.cullFace = 'back';
     }
     
     get diffuseMap() {

@@ -27,6 +27,60 @@ class BufferAttribute {
         return this._needsUpdate;
     }
     
+    getX(index) {
+        return this.array[index * this.itemSize];
+    }
+    
+    setX(index, x) {
+        this.array[index * this.itemSize] = x;
+        return this;
+    }
+    
+    getY(index) {
+        return this.array[index * this.itemSize + 1];
+    }
+
+    setY(index, y) {
+        this.array[index * this.itemSize + 1] = y;
+        return this;
+    }
+
+    getZ(index) {
+        return this.array[index * this.itemSize + 2];
+    }
+    
+    setZ(index, z) {
+        this.array[index * this.itemSize + 2] = z;
+        return this;
+    }
+
+    getW(index) {
+        return this.array[index * this.itemSize + 3];
+    }
+    
+    setW(index, w) {
+        this.array[index * this.itemSize + 3] = w;
+        return this;
+    }
+    
+    setXYZW(index, x, y, z, w) {
+        const index2 = index * this.itemSize;
+        this.array[index2] = x;
+        this.array[index2 + 1] = y;
+        this.array[index2 + 2] = z;
+        this.array[index2 + 3] = w;
+        return this;
+    }
+
+    getComponent(index, componentIndex) {
+        return this.array[index * this.itemSize + componentIndex];
+    }
+
+    setComponent(index, componentIndex, value) {
+        this.array[index * this.itemSize + componentIndex] = value;
+        return this;
+    }
+    
     set(value, offset = 0) {
         this.array.set(value, offset);
         return this;
@@ -73,4 +127,12 @@ class Uint16BufferAttribute extends BufferAttribute {
     }
 }
 
-export { BufferAttribute, Float32BufferAttribute, Uint16BufferAttribute };
+class Uint32ArrayBufferAttribute extends BufferAttribute {
+    constructor(array, itemSize, normalized) {
+        super(new Uint32Array(array), itemSize, normalized);
+        this.format = 'uint32x' + itemSize;
+        this.type = getGPUType(this.array, itemSize);
+    }
+}
+
+export { BufferAttribute, Float32BufferAttribute, Uint16BufferAttribute, Uint32ArrayBufferAttribute };

@@ -1,4 +1,4 @@
-import { Geometry } from "./geometry";
+import { Geometry } from "./Geometry";
 
 class PlaneGeometry extends Geometry {
     constructor(width = 1, height = 1, widthSegments = 1, heightSegments = 1) {
@@ -13,7 +13,7 @@ class PlaneGeometry extends Geometry {
     build() {
         const w = this.width / 2;
         const h = this.height / 2;
-        const vertices = [
+        const positions = [
             -w, -h, 0,
             -w, h, 0,
             w, h, 0,
@@ -42,7 +42,7 @@ class PlaneGeometry extends Geometry {
             3, 4, 5
         ];
 
-        this.setFromArrays(vertices, normals, uvs, indices);
+        this.setFromArrays(indices, positions, normals, uvs);
     }
 }
 

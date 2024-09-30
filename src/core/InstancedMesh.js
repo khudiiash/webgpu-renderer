@@ -31,10 +31,9 @@ class InstancedMesh extends Mesh {
             visibility: GPUShaderStage.VERTEX,
             type: 'storage',
             perMesh: true,
-            typeString: 'storage, read',
-            bufferType: 'read-only-storage',
+            bufferType: 'storage',
             uniforms: [
-                new Uniform('instances').storage(count * 16, 'array<mat4x4f>'),
+                new Uniform('instances').storage(count, 'mat4x4f'),
             ]
         });
         
@@ -106,7 +105,7 @@ class InstancedMesh extends Mesh {
             _quat.setFromRotationMatrix(_rotMat);
             _mat.compose(_vec1, _quat, _mat.getScale());
             
-            _mat.toArray(this.instanceMatrix, i * 16);
+            _mat.toArray( this.instanceMatrix, i * 16 );
         }
         this.write(this.instanceMatrix, 'instances');
     }

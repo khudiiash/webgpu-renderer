@@ -207,6 +207,30 @@ class Vector3 {
         return this;
     }
     
+    lerpVectors(v1, v2, alpha) {
+        this.subVectors(v2, v1).mulScalar(alpha).add(v1);
+        return this;
+    }
+    
+    random(min, max) {
+        this.x = Math.random() * (max - min) + min;
+        this.y = Math.random() * (max - min) + min;
+        this.z = Math.random() * (max - min) + min;
+        return this;
+    }
+    
+    setFromBufferAttribute(attribute, index) {
+        this.data[0] = attribute.getX(index);
+        this.data[1] = attribute.getY(index);
+        this.data[2] = attribute.getZ(index);
+        return this;
+    }
+    
+    addScaledVector(v, s) {
+        vec3.addScaled(this.data, v.data, s, this.data);
+        return this;
+    }
+    
     clear() {
         this.data.fill(0);
         this._onChangeCallback();

@@ -48,7 +48,11 @@ class Utils {
         return webgpuTypePattern.test(string);
     }
     
-    static getTypeSize(type) {
+    static align16(value) {
+        return Math.ceil(value / 16) * 16;
+    }
+    
+    static getTypeByteSize(type) {
         if (!this.isType(type)) {
             throw new Error('Utils.getSize: type is not a valid type');
         }
@@ -83,12 +87,46 @@ class Utils {
         
     }
     
-    static getStructSize(struct) {
+    static getStructByteSize(struct) {
         let size = 0;
         for (let key in struct) {
-            size += this.getTypeSize(struct[key]);
+            size += this.getTypeByteSize(struct[key]);
         }
         return size;
+    }
+    
+    static getTypeCount(type) {
+        if (!this.isType(type)) {
+            throw new Error('Utils.getTypeCount: type is not a valid type');
+        }
+        
+        if (type.includes('32')) {
+            return 1;
+        }
+        
+        if (type === 'vec2f') {
+            return 2;
+        }
+        
+        if (type === 'vec3f') {
+            return 3;
+        }
+        
+        if (type === 'vec4f') {
+            return 4;
+        }
+        
+        if (type === 'mat2x2f') {
+            return 4;
+        }
+        
+        if (type === 'mat3x3f') {
+            return 9;
+        }
+        
+        if (type === 'mat4x4f') {
+            return 16;
+        }
     }
     
     static getSamplerLayoutByType(type) {

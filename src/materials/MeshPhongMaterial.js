@@ -19,7 +19,7 @@ class MeshPhongMaterial extends Material {
       useFog: 'f32',
       useLighting: 'f32',
       useWind: 'f32',
-      something2: 'f32',
+      ambientIntensity: 'f32',
    }
    constructor(params = {}) {
       super(params);
@@ -41,7 +41,7 @@ class MeshPhongMaterial extends Material {
       this._useFog = params.useFog !== undefined ? Number(params.useFog) : 1;
       this._useLighting = params.useLighting !== undefined ? Number(params.useLighting) : 1;
       this._useWind = params.useWind || 0;
-      this._something2 = params.something2 || 0;
+      this._ambientIntensity = params.ambientIntensity || 0;
 
       this._color.onChange(() => {
          this._data.set(this._color.data, 0);
@@ -112,7 +112,7 @@ class MeshPhongMaterial extends Material {
          useFog: 16,
          useLighting: 17,
          useWind: 18,
-         something2: 19,
+         ambientIntensity: 19,
       }
 
       this._data = new Float32Array([
@@ -126,11 +126,21 @@ class MeshPhongMaterial extends Material {
          this._useFog,
          this._useLighting,
          this._useWind,
-         this._something2,
+         this._ambientIntensity,
       ]);
 
       this.uniforms[3].set('material', this._data);
    } 
+   
+   get ambientIntensity() {
+      return this._ambientIntensity;
+   }
+   
+   set ambientIntensity(value) {
+      this._ambientIntensity = value;
+      this._data[this.offsets.ambientIntensity] = value;
+      this.write([value], this.offsets.ambientIntensity * 4);
+   }
    
    get emissionColor() {
       return this._emissionColor;

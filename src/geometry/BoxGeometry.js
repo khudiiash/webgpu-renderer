@@ -14,7 +14,7 @@ class BoxGeometry extends Geometry {
         const h = this.height / 2;
         const d = this.depth / 2;
         
-      const vertices = [
+      const positions = [
         // Front face
         -1.0, -1.0,  1.0,
          1.0, -1.0,  1.0,
@@ -51,10 +51,10 @@ class BoxGeometry extends Geometry {
         -1.0,  1.0,  1.0,
         -1.0,  1.0, -1.0,
       ];
-      for (let i = 0; i < vertices.length; i += 3) {
-          vertices[i] *= w;
-          vertices[i + 1] *= h;
-          vertices[i + 2] *= d;
+      for (let i = 0; i < positions.length; i += 3) {
+          positions[i] *= w;
+          positions[i + 1] *= h;
+          positions[i + 2] *= d;
       }
 
       // UV coordinates
@@ -146,7 +146,7 @@ class BoxGeometry extends Geometry {
       ];
 
 
-      this.setFromArrays(vertices, normals, uvs, indices);
+      this.setFromArrays(indices, positions, normals, uvs);
     }
 }
 

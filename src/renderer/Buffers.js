@@ -28,11 +28,17 @@ class Buffers {
             return this._buffers.get(uniform.name);
         }
 
-        const buffer = this.device.createBuffer({
-            label: uniform.name,
-            size: uniform.byteSize,
-            usage: GPUBufferUsage[uniform.type.toUpperCase()] | GPUBufferUsage.COPY_DST,
-        });
+        let buffer;
+        try {
+
+            buffer = this.device.createBuffer({
+                label: uniform.name,
+                size: uniform.byteSize,
+                usage: GPUBufferUsage[uniform.bufferType.toUpperCase()] | GPUBufferUsage.COPY_DST,
+            });
+        } catch(e) {
+            debugger;
+        }
         
         if (object) {
             if (!this._objects.has(object)) {
@@ -119,16 +125,6 @@ class Buffers {
         return buffer;
     }
     
-    createStorageBuffer(name, data) {
-        const buffer = this.device.createBuffer({
-            label: name,
-            size: data.byteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-        });
-        
-        this._buffers.set(name, buffer);
-        return buffer;
-    }
     
     createIndexBuffer(data, name = 'Index Buffer') {
         const buffer = this.device.createBuffer({

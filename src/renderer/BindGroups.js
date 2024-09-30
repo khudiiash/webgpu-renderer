@@ -21,7 +21,7 @@ class BindGroups {
                 label: uniform.name,
                 binding: binding++,
                 visibility: uniform.visibility,
-                buffer: { type: uniform.bufferType }
+                buffer: { type: uniform.bufferLayout }
             };
             entries.push(groupGPU);
         }
@@ -60,20 +60,17 @@ class BindGroups {
     createRenderBindGroup(renderObject, layout) {
         let binding = 0;
         const mesh = renderObject.mesh;
+        const skinned = []
 
         const uniforms = mesh.material.uniforms.map((uniform, i) => {
             let buffer = null;
 
-            console.log(uniform.name)
             if (uniform.perMesh) {
                 buffer = this.renderer.buffers.createUniformBuffer(uniform, mesh);
             } else if (uniform.isMaterial) {
                 buffer = this.renderer.buffers.createUniformBuffer(uniform, mesh.material);
             } else {
                 buffer = this.renderer.buffers.createUniformBuffer(uniform); 
-                if (uniform.name === 'time') {
-                    console.log('buffer', buffer, uniform);
-                }
             }
             
             renderObject.setUniformBuffer(uniform.name, buffer);
@@ -106,6 +103,7 @@ class BindGroups {
             layout: layout,
             entries:  [
                 ...uniforms,
+                ...skinned,
                 ...textures,
                 ...samplers,
             ]       

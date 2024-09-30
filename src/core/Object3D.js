@@ -61,7 +61,11 @@ class Object3D extends Events {
         this.direction = new Vector3(0, 0, -1);
         this.rotationMatrix = new Matrix4();
     }
-    
+   
+    setParent(parent) {
+        this.parent = parent;
+        this.updateMatrixWorld(true, false);
+    }
     
     updateMatrix() {
         this.matrix.compose(this.position, this.quaternion, this.scale);
@@ -69,7 +73,6 @@ class Object3D extends Events {
 	}
     
     updateMatrixWorld(force) {
-        const s = performance.now();
         if ( this.matrixAutoUpdate ) this.updateMatrix();
         if ( this.matrixWorldNeedsUpdate || force ) {
             if ( this.parent === null ) {
@@ -81,7 +84,9 @@ class Object3D extends Events {
             force = true;
         }
 
-        this.write(this.matrixWorld.data, 'model');
+        if (force || this.matrixWorld.needsUpdate) {
+            this.write(this.matrixWorld.data, 'model');
+        }
         
         const children = this.children;
 
@@ -143,7 +148,6 @@ class Object3D extends Events {
         }
 
         this.direction.set(this.matrixWorld.data[8], this.matrixWorld.data[9], this.matrixWorld.data[10]).normalize();
-        //if (this.name === 'MainCamera') console.log(this.direction.data);
         
 	}
     
@@ -155,7 +159,6 @@ class Object3D extends Events {
         if (y === undefined) y = x;
         if (z === undefined) z = x;
         this.scale.set(x, y, z);
-        this.updateWorldMatrix(false, true);
     }
     
     setPosition(x = 0, y = 0, z = 0) {
@@ -163,10 +166,15 @@ class Object3D extends Events {
     }
 
     add(child) {
+        if (child.parent) {
+            child.parent.remove(child);
+        }
         child.parent = this;
         this.children.push(child);
         this.childrenMap[child.name] = child;
+        this.updateMatrixWorld(true, true);
     }
+    
 
     remove(child) {
         const index = this.children.indexOf(child);
@@ -175,7 +183,17 @@ class Object3D extends Events {
     }
     
     findByName(name) {
-        return this.childrenMap[name];
+        for (let i = 0; i < this.children.length; i++) {
+            if (this.children[i].name === name) {
+                return this.children[i];
+            }
+            
+            if (this.children[i].children.length > 0) {
+                const result = this.children[i].findByName(name);
+                if (result) return result;
+            }
+        }
+        return null;
     }
     
     
@@ -217,6 +235,13 @@ class Object3D extends Events {
 		}
     }
     
+    printHierarchy(offset = 0) {
+        let string = this.name + ':\n';
+        this.children.forEach(child => {
+            string += '----'.repeat(offset) + child.printHierarchy(offset + 1);
+        });
+        return string;
+    }
     
     getWorldDirection() {
         this.updateWorldMatrix( true, false );
@@ -239,10 +264,27 @@ class Object3D extends Events {
 
     }
     
-    findByName(name) {
+    find(fn) {
+        const result = [];
         for (let i = 0; i < this.children.length; i++) {
-            if (this.children[i].name === name) {
+            if (fn(this.children[i])) {
+                result.push(this.children[i]);
+            }
+            if (this.children[i].children.length > 0) {
+                result.push(this.children[i].find(fn));
+            }
+        }
+        return result.flat();
+    }
+    
+    findOne(fn) {
+        for (let i = 0; i < this.children.length; i++) {
+            if (fn(this.children[i])) {
                 return this.children[i];
+            }
+            if (this.children[i].children.length > 0) {
+                const result = this.children[i].findOne(fn);
+                if (result) return result;
             }
         }
     }

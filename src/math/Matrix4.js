@@ -1,7 +1,6 @@
 import { mat4 } from 'wgpu-matrix';
 import { Vector3 } from './Vector3';
 import { arraysEqual } from '../utils/arraysEqual';
-const _v1 = new Vector3();
 
 class Matrix4 {
     static byteSize = 16 * Float32Array.BYTES_PER_ELEMENT;
@@ -66,24 +65,50 @@ class Matrix4 {
     
     
     compose(position, quaternion, scale) {
-        this.data[0] = scale.data[0] * (1 - 2 * quaternion.data[1] * quaternion.data[1] - 2 * quaternion.data[2] * quaternion.data[2]);
-        this.data[1] = scale.data[0] * (2 * quaternion.data[0] * quaternion.data[1] - 2 * quaternion.data[3] * quaternion.data[2]);
-        this.data[2] = scale.data[0] * (2 * quaternion.data[0] * quaternion.data[2] + 2 * quaternion.data[3] * quaternion.data[1]);
-        this.data[3] = 0;
-        this.data[4] = scale.data[1] * (2 * quaternion.data[0] * quaternion.data[1] + 2 * quaternion.data[3] * quaternion.data[2]);
-        this.data[5] = scale.data[1] * (1 - 2 * quaternion.data[0] * quaternion.data[0] - 2 * quaternion.data[2] * quaternion.data[2]);
-        this.data[6] = scale.data[1] * (2 * quaternion.data[1] * quaternion.data[2] - 2 * quaternion.data[3] * quaternion.data[0]);
-        this.data[7] = 0;
-        this.data[8] = scale.data[2] * (2 * quaternion.data[0] * quaternion.data[2] - 2 * quaternion.data[3] * quaternion.data[1]);
-        this.data[9] = scale.data[2] * (2 * quaternion.data[1] * quaternion.data[2] + 2 * quaternion.data[3] * quaternion.data[0]);
-        this.data[10] = scale.data[2] * (1 - 2 * quaternion.data[0] * quaternion.data[0] - 2 * quaternion.data[1] * quaternion.data[1]);
-        this.data[11] = 0;
-        this.data[12] = position.data[0];
-        this.data[13] = position.data[1];
-        this.data[14] = position.data[2];
-        this.data[15] = 1;
+        if (position.isVector3) {
+            position = position.data;
+        }
+        if (quaternion.isQuaternion) {
+            quaternion = quaternion.data;
+        }
+        
+        if (scale.isVector3) {
+            scale = scale.data;
+        }
+        
+        const te = this.data;
+
+		const x = quaternion[0], y = quaternion[1], z = quaternion[2], w = quaternion[3];
+		const x2 = x + x,	y2 = y + y, z2 = z + z;
+		const xx = x * x2, xy = x * y2, xz = x * z2;
+		const yy = y * y2, yz = y * z2, zz = z * z2;
+		const wx = w * x2, wy = w * y2, wz = w * z2;
+
+		const sx = scale[0], sy = scale[1], sz = scale[2];
+
+		te[ 0 ] = ( 1 - ( yy + zz ) ) * sx;
+		te[ 1 ] = ( xy + wz ) * sx;
+		te[ 2 ] = ( xz - wy ) * sx;
+		te[ 3 ] = 0;
+
+		te[ 4 ] = ( xy - wz ) * sy;
+		te[ 5 ] = ( 1 - ( xx + zz ) ) * sy;
+		te[ 6 ] = ( yz + wx ) * sy;
+		te[ 7 ] = 0;
+
+		te[ 8 ] = ( xz + wy ) * sz;
+		te[ 9 ] = ( yz - wx ) * sz;
+		te[ 10 ] = ( 1 - ( xx + yy ) ) * sz;
+		te[ 11 ] = 0;
+
+		te[ 12 ] = position[0];
+		te[ 13 ] = position[1];
+		te[ 14 ] = position[2];
+		te[ 15 ] = 1;
+
 
         this._onChangeCallback();
+		return this;
     }
     
     multiplyMatrices(a, b) {
@@ -181,8 +206,8 @@ class Matrix4 {
         return mat4.equals(this.data, m.data);
     }
     
-    invert() {
-        mat4.invert(this.data, this.data);
+    invert(out = this) {
+        mat4.invert(this.data, out.data);
            
         this._onChangeCallback();
         return this;
@@ -208,6 +233,54 @@ class Matrix4 {
     
     getScale() {
         return new Vector3().fromArray(mat4.getScaling(this.data));
+    }
+    
+    determinant() {
+        return mat4.determinant(this.data);
+    }
+    
+    decompose(position, quaternion, scale) {
+            const te = this.data;
+    
+            let sx = _v1.set( te[ 0 ], te[ 1 ], te[ 2 ] ).length();
+            const sy = _v1.set( te[ 4 ], te[ 5 ], te[ 6 ] ).length();
+            const sz = _v1.set( te[ 8 ], te[ 9 ], te[ 10 ] ).length();
+    
+            // if determine is negative, we need to invert one scale
+            const det = this.determinant();
+            if ( det < 0 ) sx = - sx;
+    
+            position.x = te[ 12 ];
+            position.y = te[ 13 ];
+            position.z = te[ 14 ];
+    
+            // scale the rotation part
+            _m1.copy( this );
+    
+            const invSX = 1 / sx;
+            const invSY = 1 / sy;
+            const invSZ = 1 / sz;
+    
+            _m1.data[ 0 ] *= invSX;
+            _m1.data[ 1 ] *= invSX;
+            _m1.data[ 2 ] *= invSX;
+    
+            _m1.data[ 4 ] *= invSY;
+            _m1.data[ 5 ] *= invSY;
+            _m1.data[ 6 ] *= invSY;
+    
+            _m1.data[ 8 ] *= invSZ;
+            _m1.data[ 9 ] *= invSZ;
+            _m1.data[ 10 ] *= invSZ;
+    
+            quaternion.setFromRotationMatrix( _m1 );
+    
+            scale.x = sx;
+            scale.y = sy;
+            scale.z = sz;
+    
+            return this;
+    
     }
     
     multiplyVec3(vector, out) {
@@ -352,5 +425,8 @@ class Matrix4 {
 
     
 }
+
+const _v1 = new Vector3();
+const _m1 = new Matrix4();
 
 export { Matrix4 };

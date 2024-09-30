@@ -1,9 +1,9 @@
 import common from './chunks/common/common.wgsl?raw';
 import vertex_default from './chunks/vertex/vertex_default.wgsl?raw';
 import vertex_position from './chunks/vertex/vertex_position.wgsl?raw';
+import vertex_skinned from './chunks/vertex/vertex_skinned.wgsl?raw';
 import vertex_local_position from './chunks/vertex/vertex_local_position.wgsl?raw';
 import vertex_instance_position from './chunks/vertex/vertex_instance_position.wgsl?raw';
-import vertex_culling from './chunks/vertex/vertex_culling.wgsl?raw';
 import vertex_uv from './chunks/vertex/vertex_uv.wgsl?raw';
 import vertex_world_position from './chunks/vertex/vertex_world_position.wgsl?raw';
 import vertex_fog from './chunks/vertex/vertex_fog.wgsl?raw';
@@ -49,7 +49,6 @@ class ShaderChunks {
     static common = new ShaderChunk('common', common);
     static vertex = {
         default: new VertexChunk('default', vertex_default),
-        culling: new VertexChunk('culling', vertex_culling),
         position: new VertexChunk('vertex_position', vertex_position),
         local_position: new VertexChunk('vertex_local_position', vertex_local_position, [ new Varying('vLocalPosition', 'vec3f')]),
         instance_position: new VertexChunk('vertex_instance_position', vertex_instance_position),
@@ -62,6 +61,7 @@ class ShaderChunks {
         fog: new VertexChunk('vertex_fog', vertex_fog, [ new Varying('vFogDistance', 'f32') ]),
         shadowmap: new VertexChunk('vertex_shadowmap', vertex_shadowmap, [ new Varying('vShadowCoord', 'vec4f') ]),
         wind: new VertexChunk('vertex_wind', vertex_wind),
+        skinned: new VertexChunk('vertex_skinned', vertex_skinned),
     }
     static fragment = {
         shadow_depth: new FragmentChunk('fragment_shadow_depth', fragment_shadow_depth),

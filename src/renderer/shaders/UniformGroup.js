@@ -1,6 +1,24 @@
 import { StringUtils } from "../utils/StringUtils";
+import { Utils } from "../utils/Utils";
 
+/**
+ * Represents a group of uniforms for a shader program.
+ * @class
+ * @memberof renderer.shaders
+ * 
+ * @param {Object} options - The options for creating the UniformGroup.
+ * @param {string} options.name - The name of the uniform group.
+ * @param {Array} options.uniforms - An array of uniform objects.
+ * @param {number} [options.bindGroup=0] - The bind group index.
+ * @param {boolean} [options.perMesh=false] - Indicates if the uniform group is per mesh.
+ * @param {boolean} [options.isMaterial=false] - Indicates if the uniform group is for material.
+ * @param {string} [options.type='uniform'] - The type of the uniform group 
+ * @param {'read' | 'read, write'} [options.storageType='read'] - The storage type of the uniform group.
+ * @param {'uniform' | 'stroage'} [options.bufferType='uniform'] - The buffer type of the uniform group (uniform | storage).
+ * @param {number} [options.visibility=GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT] - The visibility of the uniform group.
+ */
 class UniformGroup {
+    
     constructor({ 
         name, 
         uniforms, 
@@ -8,7 +26,7 @@ class UniformGroup {
         perMesh = false, 
         isMaterial = false, 
         type = 'uniform', 
-        typeString = 'uniform', 
+        storageOp = 'read', 
         bufferType = 'uniform',
         visibility = GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
     }) {
@@ -18,15 +36,22 @@ class UniformGroup {
         this.perMesh = perMesh;
         this.isMaterial = isMaterial;
         this.type = type;
-        this.typeString = typeString;
         this.bindGroup = bindGroup;
+        this.storageOp = storageOp;
         this.bufferType = bufferType;
-        this.byteSize = this.calculateGroupSize();
+        this.byteSize = this.calculateGroupByteSize();
         this._data = new Float32Array(this.byteSize / Float32Array.BYTES_PER_ELEMENT);
         this.offsets = {};
         this.byteOffsets = {};
         let offset = 0;
         let byteOffset = 0;
+
+        this.bufferLayout = this.bufferType === 'uniform' ? 'uniform' : 
+            this.storageOp === 'read' ? 
+                'read-only-storage' : 
+                'storage';
+
+        this.bufferTypeString = this.bufferType === 'uniform' ? 'uniform' : `storage, ${this.storageOp}`;
 
         this.uniforms.forEach((uniform) => {
             uniform.bufferOffset = offset;
@@ -47,12 +72,12 @@ class UniformGroup {
         }); 
     }
     
-    calculateGroupSize() {
+    calculateGroupByteSize() {
         const size = this.uniforms.reduce((acc, uniform) => {
             return acc + uniform.byteSize;
         }, 0);
         
-        return Math.ceil(size / 16) * 16;
+        return Utils.align16(size);
     }
 
     getStructsString() {
@@ -99,7 +124,7 @@ class UniformGroup {
     getBindGroupString(bindGroup = 0, binding = 0) {
         const isComplex = this.uniforms.length > 1 || this.uniforms[0].isStruct || this.uniforms[0].isStructArray;
         const type = isComplex ? StringUtils.capitalize(this.name) : this.uniforms[0].type;
-        return `@group(${bindGroup}) @binding(${binding}) var<${this.typeString}> ${this.name}: ${type};\n`;
+        return `@group(${bindGroup}) @binding(${binding}) var<${this.bufferTypeString}> ${this.name}: ${type};\n`;
     }
     
     clone() {

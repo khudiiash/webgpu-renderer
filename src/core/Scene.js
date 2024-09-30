@@ -4,6 +4,7 @@ import { Color } from '../math/Color.js';
 import { UniformLib } from '../renderer/shaders/UniformLib.js';
 import { clamp } from '../math/MathUtils.js';
 import { Wind } from './Wind.js';
+import { AmbientLight } from '../lights/AmbientLight.js';
 
 class Scene extends Object3D {
     constructor() {
@@ -16,12 +17,12 @@ class Scene extends Object3D {
         this.directionalLights = [];
         this.pointLights = [];
         this.meshes = [];
-        this.background = new Color(0.2, 0.3, 0.4, 1);
+        this.background = new Color(0.1, 0.12, 0.15, 1);
 
         this._needsUpdate = true;
-        this._fog = new Fog({ color: this.background, start: 50, end: 200, density: 0.01, type: Fog.LINEAR});
+        this._fog = new Fog({ color: this.background, start: 30, end: 200, density: 0.01, type: Fog.LINEAR});
         this._wind = new Wind(); 
-        this._ambientColor = new Color(1, 1, 1, 0.2);
+        this._ambientLight = new AmbientLight({ color: '#ffffff', intensity: 0.3 });
         
         this.uniformGroup = UniformLib.scene.clone();
 
@@ -31,7 +32,7 @@ class Scene extends Object3D {
         this._data = new Float32Array(this.uniformGroup.byteSize / Float32Array.BYTES_PER_ELEMENT);
         this._data.set(this._fog.data, this.offsets.fog);
         this._data.set(this._wind.data, this.offsets.wind);
-        this._data.set(this._ambientColor.data, this.offsets.ambientColor);
+        this._data.set(this._ambientLight.data, this.offsets.ambientLight);
     }
     
     get fog() {
@@ -44,14 +45,6 @@ class Scene extends Object3D {
     
     get wind() {
         return this._wind;
-    }
-    
-    get ambientColor() {
-        return this._ambientColor;
-    }
-
-    set ambientColor(value) {
-        this._ambientColor = value;
     }
     
     get needsUpdate() {

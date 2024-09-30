@@ -8,6 +8,13 @@ import { InstancedMesh } from '../core/InstancedMesh.js';
 import { MeshPhongMaterial } from '../materials/MeshPhongMaterial.js';
 import { TextureLoader } from './TextureLoader.js';
 import { Object3D } from '../core/Object3D.js';
+import { Skeleton } from '../animation/Skeleton.js';
+import { SkinnedMesh } from '../animation/SkinnedMesh.js';
+import { AnimationClip, VectorKeyframeTrack, QuaternionKeyframeTrack, KeyframeTrack } from '../animation/AnimationClip.js';
+import { Bone } from '../animation/Bone.js';
+import { Matrix4 } from '../math/Matrix4.js';
+
+
 
 const COMPONENT_TYPES = {
     5120: Int8Array,
@@ -18,11 +25,21 @@ const COMPONENT_TYPES = {
     5126: Float32Array
 };
 
+const TYPE_SIZES = {
+    SCALAR: 1,
+    VEC2: 2,
+    VEC3: 3,
+    VEC4: 4,
+    MAT2: 4,
+    MAT3: 9,
+    MAT4: 16
+};
+
 
 class GLTFLoader {
     constructor(renderer) {
         if (GLTFLoader.instance) {
-            return GLTFLoader.instance
+            return GLTFLoader.instance;
         }
         this.cache = new Map();
         this.textureLoader = new TextureLoader(renderer);
@@ -30,66 +47,33 @@ class GLTFLoader {
     }
     
     async load(url, instances = 0) {
+        this.cache.clear();
+        this.instances = instances;
         this.data = await load(url, GLTF);
-        return this.extractMeshData(this.data, instances);
-    }
+        const parsed = this.parse(this.data, instances);
+        return parsed;
+    }    
     
-    extractMeshData(data, instances) {
-        const gltf = data.json;
-        const buffers = data.buffers;
-        if (!gltf.meshes) {
-            console.error('No meshes found in gltf file');
-            return new Object3D();
-        }
-        if (gltf.meshes.length === 1) {
-            const geometry = this.createGeometry(gltf.meshes[0], gltf, buffers);
-            const material = this.createMaterial(gltf.meshes[0], gltf, buffers);
-            const Constructor = instances ? InstancedMesh : Mesh;
-            const mesh = new Constructor(geometry, material, instances);
-            return mesh;
-        }
-
-        const group = new Object3D();
-
-        for (const mesh of gltf.meshes) {
-            const geometry = this.createGeometry(mesh, gltf, buffers);
-            const material = this.createMaterial(mesh, gltf, buffers);
-            group.add(new Mesh(geometry, material));
-        }
-        return group;
-      }
+    async loadMesh(url, instances = 0) {
+        this.cache.clear();
+        this.instances = instances;
+        this.data = await load(url, GLTF);
+        const parsed = this.parseNode(this.data.json, this.data.buffers, 0);
+        return parsed;
+    }
     
       createGeometry(mesh, gltf, buffers) {
         const geometry = new Geometry();
         const primitive = mesh.primitives[0];
       
-        const positionAccessor = gltf.accessors[primitive.attributes.POSITION];
-        const normalAccessor = gltf.accessors[primitive.attributes.NORMAL];
-        const uvAccessor = gltf.accessors[primitive.attributes.TEXCOORD_0];
-        const indexAccessor = gltf.accessors[primitive.indices];
-      
-        const positionBufferView = gltf.bufferViews[positionAccessor.bufferView];
-        const normalBufferView = gltf.bufferViews[normalAccessor.bufferView];
-        const uvBufferView = gltf.bufferViews[uvAccessor.bufferView];
-        const indexBufferView = gltf.bufferViews[indexAccessor.bufferView];
-        
-        const positionBuffer = buffers[positionBufferView.buffer];
-        const normalBuffer = buffers[normalBufferView.buffer];
-        const uvBuffer = buffers[uvBufferView.buffer];
-        const indexBuffer = buffers[indexBufferView.buffer];
-      
-        const positions = new Float32Array( positionBuffer.arrayBuffer, positionBuffer.byteOffset + positionBufferView.byteOffset, positionAccessor.count * 3);
-        const normals = new Float32Array(normalBuffer.arrayBuffer, normalBuffer.byteOffset + normalBufferView.byteOffset, normalAccessor.count * 3);
-        const uvs = new Float32Array(uvBuffer.arrayBuffer, uvBuffer.byteOffset + uvBufferView.byteOffset, uvAccessor.count * 2);
-        let indices = new COMPONENT_TYPES[indexAccessor.componentType](indexBuffer.arrayBuffer, indexBuffer.byteOffset + indexBufferView.byteOffset, indexAccessor.count);
+        const positions = this.parseAccessor(gltf, buffers, primitive.attributes.POSITION);
+        const normals = this.parseAccessor(gltf, buffers, primitive.attributes.NORMAL);
+        const uvs = this.parseAccessor(gltf, buffers, primitive.attributes.TEXCOORD_0);
+        const indices = this.parseAccessor(gltf, buffers, primitive.indices);
+        const joints = this.parseAccessor(gltf, buffers, primitive.attributes.JOINTS_0);
+        const weights = this.parseAccessor(gltf, buffers, primitive.attributes.WEIGHTS_0);
 
-        // if (indices.length % 4 !== 0) {
-        //   const newSizeMultipleOf4 = Math.ceil(indices.length / 4) * 4;
-        //   const newIndices = new COMPONENT_TYPES[indexAccessor.componentType](newSizeMultipleOf4);  
-        //   newIndices.set(indices);
-        //   indices = newIndices;
-        // }
-        geometry.setFromArrays(positions, normals, uvs, indices);
+        geometry.setFromArrays(indices, positions, normals, uvs, joints, weights);
         return geometry;        
       }
     
@@ -120,5 +104,172 @@ class GLTFLoader {
          
          return material;
      }
+    
+     parse(data) {
+        const gltf = data.json;
+        const buffers = data.buffers;
+        
+        const scenes = this.parseScenes(gltf, buffers);
+        const animations = this.parseAnimations(gltf, buffers);
+        
+        return {
+            scenes,
+            animations,
+            skinnedMeshes: [],
+            scene: scenes[gltf.scene || 0]
+        };
+    }
+    
+    parseScenes(gltf, buffers) {
+        return gltf.scenes.map(scene => {
+            const sceneObj = new Object3D();
+            scene.nodes.forEach(nodeIndex => {
+                const childObj = this.parseNode(gltf, buffers, nodeIndex);
+                sceneObj.add(childObj);
+            });
+            return sceneObj;
+        });
+    }
+    
+    createSkeleton(nodeData, gltf, buffers) {
+        const skinData = gltf.skins[nodeData.skin];
+        const jointNodes = skinData.joints.map(jointIndex => this.parseNode(gltf, buffers, jointIndex));
+        const bones = jointNodes.filter(node => node instanceof Bone);
+        
+        let inverseBindMatricesData = this.parseAccessor(gltf, buffers, skinData.inverseBindMatrices);
+        let boneInverses = [];
+        for (let i = 0; i < bones.length; i++) {
+            const mat = new Matrix4().fromArray(inverseBindMatricesData, i * 16);
+            boneInverses.push(mat);
+        }
+        
+        const skeleton = new Skeleton(bones, boneInverses);
+        return skeleton;
+    }
+    
+    parseAnimations(gltf, buffers) {
+        if (!gltf.animations) return [];
+        return gltf.animations.map(animation => {
+            const tracks = animation.channels.map(channel => {
+                const sampler = animation.samplers[channel.sampler];
+                const target = channel.target;
+                const name = target.node !== undefined ? gltf.nodes[target.node].name : target.node;
+                
+                const inputAccessor = gltf.accessors[sampler.input];
+                const outputAccessor = gltf.accessors[sampler.output];
+                
+                const times = this.parseAccessor(gltf, buffers, inputAccessor);
+                const values = this.parseAccessor(gltf, buffers, outputAccessor);
+                
+                let TrackType;
+                switch (target.path) {
+                    case 'translation':
+                    case 'scale':
+                        TrackType = VectorKeyframeTrack;
+                        break;
+                    case 'rotation':
+                        TrackType = QuaternionKeyframeTrack;
+                        break;
+                    default:
+                        TrackType = KeyframeTrack;
+                }
+                
+                return new TrackType(
+                    name + '.' + target.path,
+                    times,
+                    values,
+                    sampler.interpolation
+                );
+            });
+            
+            return new AnimationClip(animation.name, tracks);
+        });
+    } 
+    
+    isBone(nodeIndex) {
+        return this.data.json.skins.some( skin => skin.joints.includes(nodeIndex));
+    }
+
+    parseNode(gltf, buffers, nodeIndex) {
+        if (this.cache.has(nodeIndex)) {
+            return this.cache.get(nodeIndex);
+        }
+        const nodeData = gltf.nodes[nodeIndex];
+        let obj;
+        
+        if (nodeData.mesh !== undefined) {
+            const mesh = gltf.meshes[nodeData.mesh];
+            const geometry = this.createGeometry(mesh, gltf, buffers);
+            const material = this.createMaterial(mesh, gltf, buffers);
+            
+            if (nodeData.skin !== undefined) {
+                obj = new SkinnedMesh(geometry, material, this.createSkeleton(nodeData, gltf, buffers));
+            } else {
+                obj = this.instances ? new InstancedMesh(geometry, material, this.instances) : new Mesh(geometry, material);
+            }
+        } else if (this.isBone(nodeIndex)) {
+            obj = new Bone();
+        } else {
+            obj = new Object3D();
+        }
+        
+        if (nodeData.name) {
+            obj.name = nodeData.name;
+        } 
+
+        this.cache.set(nodeIndex, obj);
+
+        if (nodeData.translation) obj.position.fromArray(nodeData.translation);
+        if (nodeData.rotation) obj.quaternion.fromArray(nodeData.rotation);
+        if (nodeData.scale) obj.scale.fromArray(nodeData.scale);
+
+        if (nodeData.matrix) {
+            obj.matrix.fromArray(nodeData.matrix);
+            obj.matrix.compose(obj.position, obj.quaternion, obj.scale);
+        }
+
+        if (nodeData.children) {
+            nodeData.children.forEach(childIndex => {
+                const child = this.parseNode(gltf, buffers, childIndex);
+                if (child) {
+                    obj.add(child);
+                }
+            });
+        }
+        
+        return obj;
+    }
+    
+     parseAccessor(gltf, buffers, accessorIndex) {
+        let accessorDef;
+        if (typeof accessorIndex === 'object') {
+            accessorDef = accessorIndex;            
+        }
+        else {
+            accessorDef = gltf.accessors[accessorIndex];
+        }
+         if (!accessorDef) {
+            return null;
+        }
+        const bufferView = gltf.bufferViews[accessorDef.bufferView];
+        if (!bufferView) {
+            return null;
+        }
+        const buffer = buffers[bufferView.buffer];
+
+        const itemSize = COMPONENT_TYPES[accessorDef.componentType].BYTES_PER_ELEMENT * TYPE_SIZES[accessorDef.type];
+        const count = accessorDef.count;
+        const byteOffset = accessorDef.byteOffset || 0;
+        const byteStride = bufferView.byteStride || itemSize;
+        
+        const array = new COMPONENT_TYPES[accessorDef.componentType](
+            buffer.arrayBuffer,
+            buffer.byteOffset + bufferView.byteOffset + byteOffset,
+            count * itemSize / COMPONENT_TYPES[accessorDef.componentType].BYTES_PER_ELEMENT
+        );
+        
+        return array; 
+     }
+    
 }
 export { GLTFLoader };

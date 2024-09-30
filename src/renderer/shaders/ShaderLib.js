@@ -13,6 +13,10 @@ class ShaderLib {
                 return 'vec3f';
             case 'uv':
                 return 'vec2f';
+            case 'joints':
+                return 'vec4f';
+            case 'weights':
+                return 'vec4f';
         }
     }
     
@@ -90,8 +94,7 @@ class ShaderLib {
                 return output;
             }
         `;
-        
-        console.log(vertexShader);
+        //if(mesh.isSkinnedMesh) console.log(vertexShader);
         
         return {
             vertexShader,

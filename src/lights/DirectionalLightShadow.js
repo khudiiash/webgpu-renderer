@@ -5,8 +5,7 @@ import { Vector3 } from '../math/Vector3.js';
 class DirectionalLightShadow extends LightShadow {
 
 	constructor() {
-
-		super( new OrthographicCamera( -200, 200, -200, 200, -200, 1000) );
+		super( new OrthographicCamera( -100, 100, -100, 100, -200, 100) );
 
 		this.isDirectionalLightShadow = true;
 	}
@@ -18,11 +17,10 @@ class DirectionalLightShadow extends LightShadow {
 			shadowCamera.updateProjectionMatrix();
 		}
 		
-	  	const lightDirection = light.direction.clone();
+	  	const lightDirection = light.direction;
 	  	const shadowCameraTarget = new Vector3();
 	  	shadowCameraTarget.copy(lightDirection).mulScalar(-1);
 	  	shadowCamera.target.copy(shadowCameraTarget);
-		//shadowCamera.updateViewMatrix();
   
 	  	shadowCamera.updateMatrixWorld();
 	  	this.projectionViewMatrix.multiplyMatrices(shadowCamera.projectionMatrix, shadowCamera.viewMatrix);

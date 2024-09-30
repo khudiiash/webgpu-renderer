@@ -14,7 +14,7 @@ class Wind extends Events {
         super();
         params = {
             speed: 0.4,
-            strength: 10,
+            strength: 15,
             noise: 0,
             frequency: 1,
             direction: new Vector3(0.7, 0, 0.7),

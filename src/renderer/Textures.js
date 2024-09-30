@@ -38,7 +38,7 @@ class Textures {
     
     createShadowDepthTexture() {
         const texture = this.device.createTexture({
-            size: [1024, 1024].map(i => i * 2),
+            size: [1024, 1024].map(i => i * 1),
             format: 'depth32float',
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
         });

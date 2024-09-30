@@ -46,7 +46,13 @@ class UniformLib {
         uniforms: [
             new Uniform('fog').struct('Fog', Fog.struct),
             new Uniform('wind').struct('Wind', Wind.struct),
-            new Uniform('ambientColor').color(),            
+            new Uniform('ambientLight').struct('AmbientLight', {
+                color: 'vec4f',
+                intensity: 'f32',
+                _pad: 'f32',
+                _pad2: 'f32',
+                _pad3: 'f32',
+            }),            
             new Uniform('directionalLights').structArray('DirectionalLight', DirectionalLight.struct, 4),
             new Uniform('directionalLightShadows').structArray('DirectionalLightShadow', LightShadow.struct, 4),
             new Uniform('directionalLightMatrices').mat4Array(4),

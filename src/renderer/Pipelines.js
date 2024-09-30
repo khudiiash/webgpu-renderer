@@ -25,7 +25,7 @@ class Pipelines {
             },
             primitive: {
                 topology: 'triangle-list',
-                cullMode: 'back',
+                cullMode: renderObject.mesh.material.cullFace,
             },
             depthStencil: {
                 depthWriteEnabled: true,
@@ -54,11 +54,11 @@ class Pipelines {
             label: `${renderObject.name} Render Pipeline`,
             layout: layout,
             vertex: {
-                module: this.device.createShaderModule({ code: vertexShader }),
+                module: this.device.createShaderModule({ label: `${renderObject.name} Vertex Module`, code: vertexShader}),
                 buffers: [renderObject.mesh.geometry.getVertexAttributesLayout()],
             }, 
             fragment: {
-                module: this.device.createShaderModule({ code: fragmentShader }),
+                module: this.device.createShaderModule({ label: `${renderObject.name} Fragment Module`, code: fragmentShader }),
                 targets: [ { 
                     format: this.renderer.context.getCurrentTexture().format,
                     blend: {
@@ -75,7 +75,7 @@ class Pipelines {
             },
             primitive: {
                 topology: 'triangle-list',
-                cullMode: 'back',
+                cullMode: renderObject.mesh.material.cullFace,
             },
             depthStencil: {
                 depthWriteEnabled: true,

@@ -10,7 +10,7 @@ class SphereGeometry extends Geometry {
     }
     
     build() {
-        const vertices = [];
+        const positions = [];
         const normals = [];
         const uvs = [];
         const indices = [];
@@ -24,7 +24,7 @@ class SphereGeometry extends Geometry {
                 const px = this.radius * Math.sin(phi) * Math.cos(theta);
                 const py = this.radius * Math.cos(phi);
                 const pz = this.radius * Math.sin(phi) * Math.sin(theta);
-                vertices.push(px, py, pz);
+                positions.push(px, py, pz);
                 normals.push(px, py, pz);
                 uvs.push(u, v);
             }
@@ -41,7 +41,7 @@ class SphereGeometry extends Geometry {
             }
         } 
         
-        this.setFromArrays(vertices, normals, uvs, indices);
+        this.setFromArrays(indices, positions, normals, uvs);
     }
 }
 

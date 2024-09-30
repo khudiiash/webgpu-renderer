@@ -24,7 +24,7 @@ class Mesh extends Object3D {
         const localRayOrigin = inverseMatrix.transformPoint(rayOrigin);
         const localRayDirection = inverseMatrix.transformDirection(rayDirection).normalize();
 
-        const positions = this.geometry.vertices;
+        const positions = this.geometry.positions;
         const indices = this.geometry.indices;
 
         let closestIntersection = Infinity;

@@ -3,6 +3,7 @@ import { Vector3 } from '../../math/Vector3.js';
 import { Matrix4 } from '../../math/Matrix4.js';
 import { Utils } from '../utils/Utils.js';
 import { StringUtils } from '../utils/StringUtils.js';
+import { TYPE_BYTE_SIZE, TYPE_COUNT } from '../constants/index.js';
 
 class Uniform {
     constructor(name) {
@@ -92,10 +93,10 @@ class Uniform {
     }
     
     storage(count, type) {
-        this.byteSize = count * Float32Array.BYTES_PER_ELEMENT;
         this.isStorage = true;
-        this.type = type;
-        this._data = new Float32Array(count);
+        this.type = `array<${type}>`;
+        this.byteSize = count * TYPE_BYTE_SIZE[type];
+        this._data = new Float32Array(count * TYPE_COUNT[type]);
         return this;
     }
     
@@ -122,10 +123,10 @@ class Uniform {
         this.structString = StringUtils.structToString(structName, struct);
         this.type = structName;
         const size = Object.values(struct).reduce((acc, type) => {
-            return acc + Utils.getTypeSize(type);
+            return acc + TYPE_BYTE_SIZE[type];
         }, 0);
-        this.byteSize = Math.ceil(size / 16) * 16;
-        this._data = new Float32Array(size / Float32Array.BYTES_PER_ELEMENT);
+        this.byteSize = Utils.align16(size);
+        this._data = new Float32Array(this.byteSize / Float32Array.BYTES_PER_ELEMENT);
         return this;
     }
     
@@ -133,8 +134,8 @@ class Uniform {
     structArray(structName, struct, count = 1) {
         this.isStructArray = true;
         this.structString = StringUtils.structToString(structName, struct);
-        const size = Utils.getStructSize(struct) * count;
-        this.byteSize = Math.ceil(size / 16) * 16;
+        const byteSize = Utils.getStructByteSize(struct) * count;
+        this.byteSize = Math.ceil(byteSize / 16) * 16;
         this.type = `array<${structName}, ${count}>`;
         this._data = new Float32Array(this.byteSize / Float32Array.BYTES_PER_ELEMENT);
         return this;

@@ -3,6 +3,7 @@ import { quat } from 'wgpu-matrix';
 
 class Quaternion {
     constructor(x = 0, y = 0, z = 0, w = 1) {
+        this.isQuaternion = true;
         this.data = quat.create(x, y, z, w);
         this.needsUpdate = false;
     }
@@ -138,10 +139,40 @@ class Quaternion {
         
     }
     
+    fromArray(array) {
+        this.data.set(array);
+        this._onChangeCallback();
+        return this;
+    }
+    
+    equalsArray(array, offset = 0) {
+        return this.x === array[offset] && this.y === array[offset + 1] && this.z === array[offset + 2] && this.w === array[offset + 3];
+    }
+    
+    toArray(array = [], offset = 0) {
+        const { x, y, z, w } = this;
+        array[offset] = x;
+        array[offset + 1] = y;
+        array[offset + 2] = z;
+        array[offset + 3] = w;
+        
+        return array;
+    }
+    
+    slerpQuaternions(q1, q2, t) {
+        quat.slerp(q1.data, q2.data, t, this.data);
+        
+        return this;
+    }
+    
     copy(q) {
         quat.copy(q.data, this.data);
         
         return this;
+    }
+    
+    print() {
+        return `Quat { x: ${this.data[0]}, y: ${this.data[1]}, z: ${this.data[2]}, w: ${this.data[3]} }`;
     }
 }
 
