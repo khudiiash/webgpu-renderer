@@ -208,7 +208,12 @@ class Vector3 {
     }
     
     lerpVectors(v1, v2, alpha) {
-        this.subVectors(v2, v1).mulScalar(alpha).add(v1);
+        vec3.lerp(v1.data, v2.data, alpha, this.data);
+        return this;
+    }
+    
+    lerp(v, alpha) {
+        vec3.lerp(this.data, v.data, alpha, this.data);
         return this;
     }
     

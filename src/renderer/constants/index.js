@@ -21,3 +21,9 @@ export const TYPE_COUNT = {
     'i32': 1,
     'u32': 1,
 }
+
+export const USE = {
+    RENDER: 1,
+    SHADOW: 2,
+    COMPUTE: 4,
+}

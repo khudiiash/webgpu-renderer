@@ -26,4 +26,4 @@ for (var i = 0u; i < DIR_NUM; i = i + 1u) {
 // Ensure the final color doesn't exceed (1, 1, 1)
 finalColor = min(finalColor, vec3f(1.0));
 
-color = vec4f(finalColor, color.a);
+color = vec4f(finalColor, color.a * material.alpha);

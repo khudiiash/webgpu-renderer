@@ -1,5 +1,6 @@
 import { StringUtils } from "../utils/StringUtils";
 import { Utils } from "../utils/Utils";
+import { USE } from "../constants";
 
 /**
  * Represents a group of uniforms for a shader program.
@@ -26,6 +27,7 @@ class UniformGroup {
         perMesh = false, 
         isMaterial = false, 
         type = 'uniform', 
+        use = USE.RENDER | USE.SHADOW,
         storageOp = 'read', 
         bufferType = 'uniform',
         visibility = GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
@@ -36,6 +38,7 @@ class UniformGroup {
         this.perMesh = perMesh;
         this.isMaterial = isMaterial;
         this.type = type;
+        this.use = use;
         this.bindGroup = bindGroup;
         this.storageOp = storageOp;
         this.bufferType = bufferType;
@@ -139,6 +142,18 @@ class UniformGroup {
     
     has(name) {
         return this.uniforms.some(uniform => uniform.name === name);
+    }
+    
+    get useShadow() {
+        return this.use & USE.SHADOW;
+    }
+    
+    get useRender() {
+        return this.use & USE.RENDER;
+    }
+    
+    get useCompute() {
+        return this.use & USE.COMPUTE;
     }
 
     get data() {

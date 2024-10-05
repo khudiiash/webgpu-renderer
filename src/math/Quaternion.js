@@ -127,7 +127,6 @@ class Quaternion {
     setFromRotationMatrix(m) {
         quat.fromMat(m.data, this.data);
         this._onChangeCallback();
-        
         return this;
     }
     

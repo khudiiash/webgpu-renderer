@@ -1,1 +1,0 @@
-output.vViewDirection = normalize(output.vWorldPosition - camera.position);

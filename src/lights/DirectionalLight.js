@@ -1,5 +1,7 @@
 import { Light } from './Light.js';
 import { DirectionalLightShadow } from './DirectionalLightShadow.js';
+import { Vector3 } from '../math/Vector3.js';
+const _zero = new Vector3(0, 0, 0);
 
 class DirectionalLight extends Light {
     static struct = {
@@ -40,7 +42,11 @@ class DirectionalLight extends Light {
     
     updateMatrixWorld(force) {
         super.updateMatrixWorld(force);
+        if (this.position.length()) {
+            this.direction.subVectors(this.position, _zero).normalize();
+        }
         this.shadow.updateMatrices(this);
+
         if (!this.direction.equalsArray(this._data, this.offsets.get(this.direction))) { 
             this._data.set(this.direction.data, this.offsets.get(this.direction));
             this.write(this._data, 'directionalLights'); 

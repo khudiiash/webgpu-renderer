@@ -5,7 +5,6 @@ const regex = /^(?<boneName>.*?)\.(?<property>translation|rotation|scale)?$/;
 class AnimationMixer {
     constructor(root) {
         this.root = root;
-        console.log('root', root);
         this.animations = new Map();
         this.activeAnimations = new Set();
     }

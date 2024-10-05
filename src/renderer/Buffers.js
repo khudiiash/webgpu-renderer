@@ -8,6 +8,16 @@ class Buffers {
         this._objects = new Map();
         this._buffers = new Map();
         this._data = new Map();
+        this.createLightProjectionViewBuffer();
+    }
+    
+    createLightProjectionViewBuffer() {
+        const buffer = this.device.createBuffer({
+            label: 'Light Projection View Buffer',
+            size: 64,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        });
+        this._buffers.set('lightProjViewMatrix', buffer);
     }
     
     createShadowDepthBuffer(shadowTexture) {
@@ -30,7 +40,6 @@ class Buffers {
 
         let buffer;
         try {
-
             buffer = this.device.createBuffer({
                 label: uniform.name,
                 size: uniform.byteSize,
@@ -50,6 +59,9 @@ class Buffers {
                 this.write(buffer, object.data);
                 this._data.set(buffer, new Float32Array(object.data));
             }
+            if (object.isMaterial) {
+                this.write(buffer, object.data);
+            }
 
             if (uniform.name === 'model') {
                 this.write(buffer, object.matrixWorld.data);
@@ -60,8 +72,8 @@ class Buffers {
                 this._data.set(buffer, new Float32Array(object.instanceMatrix));
             }
 
-            object.on('write', ({ data, name, offset }) => {
-                this.write(this._objects.get(object)?.get(name), data, offset)
+            object.on('write', ({ data, name, byteOffset }) => {
+                this.write(this._objects.get(object)?.get(name), data, byteOffset)
             }, this);    
 
             if (!uniform.perMesh) {
@@ -78,15 +90,15 @@ class Buffers {
         return buffer;
     }
     
-    write(buffer, data, offset = 0) {
+    write(buffer, data, byteOffset = 0) {
         if (!buffer || !data) return false;
         if (typeof buffer === 'string' && this._buffers.has(buffer)) {
             buffer = this._buffers.get(buffer);
         }
         if (!(buffer instanceof GPUBuffer)) return false;
         if (arraysEqual(this._data.get(buffer), data)) return false;
-        this.device.queue.writeBuffer(buffer, offset, data);
-        this._data.get(buffer)?.set(data, offset / Float32Array.BYTES_PER_ELEMENT);
+        this.device.queue.writeBuffer(buffer, byteOffset, data);
+        this._data.get(buffer)?.set(data, byteOffset / Float32Array.BYTES_PER_ELEMENT);
         return true;
     }
     
@@ -132,11 +144,7 @@ class Buffers {
             size: data.byteLength,
             usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
         });
-        try {
-            this.device.queue.writeBuffer(buffer, 0, data);
-        } catch(e) {
-            console.log(e);
-        }
+        this.device.queue.writeBuffer(buffer, 0, data);
         return buffer;
     }
     

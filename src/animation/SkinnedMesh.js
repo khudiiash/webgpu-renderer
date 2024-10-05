@@ -27,7 +27,7 @@ class SkinnedMesh extends Mesh {
 
 		this.isSkinnedMesh = true;
 
-		this.type = 'SkinnedMesh';
+		this.type = 'skinned_mesh';
 		
 		this.bindMode = AttachedBindMode;
 		this.bindMatrix = new Matrix4();
@@ -58,7 +58,6 @@ class SkinnedMesh extends Mesh {
 				]
 			})
 	    );
-		material.chunks.vertex[0] = ShaderChunks.vertex.skinned;
 
 		this.bind( skeleton );
 	}

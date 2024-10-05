@@ -8,7 +8,11 @@ class LightShadow extends Events {
         shadowIntensity: 'f32',
         shadowBias: 'f32',
         shadowNormalBias: 'f32',
-        shadowRadius: 'f32',
+        shadowMapOffsetTextureSize: 'f32',
+        shadowMapOffsetFilterSize: 'f32',
+        shadowMapRandomRadius: 'f32',
+        shadowMapSize: 'f32',
+        shadowBlurSamples: 'f32',
     }
     constructor(camera) {
         super()
@@ -26,16 +30,23 @@ class LightShadow extends Events {
         this.projectionMatrixInverse = new Matrix4();
         this.camera.updateProjectionMatrix();
         this._shadowIntensity = 1;
-        this._shadowBias = 0.005;
+        this._shadowBias = 0.0001;
         this._shadowNormalBias = 0;
         this._shadowRadius = 1;
+        this._shadowMapOffsetTextureSize = 4;
+        this._shadowMapOffsetFilterSize = 3;
+        this._shadowMapRandomRadius = 10;
         this.camera.isShadowCamera = true;
 
         this._data = new Float32Array([
             this._shadowIntensity,
             this._shadowBias,
             this._shadowNormalBias,
-            this._shadowRadius
+            this._shadowMapOffsetTextureSize, 
+            this._shadowMapOffsetFilterSize,
+            this._shadowMapRandomRadius,
+            this.mapSize,
+            this.blurSamples,
         ]);
     } 
     

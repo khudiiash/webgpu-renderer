@@ -17,12 +17,11 @@ class Scene extends Object3D {
         this.directionalLights = [];
         this.pointLights = [];
         this.meshes = [];
-        this.background = new Color(0.1, 0.12, 0.15, 1);
+        this.background = new Color(0.27, 0.31, 0.32, 1);
 
         this._needsUpdate = true;
-        this._fog = new Fog({ color: this.background, start: 30, end: 200, density: 0.01, type: Fog.LINEAR});
-        this._wind = new Wind(); 
-        this._ambientLight = new AmbientLight({ color: '#ffffff', intensity: 0.3 });
+        this._fog = new Fog({ color: this.background, start: 50, end: 150, density: 0.01, type: Fog.LINEAR});
+        this._ambientLight = new AmbientLight({ color: '#ffffff', intensity: 0.15 });
         
         this.uniformGroup = UniformLib.scene.clone();
 
@@ -31,7 +30,6 @@ class Scene extends Object3D {
 
         this._data = new Float32Array(this.uniformGroup.byteSize / Float32Array.BYTES_PER_ELEMENT);
         this._data.set(this._fog.data, this.offsets.fog);
-        this._data.set(this._wind.data, this.offsets.wind);
         this._data.set(this._ambientLight.data, this.offsets.ambientLight);
     }
     

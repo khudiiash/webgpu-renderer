@@ -258,8 +258,6 @@ class Renderer extends Events {
         const dt = (performance.now() - this._lastTime) * 0.001;
         this.elapsed += dt;
         this._lastTime = performance.now();
-        if ( scene.matrixWorldAutoUpdate === true ) scene.updateMatrixWorld();
-        if ( camera.parent === null ) camera.updateMatrixWorld();
 
         if (!this.buffers.has(scene)) {
             this.buffers.createUniformBuffer(UniformLib.scene, scene);

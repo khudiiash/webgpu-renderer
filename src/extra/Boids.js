@@ -32,7 +32,7 @@ class Boids extends InstancedMesh {
 
         this.boundaryAvoidanceRange = 5;
         this.boundaryFactor = 1;
-        this.maxSpeed = 10;
+        this.maxSpeed = 15;
         this.elapsed = 0;
         this.spatialGrid = new SpatialGrid(10, this.boundingBox);
 
@@ -61,7 +61,7 @@ class Boids extends InstancedMesh {
     
     update(dt) {
         this.elapsed += dt;
-        this.cohesionFactor = clamp(Math.abs(Math.sin(this.elapsed * 0.5)), 0.2, 0.8);
+        this.cohesionFactor = clamp(Math.abs(Math.sin(this.elapsed * 0.5)), 0.1, 0.5);
 
         for (let i = 0; i < this.count; i++) {
             const boidPos = this.getBoidPositionAt(i, tempVec);
@@ -145,6 +145,10 @@ class Boids extends InstancedMesh {
             if (boidVel.y > 0.4 || boidVel.y < -0.4) {
                 boidVel.y *= 0.5;
             }
+            
+            const currentVelocity = this.getBoidVelocityAt(i, tempVec3);
+            tempVec4.lerpVectors(currentVelocity, boidVel, 0.5);
+            boidVel.copy(tempVec4);
     
             const speed = dt * this.maxSpeed;
             boidPos.x += boidVel.x * speed;

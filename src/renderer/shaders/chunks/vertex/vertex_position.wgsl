@@ -1,2 +1,3 @@
-let modelMatrix = model;
-output.position = camera.projection * camera.view * modelMatrix * vec4f(input.position, 1);
+output.position = projectionView * worldPosition;
+output.vPosition = input.position;
+output.vWorldPosition = worldPosition.xyz;

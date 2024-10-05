@@ -1,1 +1,1 @@
-output.vFogDistance = length(output.vWorldPosition - camera.position);
+output.vFogDistance = length(worldPosition.xyz - camera.position);

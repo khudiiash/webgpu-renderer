@@ -24,6 +24,7 @@ import { BoundingBox } from "./math/BoundingBox";
 import { AnimationMixer } from "./animation/AnimationMixer";
 import { SkinnedMesh } from "./animation/SkinnedMesh";
 
+import CowModel from "../assets/cow.gltf";
 import BirdModel from "../assets/bird.glb";
 import TerrainModel from "../assets/terrain.gltf";
 import TowerModel from "../assets/tower.glb";
@@ -49,7 +50,7 @@ class App {
         await this.renderer.init();
         this.scene = new Scene();
 
-        this.camera = new PerspectiveCamera(50, this.renderer.aspect, 0.1, 200);
+        this.camera = new PerspectiveCamera(50, this.renderer.aspect, 0.1, 150);
         this.camera.position.z = 2;
         this.camera.position.y = 2;
         this.camera.position.x = -1;
@@ -59,19 +60,20 @@ class App {
         const pos = new Vector3();
         
         const terrain = await new GLTFLoader(this.renderer).loadMesh(TerrainModel);
+        terrain.material.ambientIntensity = -5;
         terrain.setPosition(0, 0, 0);
-        terrain.material.ambientIntensity = -1;
         this.terrain = terrain;
         this.scene.add(terrain);
         
-        const trees = await new GLTFLoader(this.renderer).loadMesh(TreeModel, 600);
+        const trees = await new GLTFLoader(this.renderer).loadMesh(TreeModel, 500);
         trees.material.useWind = 1;
-        trees.material.cullFace = 'none';
+        trees.material.ambientIntensity = -3;
         for (let i = 0; i < trees.count; i++) {
             let xr = randomFloat(-80, 80);
             let zr = randomFloat(-80, 80);
-            xr += xr > 0 ? randomFloat(2, 10) : -randomFloat(2, 10);
-            zr += zr > 0 ? randomFloat(2, 10) : -randomFloat(2, 10);
+            const distFromCenter = Math.sqrt(xr * xr + zr * zr);
+            xr += distFromCenter < 10 ? randomFloat(10, 15) : 0;
+            zr += distFromCenter < 10 ? randomFloat(10, 15) : 0;
 
             const x = xr;
             const z = zr;
@@ -80,48 +82,48 @@ class App {
             trees.rotateYAt(randomFloat(-1, 1), i);
             trees.rotateZAt(randomFloat(-0.2, 0.2), i);
             trees.rotateXAt(randomFloat(-0.2, 0.2), i);
-            const scale = randomFloat(0.8, 1.5);
+            const scale = randomFloat(0.6, 1.5);
             trees.setPositionAt(pos, i);
             trees.setScaleAt(scale, i);
         }
         this.scene.add(trees);
 
-        const cloud = await new GLTFLoader(this.renderer).loadMesh(CloudModel, 120);
-        cloud.material.ambientIntensity = 3;
+        const cloud = await new GLTFLoader(this.renderer).loadMesh(CloudModel, 100);
+        cloud.material.ambientIntensity = 18;
+        cloud.material.useWind = true;
         this.clouds = cloud;
         for (let i = 0; i < cloud.count; i++) {
-            const x = randomFloat(-200, 200);
-            const z = randomFloat(-200, 200);
-            const dist = Math.sqrt(x * x + z * z);
-            const y = randomFloat(40, 60) + dist / 5;
+            const x = randomFloat(-220, 220);
+            const z = randomFloat(-220, 220);
+            const y = randomFloat(60, 85) + this.terrain.getHeightAt(x, z);
+
             pos.set(x, y, z);
             const rotation = randomFloat(0, Math.PI * 2);
-            const scale = randomFloat(4, 7);
+            const scale = randomFloat(3, 5);
             cloud.setScaleAt(scale, i);
             cloud.rotateYAt(rotation, i);
             cloud.setPositionAt(pos, i);
         }
-        cloud.material.useWind = 1
         cloud.setPosition(0, 2, 0);
         this.scene.add(cloud);
-
          
     
         const bird = await new GLTFLoader(this.renderer).loadMesh(BirdModel);
-        bird.material.color = new Color('#555555');
+        bird.material.color = new Color('#999999');
         const boids = new Boids(
             bird.geometry, 
             bird.material,
-            500,
-            new BoundingBox(new Vector3(-100, 20, -100), new Vector3(100, 100, 100))
+            1000,
+            new BoundingBox(new Vector3(-100, 20, -100), new Vector3(100, 100, 100)),
+            this.camera
         )
         this.boids = boids;
         this.scene.add(boids);
         
         const tower = await new GLTFLoader(this.renderer).loadMesh(TowerModel);
-        tower.setScale(6);
+        tower.setScale(5);
         tower.rotation.y = -Math.PI / 2;
-        tower.material.ambientIntensity = 3;
+        tower.material.ambientIntensity = 2;
         // tower.setScale(0.1);
         tower.position.x = 16.4;
         this.scene.add(tower);
@@ -130,28 +132,28 @@ class App {
         
         this.light = new DirectionalLight({intensity: 2 });
         this.light.name = 'MyDirectionalLight';
-        this.light.rotation.x = -1.2;
-        this.light.rotation.y = 0;
+        this.light.rotation.set(-1.2, -0.2, 0);
         this.scene.add(this.light);
 
-        const floorGeometry = new PlaneGeometry(10, 10);
-        const floorMaterial = new MeshPhongMaterial({ color: '#222222', shininess: 152 });  
+        const floorGeometry = new PlaneGeometry(200, 200);
+        const floorMaterial = new MeshPhongMaterial({ color: '#ffffff' });  
         const floor = new Mesh(floorGeometry, floorMaterial);
-        floor.rotation.x = -Math.PI / 2;
+        floor.rotation.x = Math.PI / 2;
         floor.name = 'Floor';
         this.floor = floor;
         //this.scene.add(floor);
         
-
         const gltf = await new GLTFLoader(this.renderer).load(KnightModel);
-
         const knight = gltf.scene;
         knight.setScale(2);
-        knight.position.y = terrain.getHeightAt(0, 0);
+        knight.position.x = tower.position.x + 1;
+        knight.position.z = tower.position.z;
+        knight.position.y = 26.6;
         this.skinned = knight.find((child) => child instanceof SkinnedMesh);
         this.skinned.forEach(s => s.rotation.y = Math.PI);
         this.skinned.forEach(skinned => skinned.material.ambientIntensity = 4);
         this.scene.add(knight);
+
 
         const mixer = new AnimationMixer(knight);
         this.mixer = mixer;
@@ -179,31 +181,27 @@ class App {
     update(dt) {
         this.stats.update(); 
         const cameraDistance = 95;
-        const cameraSpeed = 0.1;
+        const cameraSpeed = 0.2;
         const cameraX = -Math.sin(this.elapsed * cameraSpeed) * cameraDistance;
         const cameraZ = Math.cos(this.elapsed * cameraSpeed) * cameraDistance;
         this.mixer?.update(dt);
         const currentY = this.camera.position.y;
-        const cameraHeight = this.terrain?.getHeightAt(cameraX, cameraZ) + 30 || currentY;
+        const cameraHeight = 46;
         this.camera.setPosition(cameraX, cameraHeight, cameraZ);
-        //this.light.rotation.y += 0.01;
-        for (let i = 0; i < this.clouds.count; i++) {
+        this.camera.target.set(0, Math.sin(this.elapsed * 0.2) * 5 + 25, 0);
+        for (let i = 0; i < this.clouds?.count; i++) {
             const pos = this.clouds.getPositionAt(i);
-            pos.x += this.scene.wind.direction.x * dt * pos.y / 100 * 2;
+            pos.x += 1 * dt * pos.y / 100 * 5;
             if (pos.x > 200) {
                 pos.x = -200;
             }
-            pos.z += this.scene.wind.direction.z * dt * pos.y / 100 * 2;
-            if (pos.z > 200) {
-                pos.z = -200;
-            }
+
             this.clouds.setPositionAt(pos, i);
         }
         this.skinned?.forEach(s => s.update());
         this.boids?.update(dt);
-        this.controls?.update(dt);
+        //this.controls?.update(dt);
         this.renderer.render(this.scene, this.camera);
-
     }
 }
 

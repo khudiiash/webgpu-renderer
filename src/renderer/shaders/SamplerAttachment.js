@@ -1,8 +1,11 @@
+import { USE } from "../constants";
+
 class SamplerAttachment {
-  constructor(name, type) {
+  constructor(name, type, use = USE.RENDER | USE.SHADOW, visibility = GPUShaderStage.FRAGMENT) {
     this.name = name;
     this.type = type;
-    this.visibility = GPUShaderStage.FRAGMENT;
+    this.use = use;
+    this.visibility = visibility;
     this.layout = this.getLayoutByType(type);
   }
   
@@ -19,6 +22,19 @@ class SamplerAttachment {
   getBindGroupString(group = 0, binding = 0) {
     return `\n@group(${group}) @binding(${binding}) var ${this.name}: ${this.type};`;
   }
+  
+  get useRender() {
+    return this.use & USE.RENDER;
+  }
+  
+  get useShadow() {
+    return this.use & USE.SHADOW;
+  }
+  
+  get useCompute() {
+    return this.use & USE.COMPUTE;
+  }
+
 }
 
 export { SamplerAttachment };

@@ -8,15 +8,16 @@ class BindGroups {
     
     
     createRenderBindGroupLayout(renderObject) {
-        if (this.layoutCache.has(renderObject.mesh.material)) {
-            return this.layoutCache.get(renderObject.mesh.material);
-        }
+        // if (this.layoutCache.has(renderObject.mesh.material)) {
+        //     return this.layoutCache.get(renderObject.mesh.material);
+        // }
         const mesh = renderObject.mesh;
         const material = mesh.material;
         const entries = [];
         let binding = 0;
 
         for (const uniform of material.uniforms) {
+            if (!uniform.useRender) continue;
             const groupGPU = {
                 label: uniform.name,
                 binding: binding++,
@@ -27,6 +28,7 @@ class BindGroups {
         }
         
         for (const texture of material.textures) {
+            if (!texture.useRender) continue;
             const textureGPU = {
                 label: texture.name,
                 binding: binding++,
@@ -37,6 +39,7 @@ class BindGroups {
         }
         
         for (const sampler of material.samplers) {
+            if (!sampler.useRender) continue;
             const samplerGPU = {
                 label: sampler.name,
                 binding: binding++,
@@ -47,7 +50,7 @@ class BindGroups {
         }
         
         const layout = this.device.createBindGroupLayout({
-            label: `${material.type} Bind Group Layout`,
+            label: `${material.type} Render Bind Group Layout`,
             entries
         });
         
@@ -62,28 +65,30 @@ class BindGroups {
         const mesh = renderObject.mesh;
         const skinned = []
 
-        const uniforms = mesh.material.uniforms.map((uniform, i) => {
-            let buffer = null;
+        const uniforms = mesh.material.uniforms
+            .filter(uniform => uniform.useRender)
+            .map((uniform, i) => {
+                let buffer = null;
 
-            if (uniform.perMesh) {
-                buffer = this.renderer.buffers.createUniformBuffer(uniform, mesh);
-            } else if (uniform.isMaterial) {
-                buffer = this.renderer.buffers.createUniformBuffer(uniform, mesh.material);
-            } else {
-                buffer = this.renderer.buffers.createUniformBuffer(uniform); 
-            }
-            
-            renderObject.setUniformBuffer(uniform.name, buffer);
-            
-            return {
-                label: uniform.name,
-                binding: binding++,
-                resource: { buffer }
-            }
-        });
+                if (uniform.perMesh) {
+                    buffer = this.renderer.buffers.createUniformBuffer(uniform, mesh);
+                } else if (uniform.isMaterial) {
+                    buffer = this.renderer.buffers.createUniformBuffer(uniform, mesh.material);
+                } else {
+                    buffer = this.renderer.buffers.createUniformBuffer(uniform); 
+                }
+                
+                renderObject.setUniformBuffer(uniform.name, buffer);
+                
+                return {
+                    label: uniform.name,
+                    binding: binding++,
+                    resource: { buffer }
+                }
+            });
 
-        const textures = mesh.material.textures.map(texture => {
-            let resource = texture.texture?.createView() || this.renderer.textures.getView(texture.name) || this.renderer.textures.getView('default');
+        const textures = mesh.material.textures.filter(t => t.useRender).map(texture => {
+            let resource = texture.texture?.createView({ label: texture.name }) || this.renderer.textures.getView(texture.name) || this.renderer.textures.getView('default');
 
             return {
                 binding: binding++,
@@ -91,7 +96,7 @@ class BindGroups {
             }
         });
         
-        const samplers = mesh.material.samplers.map(sampler => {
+        const samplers = mesh.material.samplers.filter(s => s.useRender).map(sampler => {
             return {
                 binding: binding++,
                 resource: this.renderer.samplers.get(sampler.type)
@@ -99,7 +104,7 @@ class BindGroups {
         });
 
         const bindGroup = {
-            label: `${mesh.material.type} Bind Group`,
+            label: `${mesh.material.type} Render Bind Group`,
             layout: layout,
             entries:  [
                 ...uniforms,
@@ -114,73 +119,113 @@ class BindGroups {
     }    
     
     createShadowBindGroupLayout(renderObject) {
+        // if (this.layoutCache.has(renderObject.mesh.material)) {
+        //     return this.layoutCache.get(renderObject.mesh.material);
+        // }
         const mesh = renderObject.mesh;
-        const isInstanced = mesh.isInstancedMesh;
-        const bufferType = isInstanced ? 'read-only-storage' : 'uniform'; 
+        const material = mesh.material;
+        const entries = [];
+        let binding = 0;
+
+        for (const uniform of material.uniforms) {
+            if (!uniform.useShadow) continue;
+            const groupGPU = {
+                label: uniform.name,
+                binding: binding++,
+                visibility: uniform.visibility,
+                buffer: { type: uniform.bufferLayout }
+            };
+            entries.push(groupGPU);
+        }
+        
+        for (const texture of material.textures) {
+            if (!texture.useShadow) continue;
+            const textureGPU = {
+                label: texture.name,
+                binding: binding++,
+                visibility: texture.visibility,
+                texture: texture.layout
+            };
+            entries.push(textureGPU);
+        }
+        
+        for (const sampler of material.samplers) {
+            if (!sampler.useShadow) continue;
+            const samplerGPU = {
+                label: sampler.name,
+                binding: binding++,
+                visibility: sampler.visibility,
+                sampler: sampler.layout
+            };
+            entries.push(samplerGPU);
+        }
         
         const layout = this.device.createBindGroupLayout({
-            label: `Shadow Bind Group Layout`,
-            entries: [
-                {
-                    binding: 0,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { type: bufferType }
-                },
-                {
-                    binding: 1,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: { type: 'uniform' }
-                },
-                {
-                    binding: 2,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: {}
-                },
-                {
-                    binding: 3,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    sampler: {}
-                }
-            ]
+            label: `${material.type} Shadow Bind Group Layout`,
+            entries
         });
+        
+        this.layoutCache.set(material, layout);
 
         return layout;
     }
 
     createShadowBindGroup(renderObject, layout) {
         const mesh = renderObject.mesh;
-        const buffers = this.renderer.buffers;
-        const model = buffers.get(mesh, 'model') || buffers.get(mesh, 'instances');
-        const entries = [
-                {
-                    binding: 0,
-                    resource: {
-                        buffer: model 
-                    }
-                },
-                {
-                    binding: 1,
-                    resource: {
-                        buffer: this.renderer.buffers.get('lightProjViewMatrix') ?? 
-                        this.renderer.buffers.createBuffer('lightProjViewMatrix', 64, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST)
-                    }
-                },
-                {
-                    binding: 2,
-                    resource: renderObject.mesh.material.diffuseMap?.createView() || this.renderer.textures.getView('default'),
-                },
-                {
-                    binding: 3,
-                    resource: this.renderer.samplers.get('sampler')
-                }
-            ];
-        const shadowBindGroup = this.device.createBindGroup({
-            label: 'Group for shadow pass',
-            layout: layout,
-            entries
-        })
+        let binding = 0;
+        const skinned = []
 
-        return shadowBindGroup;
+        const uniforms = mesh.material.uniforms
+            .filter(uniform => uniform.useShadow)
+            .map((uniform, i) => {
+                let buffer = null;
+
+                if (uniform.perMesh) {
+                    buffer = this.renderer.buffers.createUniformBuffer(uniform, mesh);
+                } else if (uniform.isMaterial) {
+                    buffer = this.renderer.buffers.createUniformBuffer(uniform, mesh.material);
+                } else {
+                    buffer = this.renderer.buffers.createUniformBuffer(uniform); 
+                }
+                
+                renderObject.setUniformBuffer(uniform.name, buffer);
+                
+                return {
+                    label: uniform.name,
+                    binding: binding++,
+                    resource: { buffer }
+                }
+            });
+
+        const textures = mesh.material.textures.filter(t => t.useShadow).map(texture => {
+            let resource = texture.texture?.createView() || this.renderer.textures.getView(texture.name) || this.renderer.textures.getView('default');
+
+            return {
+                binding: binding++,
+                resource
+            }
+        });
+        
+        const samplers = mesh.material.samplers.filter(s => s.useShadow).map(sampler => {
+            return {
+                binding: binding++,
+                resource: this.renderer.samplers.get(sampler.type)
+            }
+        });
+
+        const bindGroup = {
+            label: `${mesh.material.type} Shadow Bind Group`,
+            layout: layout,
+            entries:  [
+                ...uniforms,
+                ...skinned,
+                ...textures,
+                ...samplers,
+            ]       
+        };
+        
+        const group = this.device.createBindGroup(bindGroup);
+        return group;
     }
     
     

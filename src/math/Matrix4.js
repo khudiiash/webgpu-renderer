@@ -16,7 +16,7 @@ class Matrix4 {
     
     lookAt(eye, target, up = this.up) {
         mat4.lookAt(eye.data, target.data, up.data, this.data);
-         
+        this._onChangeCallback(); 
         return this;
     }
     
@@ -79,7 +79,7 @@ class Matrix4 {
         const te = this.data;
 
 		const x = quaternion[0], y = quaternion[1], z = quaternion[2], w = quaternion[3];
-		const x2 = x + x,	y2 = y + y, z2 = z + z;
+		const x2 = x + x, y2 = y + y, z2 = z + z;
 		const xx = x * x2, xy = x * y2, xz = x * z2;
 		const yy = y * y2, yz = y * z2, zz = z * z2;
 		const wx = w * x2, wy = w * y2, wz = w * z2;
@@ -132,9 +132,6 @@ class Matrix4 {
     }
     
     perspective(fov, aspect, near, far) {
-        if (mat4.equals(this.data, mat4.perspective(fov, aspect, near, far))) {
-            return this;
-        }
         mat4.perspective(fov, aspect, near, far, this.data);
         
         this._onChangeCallback();
@@ -176,7 +173,6 @@ class Matrix4 {
 	}
     
     rotate(m, axis, angleInRadians) {
-        if (mat4.equals(this.data, mat4.rotate(m.data, axis.data, angleInRadians))) return this;
         mat4.rotate(m.data, axis.data, angleInRadians, this.data);
            
         this._onChangeCallback();
@@ -191,7 +187,6 @@ class Matrix4 {
     }    
     
     frustum(left, right, bottom, top, near, far) {
-        if (mat4.equals(this.data, mat4.frustum(left, right, bottom, top, near, far))) return this;
         mat4.frustum(left, right, bottom, top, near, far, this.data);
            
         this._onChangeCallback();

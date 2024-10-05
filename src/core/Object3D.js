@@ -151,8 +151,8 @@ class Object3D extends Events {
         
 	}
     
-    write(data, name, offset = 0) {
-        this.emit('write', { data, name, offset });
+    write(data, name, byteOffset = 0) {
+        this.emit('write', { data, name, byteOffset });
     }
     
     setScale(x, y, z) {
@@ -163,6 +163,7 @@ class Object3D extends Events {
     
     setPosition(x = 0, y = 0, z = 0) {
         this.position.set(x, y, z);
+        return this;
     }
 
     add(child) {
@@ -199,20 +200,17 @@ class Object3D extends Events {
     
     lookAt(x, y, z) {
         if ( x.isVector3 ) {
-
 			_target.copy( x );
-
 		} else {
-
 			_target.set( x, y, z );
-
 		}
-
+        
 		const parent = this.parent;
 
-		this.updateWorldMatrix( true, false );
 
 		_position.setFromMatrixPosition( this.matrixWorld );
+
+        _m1.lookAt(_target, _position, this.up);
 
 		if ( this.isCamera || this.isLight ) {
 
@@ -224,14 +222,12 @@ class Object3D extends Events {
 
 		}
 
-		this.quaternion.setFromRotationMatrix( _m1 );
+		this.quaternion.setFromRotationMatrix( _m1 ).invert();
 
 		if ( parent ) {
-
 			_m1.extractRotation( parent.matrixWorld );
 			_q1.setFromRotationMatrix( _m1 );
 			this.quaternion.premultiply( _q1.invert() );
-
 		}
     }
     

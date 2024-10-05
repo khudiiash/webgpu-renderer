@@ -19,13 +19,29 @@ class Samplers {
         this.samplers.sampler = sampler;
     }
     
+    createNearestSampler() {
+        const sampler = this.device.createSampler({
+            magFilter: 'nearest',
+            minFilter: 'nearest',
+            mipmapFilter: 'nearest',
+            addressModeU: 'repeat',
+            addressModeV: 'repeat',
+            addressModeW: 'repeat',
+        });
+        
+        this.samplers.nearest = sampler;
+    }
+    
     getSamplerLayout(type) {
         if (type === 'texture_2d<f32>') {
-            return { };
+            return { viewDimension: '2d' };
         }
         
         if (type === 'texture_depth_2d') {
             return { type: 'comparison' };
+        }
+        if (type === 'texture_3d<f32>') {
+            return { viewDimension: '3d'  };
         }
     }
     

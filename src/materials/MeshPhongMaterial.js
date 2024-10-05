@@ -6,20 +6,31 @@ import { Color } from '../math/Color.js';
 import { SamplerAttachment } from '../renderer/shaders/SamplerAttachment.js';
 import { UniformGroup } from '../renderer/shaders/UniformGroup.js';
 import { Uniform } from '../renderer/shaders/Uniform.js';
+import { Vector3 } from '../math/Vector3.js';
+import { Utils } from '../renderer/utils/Utils.js';
+import { TYPE_BYTE_SIZE, TYPE_COUNT, USE } from '../renderer/constants';
 
 class MeshPhongMaterial extends Material {
    static struct =  {
       color: 'vec4f',
+
       specularColor: 'vec4f',
+
       emissionColor: 'vec4f',
+
+      windDirection: 'vec4f',
+
       emissionIntensity: 'f32',
-      roughness: 'f32',
-      metalness: 'f32',
+      ambientIntensity: 'f32',
       shininess: 'f32',
+      alpha: 'f32',
+
       useFog: 'f32',
       useLighting: 'f32',
       useWind: 'f32',
-      ambientIntensity: 'f32',
+      windStrength: 'f32',
+      windSpeed: 'f32',
+      windHeight: 'f32',
    }
    constructor(params = {}) {
       super(params);
@@ -35,13 +46,16 @@ class MeshPhongMaterial extends Material {
       this._emissionColor = params.emissionColor instanceof Color ? params.emissionColor : new Color(params.emissionColor || 0x000000);
       this._emissionIntensity = params.emissionIntensity || 0.0;
       this._shininess = params.shininess || 0;
-      this._roughness = params.roughness || 0.5;
-      this._metalness = params.metalness || 0.5;
 
       this._useFog = params.useFog !== undefined ? Number(params.useFog) : 1;
       this._useLighting = params.useLighting !== undefined ? Number(params.useLighting) : 1;
       this._useWind = params.useWind || 0;
-      this._ambientIntensity = params.ambientIntensity || 0;
+      this._ambientIntensity = params.ambientIntensity || 1;
+      this._alpha = params.alpha || 1;
+      this._windStrength = params.windStrength || 15;
+      this._windDirection = params.windDirection || new Vector3(1, 0, 0, 0);
+      this._windSpeed = params.windSpeed || 0.5;
+      this._windHeight = params.windHeight || 20;
 
       this._color.onChange(() => {
          this._data.set(this._color.data, 0);
@@ -60,6 +74,8 @@ class MeshPhongMaterial extends Material {
          UniformLib.camera,
          UniformLib.scene,
          UniformLib.time,
+         UniformLib.lightProjViewMatrix,
+
          new UniformGroup({
            name: 'material',
            bindGroup: 0,
@@ -71,26 +87,27 @@ class MeshPhongMaterial extends Material {
          })
       ];
       this.textures = [
-         new TextureAttachment('shadowMap', 'texture_depth_2d'),
-         new TextureAttachment('shadowTexture', 'texture_2d<f32>'),
-         new TextureAttachment('diffuseMap', 'texture_2d<f32>', this._diffuseMap),
-         new TextureAttachment('normalMap', 'texture_2d<f32>', this._normalMap),
+         new TextureAttachment('shadowOffset', 'texture_3d<f32>', null, USE.RENDER),
+         new TextureAttachment('shadowMap', 'texture_depth_2d', null, USE.RENDER),
+         new TextureAttachment('diffuseMap', 'texture_2d<f32>', this._diffuseMap, USE.RENDER | USE.SHADOW),
+         new TextureAttachment('normalMap', 'texture_2d<f32>', this._normalMap, USE.RENDER),
       ]
 
       this.samplers = [
-         new SamplerAttachment('sampler2D', 'sampler'),
-         new SamplerAttachment('samplerComparison', 'sampler_comparison'),
+         new SamplerAttachment('sampler2D', 'sampler', USE.RENDER | USE.SHADOW),
+         new SamplerAttachment('samplerComparison', 'sampler_comparison', USE.RENDER),
       ]
 
       this.chunks = {
          vertex: [ 
-            ShaderChunks.vertex.position,
-            ShaderChunks.vertex.world_position,
+            { mesh: ShaderChunks.vertex.model, instanced_mesh: ShaderChunks.vertex.model_instanced, skinned_mesh: ShaderChunks.vertex.model_skinned },
+            ShaderChunks.vertex.projection_camera,
+            ShaderChunks.vertex.projection_shadow,
             ShaderChunks.vertex.uv,
             ShaderChunks.vertex.normal,
-            ShaderChunks.vertex.view_direction,
             ShaderChunks.vertex.fog,
             ShaderChunks.vertex.wind,
+            ShaderChunks.vertex.position,
          ],
          fragment: [
             ShaderChunks.fragment.diffuse_map,
@@ -101,35 +118,39 @@ class MeshPhongMaterial extends Material {
          ]
       }
       
-      this.offsets = {
-         color: 0,
-         specularColor: 4,
-         emissionColor: 8,
-         emissionIntensity: 12,
-         roughness: 13,
-         metalness: 14,
-         shininess: 15,
-         useFog: 16,
-         useLighting: 17,
-         useWind: 18,
-         ambientIntensity: 19,
-      }
+      this.offsets = {};
+      this.byteOffsets = {};
+      let offset = 0;
+
+      Object.entries(MeshPhongMaterial.struct).forEach(([key, value], index) => {
+         this.offsets[key] = offset;
+         this.byteOffsets[key] = offset * Float32Array.BYTES_PER_ELEMENT;
+         offset += TYPE_COUNT[value];
+      });
 
       this._data = new Float32Array([
          this._color.r, this._color.g, this._color.b, this._color.a,
+
          this._specularColor.r, this._specularColor.g, this._specularColor.b, this._specularColor.a,
+
          this._emissionColor.r, this._emissionColor.g, this._emissionColor.b, this._emissionColor.a,
+
+         this._windDirection.x, this._windDirection.y, this._windDirection.z, 0,
+         
          this._emissionIntensity,
-         this._roughness,
-         this._metalness,
+         this._ambientIntensity,
          this._shininess,
+         this._alpha,
+
          this._useFog,
          this._useLighting,
          this._useWind,
-         this._ambientIntensity,
+         this._windStrength,
+         this._windSpeed,
+         this._windHeight,
       ]);
-
-      this.uniforms[3].set('material', this._data);
+      
+      this.write(this._data);
    } 
    
    get ambientIntensity() {
@@ -139,7 +160,17 @@ class MeshPhongMaterial extends Material {
    set ambientIntensity(value) {
       this._ambientIntensity = value;
       this._data[this.offsets.ambientIntensity] = value;
-      this.write([value], this.offsets.ambientIntensity * 4);
+      this.write([value], this.byteOffsets.ambientIntensity);
+   }
+   
+   get alpha() {
+      return this._alpha;
+   }
+   
+   set alpha(value) { 
+      this._alpha = value;
+      this._data[this.offsets.alpha] = value;
+      this.write([value], this.byteOffsets.alpha);
    }
    
    get emissionColor() {
@@ -148,8 +179,8 @@ class MeshPhongMaterial extends Material {
    
    set emissionColor(color) {
       this._emissionColor = color;
-      this._data.set(color.data, 8);
-      this.write(color.data, 8);
+      this._data.set(color.data, this.offsets.emissionColor);
+      this.write(color.data, this.byteOffsets.emissionColor);
    }
    
    get emissionIntensity() {
@@ -158,9 +189,9 @@ class MeshPhongMaterial extends Material {
    
    set emissionIntensity(value) {
       this._emissionIntensity = value;
-      this._data[12] = value;
+      this._data[this.offsets.emissionIntensity] = value;
       this.needsUpdate = true;
-      this.write([value], 12);
+      this.write([value], this.byteOffsets.emissionIntensity);
    }
    
    get color() {
@@ -169,7 +200,7 @@ class MeshPhongMaterial extends Material {
    
    set color(color) {
       this._color = color;
-      this._data.set(color.data, 0);
+      this._data.set(color.data, this.byteOffsets.color);
       this.needsUpdate = true;
    }
    
@@ -179,29 +210,10 @@ class MeshPhongMaterial extends Material {
    
    set specularColor(color) {
       this._specularColor = color;
-      this._data.set(color.data, 4);
+      this._data.set(color.data, this.byteOffsets.specularColor);
       this.needsUpdate = true;
    }
    
-   get roughness() {
-      return this._roughness;
-   }
-   
-   set roughness(value) {
-      this._roughness = value;
-      this._data[13] = value;
-      this.needsUpdate = true;
-   }
-   
-   get metalness() {
-      return this._metalness;
-   }
-   
-   set metalness(value) {
-      this._metalness = value;
-      this._data[14] = value;
-      this.needsUpdate = true;
-   }
    
    get shininess() {
       return this._shininess;
@@ -209,24 +221,28 @@ class MeshPhongMaterial extends Material {
    
    set shininess(value) {
       this._shininess = value;
-      this._data[15] = value;
-      this.needsUpdate = true;
+      this._data[this.byteOffsets.shininess] = value;
+      this.write([value], this.byteOffsets.shininess);
    }
    
    set useFog(value) {
       this._useFog = value;
       this._data[this.offsets.useFog] = value;
-      this.write([value], this.offsets.useFog * 4);
+      this.write([value], this.byteOffsets.useFog);
    }
    
    get useFog() {
       return this._useFog;
    }
    
+   get useWind() {
+      return this._useWind;
+   }
+   
    set useWind(value) {
       this._useWind = value;
-      this._data[this.offsets.useWind] = value;
-      this.write([value], this.offsets.useWind * 4);
+      this._data[this.offsets.useWind] = value ? 1 : 0;
+      this.write([value], this.byteOffsets.useWind);
    }
    
    get data() {

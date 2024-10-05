@@ -21,7 +21,7 @@ class InstancedMesh extends Mesh {
     constructor(geometry, material, count) {
         super(geometry, material);
         this.isInstancedMesh = true;
-        this.type = 'InstancedMesh';
+        this.type = 'instanced_mesh';
         this.instanceMatrix = new Float32Array(count * 16);
         this.count = count;
         this.needsUpdate = true;
@@ -37,8 +37,6 @@ class InstancedMesh extends Mesh {
             ]
         });
         
-        material.chunks.vertex[0] = ShaderChunks.vertex.instance_position;
-
         for ( let i = 0; i < count; i ++ ) {
 			this.setMatrixAt( _identity, i );
 		}
@@ -59,11 +57,10 @@ class InstancedMesh extends Mesh {
     
     lookAt(target, index) {
         this.getMatrixAt(_mat, index);
-        const position = _mat.getPosition();
-        const rotationMat = _mat2.extractRotation(_mat).lookAtRotation(position, target);
-        const quat = _quat.setFromRotationMatrix(rotationMat);
-        const scale = _mat.getScale();
-        _mat.compose(position, quat, scale);
+        const pos = _mat.getPosition();
+        _rotMat.lookAt(pos, target);
+        _quat.setFromRotationMatrix(_rotMat).invert();
+        _mat.compose(_mat.getPosition(), _quat, _mat.getScale());
 
         this.setMatrixAt(_mat, index);
     }
@@ -100,9 +97,8 @@ class InstancedMesh extends Mesh {
             this.getMatrixAt(_mat, i);
             _vec1.setFromMatrixPosition(_mat);
             _vec2.set(directions[i * 3], directions[i * 3 + 1], directions[i * 3 + 2]);
-            
-            _rotMat.lookAtRotation(_zero, _vec2);
-            _quat.setFromRotationMatrix(_rotMat);
+            _rotMat.lookAt(_vec2, _zero);
+            _quat.setFromRotationMatrix(_rotMat).invert();
             _mat.compose(_vec1, _quat, _mat.getScale());
             
             _mat.toArray( this.instanceMatrix, i * 16 );

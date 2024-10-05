@@ -10,17 +10,14 @@ class Pipelines {
     
     
     createShadowPipeline(renderObject, bindGroupLayout) {
-        const code = renderObject.mesh.isInstancedMesh ? 
-            ShaderChunks.vertex.shadow_depth_instanced.code :
-            ShaderChunks.vertex.shadow_depth.code;
-
+        const { vertexShader, fragmentShader } = ShaderLib.composeShadow(renderObject.mesh);
         const pipelineDesc = { 
             label: 'Shadow Depth Pipline',
             layout:  this.device.createPipelineLayout({
                 bindGroupLayouts: [bindGroupLayout]
             }),
             vertex: {
-                module: this.device.createShaderModule({ code }),
+                module: this.device.createShaderModule({ code: vertexShader }),
                 buffers: [ renderObject.mesh.geometry.getVertexAttributesLayout() ] 
             },
             primitive: {
@@ -34,7 +31,6 @@ class Pipelines {
             },
         }
         if (renderObject.mesh.material.diffuseMap) {
-            const fragmentShader = ShaderChunks.fragment.shadow_depth.code;
             pipelineDesc.fragment = {
                 module: this.device.createShaderModule({ code: fragmentShader }),
                 targets: []
@@ -45,6 +41,7 @@ class Pipelines {
     }
     
     createRenderPipeline(renderObject, bindGroupLayout) {
+        const material = renderObject.mesh.material;
         const { vertexShader, fragmentShader } = ShaderLib.compose(renderObject.mesh);
         const layout = this.device.createPipelineLayout({
             bindGroupLayouts: [bindGroupLayout]
@@ -61,21 +58,12 @@ class Pipelines {
                 module: this.device.createShaderModule({ label: `${renderObject.name} Fragment Module`, code: fragmentShader }),
                 targets: [ { 
                     format: this.renderer.context.getCurrentTexture().format,
-                    blend: {
-                        color: {
-                          srcFactor: 'one',
-                          dstFactor: 'one-minus-src-alpha'
-                        },
-                        alpha: {
-                          srcFactor: 'one',
-                          dstFactor: 'one-minus-src-alpha'
-                        },
-                      },
+                    blend: material.blending,
                 } ]
             },
             primitive: {
                 topology: 'triangle-list',
-                cullMode: renderObject.mesh.material.cullFace,
+                cullMode: renderObject.mesh.material.cull,
             },
             depthStencil: {
                 depthWriteEnabled: true,

@@ -132,3 +132,5 @@ fn smootherstep3(edge0: vec3<f32>, edge1: vec3<f32>, x: vec3<f32>) -> vec3<f32> 
 fn circularOut(t: f32) -> f32 {
     return sqrt((2.0 - t) * t);
 }
+const MAX_LIGHTS = 4;
+const MAX_SAMPLES = 36; 

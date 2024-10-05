@@ -5,6 +5,7 @@ import { Fog } from '../../core/Fog';
 import { Camera } from '../../cameras/Camera';
 import { Wind } from '../../core/Wind';
 import { LightShadow } from '../../lights/LightShadow';
+import { USE } from '../constants';
 
 class UniformLib {
     
@@ -17,9 +18,21 @@ class UniformLib {
             new Uniform('model').mat4()
         ]
     });
+    
+    static lightProjViewMatrix = new UniformGroup({
+        name: 'lightProjViewMatrix',
+        bindGroup: 0,
+        visibility: GPUShaderStage.VERTEX,
+        perMesh: false,
+        use: USE.SHADOW,
+        uniforms: [
+            new Uniform('lightProjViewMatrix').mat4()
+        ]
+    });
 
     static camera = new UniformGroup({
         name: 'camera',
+        use: USE.RENDER,
         bindGroup: 0,
         visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
         perMesh: false,
@@ -43,9 +56,9 @@ class UniformLib {
         bindGroup: 0,
         visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
         perMesh: false,
+        use: USE.RENDER,
         uniforms: [
             new Uniform('fog').struct('Fog', Fog.struct),
-            new Uniform('wind').struct('Wind', Wind.struct),
             new Uniform('ambientLight').struct('AmbientLight', {
                 color: 'vec4f',
                 intensity: 'f32',
