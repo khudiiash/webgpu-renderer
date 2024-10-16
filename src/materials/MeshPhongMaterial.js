@@ -51,6 +51,7 @@ class MeshPhongMaterial extends Material {
       this._useLighting = params.useLighting !== undefined ? Number(params.useLighting) : 1;
       this._useWind = params.useWind || 0;
       this._ambientIntensity = params.ambientIntensity || 1;
+      console.log(this._ambientIntensity)
       this._alpha = params.alpha || 1;
       this._windStrength = params.windStrength || 15;
       this._windDirection = params.windDirection || new Vector3(1, 0, 0, 0);
@@ -104,7 +105,6 @@ class MeshPhongMaterial extends Material {
             ShaderChunks.vertex.projection_camera,
             ShaderChunks.vertex.projection_shadow,
             ShaderChunks.vertex.uv,
-            ShaderChunks.vertex.normal,
             ShaderChunks.vertex.fog,
             ShaderChunks.vertex.wind,
             ShaderChunks.vertex.position,
@@ -152,6 +152,46 @@ class MeshPhongMaterial extends Material {
       
       this.write(this._data);
    } 
+   
+   set windDirection(value) {
+      this._windDirection = value;
+      this._data.set(value.data, this.offsets.windDirection);
+      this.write(value.data, this.byteOffsets.windDirection);
+   }
+   
+   get windDirection() {
+      return this._windDirection;
+   }
+   
+   get windHeight() {
+      return this._windHeight;
+   }
+   
+   set windHeight(value) {
+      this._windHeight = value;
+      this._data[this.offsets.windHeight] = value;
+      this.write([value], this.byteOffsets.windHeight);
+   }
+   
+   set windSpeed(value) {
+      this._windSpeed = value;
+      this._data[this.offsets.windSpeed] = value;
+      this.write([value], this.byteOffsets.windSpeed);
+   }
+   
+   get windSpeed() {
+      return this._windSpeed;
+   }
+   
+   get windStrength() {
+      return this._windStrength;
+   }
+
+   set windStrength(value) {
+      this._windStrength = value;
+      this._data[this.offsets.windStrength] = value;
+      this.write([value], this.byteOffsets.windStrength);
+   }
    
    get ambientIntensity() {
       return this._ambientIntensity;
@@ -221,7 +261,7 @@ class MeshPhongMaterial extends Material {
    
    set shininess(value) {
       this._shininess = value;
-      this._data[this.byteOffsets.shininess] = value;
+      this._data[this.offsets.shininess] = value;
       this.write([value], this.byteOffsets.shininess);
    }
    

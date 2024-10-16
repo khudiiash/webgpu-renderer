@@ -105,7 +105,7 @@ class OrbitControls {
 
     pan(deltaX, deltaY) {
         const cameraRight = this.camera.getWorldRight();
-        const cameraLeft = cameraRight.mulScalar(-1);
+        const cameraLeft = cameraRight.multiplyScalar(-1);
 
         const offset = {
             x: this.camera.position.x - this.target.x,

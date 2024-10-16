@@ -1,6 +1,7 @@
 import { mat4 } from 'wgpu-matrix';
 import { Vector3 } from './Vector3';
 import { arraysEqual } from '../utils/arraysEqual';
+import { Quaternion } from './Quaternion';
 
 class Matrix4 {
     static byteSize = 16 * Float32Array.BYTES_PER_ELEMENT;
@@ -10,6 +11,7 @@ class Matrix4 {
         this.isMatrix4 = true;
         this.data = mat4.identity();
         this._lastData = new Float32Array([...this.data]);
+        this._needsUpdate = false;
         this.up = new Vector3(0, 1, 0);
         
     }
@@ -118,27 +120,31 @@ class Matrix4 {
     }
     
     multiply(m) {
+        this._lastData.set(this.data);
         mat4.multiply(this.data, m.data, this.data);
-        
+        this._needsUpdate = !arraysEqual(this.data, this._lastData);
         this._onChangeCallback();
         return this;
     }
     
     ortho(left, right, bottom, top, near, far) {
+        this._lastData.set(this.data);
         mat4.ortho(left, right, bottom, top, near, far, this.data);
-        
+        this._needsUpdate = !arraysEqual(this.data, this._lastData);
         this._onChangeCallback();
         return this;
     }
     
     perspective(fov, aspect, near, far) {
+        this._lastData.set(this.data);
         mat4.perspective(fov, aspect, near, far, this.data);
-        
+        this._needsUpdate = !arraysEqual(this.data, this._lastData);
         this._onChangeCallback();
         return this;
     }
     
     extractRotation( m ) {
+        this._lastData.set(this.data);
 		const te = this.data;
 		const me = m.data;
 
@@ -166,6 +172,7 @@ class Matrix4 {
 		te[ 14 ] = 0;
 		te[ 15 ] = 1;
 
+        this._needsUpdate = !arraysEqual(this.data, this._lastData);
         this._onChangeCallback();
 
 		return this;
@@ -173,22 +180,26 @@ class Matrix4 {
 	}
     
     rotate(m, axis, angleInRadians) {
+        this._lastData.set(this.data);
         mat4.rotate(m.data, axis.data, angleInRadians, this.data);
            
+        this._needsUpdate = !arraysEqual(this.data, this._lastData);
         this._onChangeCallback();
         return this;
     }
     
     transpose() {
+        this._lastData.set(this.data);
         mat4.transpose(this.data, this.data);
-           
+        this._needsUpdate = !arraysEqual(this.data, this._lastData);
         this._onChangeCallback();
         return this;
     }    
     
     frustum(left, right, bottom, top, near, far) {
+        this._lastData.set(this.data);
         mat4.frustum(left, right, bottom, top, near, far, this.data);
-           
+        this._needsUpdate = !arraysEqual(this.data, this._lastData);
         this._onChangeCallback();
         return this;
     }
@@ -202,7 +213,9 @@ class Matrix4 {
     }
     
     invert(out = this) {
+        this._lastData.set(this.data);
         mat4.invert(this.data, out.data);
+        this._needsUpdate = !arraysEqual(this.data, this._lastData);
            
         this._onChangeCallback();
         return this;
@@ -213,25 +226,49 @@ class Matrix4 {
     }
     
     set(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) {
+        this._lastData.set(this.data);
         mat4.set(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, this.data);
            
+        this._needsUpdate = !arraysEqual(this.data, this._lastData);
         this._onChangeCallback();
         return this;
     }
     
     scale(s) {
+        this._lastData.set(this.data);
         mat4.scale(this.data, s.data, this.data);
            
+        this._needsUpdate = !arraysEqual(this.data, this._lastData);
         this._onChangeCallback();
         return this;
     }
     
-    getScale() {
-        return new Vector3().fromArray(mat4.getScaling(this.data));
+    getScale(v) {
+        if (!v) {
+            v = new Vector3();
+        }
+        return v.fromArray(mat4.getScaling(this.data));
+    }
+    
+    getRotation(q) {
+        if (!q) {
+            q = new Quaternion();
+        }
+        return q.setFromRotationMatrix(this);
     }
     
     determinant() {
         return mat4.determinant(this.data);
+    }
+    
+    getMaxScaleOnAxis() {   
+        const te = this.data;
+
+		const scaleXSq = te[ 0 ] * te[ 0 ] + te[ 1 ] * te[ 1 ] + te[ 2 ] * te[ 2 ];
+		const scaleYSq = te[ 4 ] * te[ 4 ] + te[ 5 ] * te[ 5 ] + te[ 6 ] * te[ 6 ];
+		const scaleZSq = te[ 8 ] * te[ 8 ] + te[ 9 ] * te[ 9 ] + te[ 10 ] * te[ 10 ];
+
+		return Math.sqrt( Math.max( scaleXSq, scaleYSq, scaleZSq ) );
     }
     
     decompose(position, quaternion, scale) {
@@ -278,23 +315,14 @@ class Matrix4 {
     
     }
     
-    multiplyVec3(vector, out) {
-        out = out || new Vector3();
-        out.set(
-            this.data[0]*vector.data[0] + this.data[1]*vector.data[1] + this.data[2]*vector.data[2],
-            this.data[3]*vector.data[0] + this.data[4]*vector.data[1] + this.data[5]*vector.data[2],
-            this.data[6]*vector.data[0] + this.data[7]*vector.data[1] + this.data[8]*vector.data[2]
-        )
-    }
-    
     translate(x, y, z) {
         if (x instanceof Vector3) {
             mat4.translate(this.data, x.data, this.data);
-               
+            this._needsUpdate = !arraysEqual(this.data, this._lastData);
             this._onChangeCallback();
         } else if (typeof x === 'number' && typeof y === 'number' && typeof z === 'number') {
             mat4.translate(this.data, [x, y, z], this.data);
-            
+            this._needsUpdate = !arraysEqual(this.data, this._lastData);
             this._onChangeCallback();
         }
 
@@ -307,12 +335,14 @@ class Matrix4 {
             this.data[13] = x.data[1];
             this.data[14] = x.data[2];
             
+            this._needsUpdate = !arraysEqual(this.data, this._lastData);
             this._onChangeCallback();
         } else if (typeof x === 'number' && typeof y === 'number' && typeof z === 'number') {
             this.data[12] = x;
             this.data[13] = y;
             this.data[14] = z;
             
+            this._needsUpdate = !arraysEqual(this.data, this._lastData);
             this._onChangeCallback();
         }
     }
@@ -346,18 +376,19 @@ class Matrix4 {
     rotateX(angle) {
         mat4.rotateX(this.data, angle, this.data);
         
+        this._needsUpdate = !arraysEqual(this.data, this._lastData);
         this._onChangeCallback();
     }
     
     rotateY(angle) {
         mat4.rotateY(this.data, angle, this.data);
-        
+        this._needsUpdate = !arraysEqual(this.data, this._lastData);
         this._onChangeCallback();
     }
     
     rotateZ(angle) {
         mat4.rotateZ(this.data, angle, this.data);
-        
+        this._needsUpdate = !arraysEqual(this.data, this._lastData);
         this._onChangeCallback();
     }
     
@@ -365,15 +396,15 @@ class Matrix4 {
     scale(x, y, z) {
         if (x instanceof Vector3) {
             mat4.scale(this.data, x.data, this.data);
-            
+            this._needsUpdate = !arraysEqual(this.data, this._lastData);     
             this._onChangeCallback();
         } else if (typeof x === 'number' && y === undefined) {
             mat4.uniformScale(this.data, x, this.data);
-            
+            this._needsUpdate = !arraysEqual(this.data, this._lastData);     
             this._onChangeCallback();
         } else if (typeof x === 'number' && typeof y === 'number' && z === 'number') {
             mat4.scale(this.data, [x, y, z], this.data);
-            
+            this._needsUpdate = !arraysEqual(this.data, this._lastData);     
             this._onChangeCallback();
         }
     }
@@ -383,6 +414,7 @@ class Matrix4 {
 			this.data[ i ] = array[ i + offset ];
 		}
         
+        this._needsUpdate = !arraysEqual(this.data, this._lastData);     
         this._onChangeCallback();
 
 		return this;
@@ -416,6 +448,14 @@ class Matrix4 {
     
     _onChangeCallback() {
 
+    }
+    
+    get needsUpdate() {
+        return this._needsUpdate;
+    }
+    
+    set needsUpdate(value) {
+        this._needsUpdate = value;
     }
 
     

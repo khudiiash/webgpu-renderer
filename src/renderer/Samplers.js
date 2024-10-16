@@ -8,8 +8,8 @@ class Samplers {
     
     createSampler() {
         const sampler = this.device.createSampler({
-            magFilter: 'linear',
-            minFilter: 'linear',
+            magFilter: 'nearest',
+            minFilter: 'nearest',
             mipmapFilter: 'linear',
             addressModeU: 'repeat',
             addressModeV: 'repeat',

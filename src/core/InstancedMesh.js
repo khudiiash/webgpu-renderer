@@ -21,6 +21,7 @@ class InstancedMesh extends Mesh {
     constructor(geometry, material, count) {
         super(geometry, material);
         this.isInstancedMesh = true;
+        geometry.isInstancedGeometry = true;
         this.type = 'instanced_mesh';
         this.instanceMatrix = new Float32Array(count * 16);
         this.count = count;
@@ -89,8 +90,10 @@ class InstancedMesh extends Mesh {
             _mat.setPosition(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
 		    _mat.toArray( this.instanceMatrix, i * 16 );
          }
+        this.geometry.computeBoundingBox();
          this.write(this.instanceMatrix, 'instances');
     }
+    
 
     setAllDirectionsArray(directions) {
         for (let i = 0; i < this.count; i++) {
@@ -114,6 +117,7 @@ class InstancedMesh extends Mesh {
     
     setMatrixAt( matrix, index ) {
 		matrix.toArray( this.instanceMatrix, index * 16 );
+        this.geometry.computeBoundingBox();
         this.write(matrix.data, 'instances', index * 16 * 4);
 	}
     

@@ -1,5 +1,7 @@
 import { Vector3 } from './Vector3.js';
 import { quat } from 'wgpu-matrix';
+import { Euler } from './Euler.js';
+import { RAD2DEG } from './MathUtils.js';
 
 class Quaternion {
     constructor(x = 0, y = 0, z = 0, w = 1) {
@@ -173,6 +175,13 @@ class Quaternion {
     print() {
         return `Quat { x: ${this.data[0]}, y: ${this.data[1]}, z: ${this.data[2]}, w: ${this.data[3]} }`;
     }
+    
+    printEuler() {
+        const euler = _euler.setFromQuaternion(this);
+        return `Euler { x: ${euler.x * RAD2DEG}, y: ${euler.y * RAD2DEG}, z: ${euler.z * RAD2DEG} }`;
+    }
 }
+
+const _euler = new Euler();
 
 export { Quaternion };

@@ -84,7 +84,7 @@ class Object3D extends Events {
             force = true;
         }
 
-        if (force || this.matrixWorld.needsUpdate) {
+        if (force) {
             this.write(this.matrixWorld.data, 'model');
         }
         
@@ -142,14 +142,18 @@ class Object3D extends Events {
         
         _m1.extractRotation(this.matrixWorld);
 
-        if (this.matrixWorld.needsUpdate) {
-            this.write(this.matrixWorld.data, 'model');
-            this.matrixWorld.needsUpdate = false;
-        }
+        this.write(this.matrixWorld.data, 'model');
 
         this.direction.set(this.matrixWorld.data[8], this.matrixWorld.data[9], this.matrixWorld.data[10]).normalize();
         
 	}
+    
+    traverse(callback) {
+        for (let i = 0; i < this.children.length; i++) {
+            callback(this.children[i]);
+            this.children[i].traverse(callback);
+        }
+    }
     
     write(data, name, byteOffset = 0) {
         this.emit('write', { data, name, byteOffset });
@@ -162,7 +166,11 @@ class Object3D extends Events {
     }
     
     setPosition(x = 0, y = 0, z = 0) {
-        this.position.set(x, y, z);
+        if (x.isVector3) {
+            this.position.copy(x);
+        } else {
+            this.position.set(x, y, z);
+        }
         return this;
     }
 
@@ -174,6 +182,22 @@ class Object3D extends Events {
         this.children.push(child);
         this.childrenMap[child.name] = child;
         this.updateMatrixWorld(true, true);
+    }
+    
+    getHeightAt(x, z) {
+        const meshes = this.find((child) => child.isMesh);
+        let max = -Infinity;
+        for (let i = 0; i < meshes.length; i++) {
+            const mesh = meshes[i];
+            const height = mesh.getHeightAt(x, z);
+            if (height > max) {
+                max = height;
+            }
+        }
+        if (max === -Infinity) {
+            return 0;
+        }
+        return max;
     }
     
 

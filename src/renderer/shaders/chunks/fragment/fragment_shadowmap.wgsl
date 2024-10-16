@@ -11,9 +11,9 @@ for (var i = 0u; i < MAX_LIGHTS; i++) {
         let matrix = scene.directionalLightMatrices[i];
         let shadowBias = shadowConfig.shadowBias * 40.0;
         let lightPos = light.direction * -500.0;
-        let distToLight = length(lightPos - input.vWorldPosition);
+        let distToLight = length(lightPos - input.vPositionW);
         
-        let posFromLight = matrix * vec4f(input.vWorldPosition, 1.0);
+        let posFromLight = matrix * vec4f(input.vPositionW, 1.0);
         shadowPos = vec3f(
             posFromLight.xy * vec2f(0.5, -0.5) + vec2f(0.5, 0.5), 
             posFromLight.z
@@ -28,10 +28,11 @@ for (var i = 0u; i < MAX_LIGHTS; i++) {
         let bias = shadowBias;
         let normalizeDistFactor = 1.0 / distToLight;
 
+        let randomRadius = shadowConfig.shadowMapRandomRadius;
         for (var j = 0; j < MAX_SAMPLES / 2; j++) {
             if (j >= samplesDiv2) { break; }
             offsetCoord.x = j;
-            let offsets = textureLoad(shadowOffset, offsetCoord, 0) * shadowConfig.shadowMapRandomRadius;
+            let offsets = textureLoad(shadowOffset, offsetCoord, 0) * randomRadius;
             
             sum += textureSampleCompare(
                 shadowMap, samplerComparison,
@@ -45,7 +46,7 @@ for (var i = 0u; i < MAX_LIGHTS; i++) {
 
         visibility = sum / f32(samplesDiv2 * 2) + normalizeDistFactor;
 
-        let lambertFactor = max(dot(normalize(light.direction), normalize(input.vNormal)), 0.0);
+        let lambertFactor = max(dot(normalize(light.direction), normalize(input.vNormalW)), 0.0);
         lightingFactor = min(scene.ambientLight.intensity + visibility * lambertFactor * light.intensity, 1.0);
     }
 

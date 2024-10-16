@@ -1,5 +1,11 @@
 import { Float32BufferAttribute } from '../core/BufferAttribute.js';
+import { BoundingBox } from '../math/BoundingBox.js';
+import { BoundingSphere } from '../math/BoundingSphere.js';
 import { generateID } from '../math/MathUtils.js';
+import { Vector3 } from '../math/Vector3.js';
+
+const _vector = new Vector3();
+const _box = new BoundingBox();
 
 class Geometry {
     constructor() {
@@ -14,8 +20,9 @@ class Geometry {
         this.isGeometry = true;
         this.index = null;
         this.attributes = {};
-        this.boundningBox = null;
+        this.boundingBox = null;
         this.boundingSphere = null;
+        this.isInstancedGeometry = false;
         this.attributes = {};
         this.isIndexed = false;
     }
@@ -100,6 +107,19 @@ class Geometry {
         return this;
     }
     
+    computeBoundingSphere() {
+        if (this.boundingSphere === null) {
+            this.boundingSphere = new BoundingSphere();
+        }
+
+        const position = this.attributes.position;
+        if (position) {
+            const center = this.boundingSphere.center;
+			_box.setFromAttribute( position );
+        }
+        
+    }
+            
     deleteAttribute(name) {
         delete this.attributes[name];
         return this;
@@ -181,6 +201,8 @@ class Geometry {
         if (joints) this.setAttribute('joints', new Float32BufferAttribute(joints, 4));
         if (weights) this.setAttribute('weights', new Float32BufferAttribute(weights, 4));
         if (indices) this.setIndices(indices);
+        this.computeBoundingBox();
+        this.computeBoundingSphere();
         this.attributes;
     }
     
@@ -190,6 +212,47 @@ class Geometry {
         }, 0);
     }
     
+    computeBoundingBox() {
+        if ( this.boundingBox === null ) {
+
+			this.boundingBox = new BoundingBox();
+
+		}
+
+		const position = this.attributes.position;
+
+		if (position) {
+			this.boundingBox.setFromAttribute(position);
+		}
+
+		if ( isNaN( this.boundingBox.min.x ) || isNaN( this.boundingBox.min.y ) || isNaN( this.boundingBox.min.z ) ) {
+
+			console.error( 'Geometry.computeBoundingBox(): Computed min/max have NaN values. The "position" attribute is likely to have NaN values.', this );
+
+		}
+    }
+    
+    computeBoundingSphere() {
+        if (this.boundingSphere === null) {
+            this.boundingSphere = new BoundingSphere();
+        }
+        const position = this.attributes.position;
+
+        const center = this.boundingSphere.center;
+	    _box.setFromAttribute( position );
+        _box.getCenter( center );
+        let maxRadiusSq = 0;
+
+        for ( let i = 0, il = position.count; i < il; i ++ ) {
+
+            _vector.setFromAttribute( position, i );
+
+            maxRadiusSq = Math.max( maxRadiusSq, center.distanceToSquared( _vector ) );
+
+        }
+        
+        this.boundingSphere.radius = Math.sqrt( maxRadiusSq );
+    }
     setAttribute(name, data) {
         this.attributes[name] = data;
         return this;

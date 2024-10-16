@@ -1,3 +1,5 @@
 output.position = projectionView * worldPosition;
 output.vPosition = input.position;
-output.vWorldPosition = worldPosition.xyz;
+output.vPositionW = worldPosition.xyz;
+output.vNormal = input.normal;
+output.vNormalW = normalize(worldNormal);

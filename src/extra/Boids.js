@@ -32,7 +32,7 @@ class Boids extends InstancedMesh {
 
         this.boundaryAvoidanceRange = 5;
         this.boundaryFactor = 1;
-        this.maxSpeed = 15;
+        this.maxSpeed = 5;
         this.elapsed = 0;
         this.spatialGrid = new SpatialGrid(10, this.boundingBox);
 

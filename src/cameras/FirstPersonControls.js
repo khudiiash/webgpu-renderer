@@ -119,7 +119,7 @@ class FirstPersonControls {
         }
         const phi = (90 - this.lat) * Math.PI / 180;
         const theta = this.lon * Math.PI / 180;
-        this.camera.position.add(this.vec.mulScalar(actualMoveSpeed * dt));
+        this.camera.position.add(this.vec.multiplyScalar(actualMoveSpeed * dt));
 
         const targetPosition = this.camera.position.clone();
         targetPosition.x += 100 * Math.sin(phi) * Math.cos(theta);

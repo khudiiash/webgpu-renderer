@@ -1,18 +1,35 @@
-import { Bone } from "./Bone";
-
 const regex = /^(?<boneName>.*?)\.(?<property>translation|rotation|scale)?$/;
 
 class AnimationMixer {
     constructor(root) {
         this.root = root;
+        this.skinned = root.find((child) => child.isSkinnedMesh);
         this.animations = new Map();
         this.activeAnimations = new Set();
     }
 
     addAnimation(clip) {
         this.animations.set(clip.name, clip);
+        return this;
     }
+    
+    playAtIndex(index, options = {}) {
+        const clip = this.animations.get(Array.from(this.animations.keys())[index]);
+        if (!clip) {
+            console.warn(`Animation "${name}" not found`);
+            return;
+        }
 
+        const animation = {
+            clip,
+            time: 0,
+            timeScale: options.timeScale || 1,
+            loop: options.loop !== undefined ? options.loop : true,
+        };
+
+        this.activeAnimations.add(animation);
+    }
+    
     play(name, options = {}) {
         const clip = this.animations.get(name);
         if (!clip) {
@@ -40,6 +57,7 @@ class AnimationMixer {
     }
 
     update(deltaTime) {
+        this.skinned?.forEach(s => s.update());
         for (const animation of this.activeAnimations) {
             animation.time += deltaTime * animation.timeScale;
 

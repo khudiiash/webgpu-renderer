@@ -3,7 +3,6 @@ import { Quaternion } from './Quaternion';
 import { clamp, DEG2RAD, RAD2DEG } from './MathUtils';
 
 const _matrix = new Matrix4();
-const _quaternion = new Quaternion();
 
 class Euler {
     constructor(x = 0, y = 0, z = 0, order = Euler.DEFAULT_ORDER) {
@@ -58,7 +57,7 @@ class Euler {
         return array;
     }
     
-    setFromQuaternion(q, order, update) {
+    setFromQuaternion(q, order = this._order, update) {
         _matrix.setFromQuaternion(q);
         if (update) this._onChangeCallback();
         return this.setFromRotationMatrix(_matrix, order, update);

@@ -5,6 +5,8 @@ import { Vector4 } from '../math/Vector4.js';
 import { ShaderChunks } from '../renderer/shaders/ShaderChunks.js';
 import { Uniform } from '../renderer/shaders/Uniform.js';
 import { UniformGroup } from '../renderer/shaders/UniformGroup.js';
+import { BoundingSphere } from '../math/BoundingSphere.js';
+
 const AttachedBindMode = 0;
 const DetachedBindMode = 1;
 
@@ -91,7 +93,7 @@ class SkinnedMesh extends Mesh {
 
 		if ( this.boundingSphere === null ) {
 
-			this.boundingSphere = new Sphere();
+			this.boundingSphere = new BoundingSphere();
 
 		}
 
@@ -201,6 +203,7 @@ class SkinnedMesh extends Mesh {
 		const skinWeight = this.geometry.attributes.weights;
 
 		for ( let i = 0, l = skinWeight.count; i < l; i ++ ) {
+			console.log(skinWeight)
 
 			vector.setFromBufferAttribute( skinWeight, i );
 
@@ -208,7 +211,7 @@ class SkinnedMesh extends Mesh {
 
 			if ( scale !== Infinity ) {
 
-				vector.mulScalar( scale );
+				vector.multiplyScalar( scale );
 
 			} else {
 
@@ -241,13 +244,32 @@ class SkinnedMesh extends Mesh {
 		}
 
 	}
+	
+	updateWorldMatrix( updateParents, updateChildren ) {
+		super.updateWorldMatrix(updateParents, updateChildren);
+
+		if ( this.bindMode === AttachedBindMode ) {
+
+			this.bindMatrixInverse.copy( this.matrixWorld ).invert();
+
+		} else if ( this.bindMode === DetachedBindMode ) {
+
+			this.bindMatrixInverse.copy( this.bindMatrix ).invert();
+
+		} else {
+
+			console.warn( 'SkinnedMesh: Unrecognized bindMode: ' + this.bindMode );
+
+		}
+
+	}
 
 	applyBoneTransform( index, vector ) {
 		const skeleton = this.skeleton;
 		const geometry = this.geometry;
 
-		_indices.setFromBufferAttribute( geometry.attributes.joint, index );
-		_weights.setFromBufferAttribute( geometry.attributes.weight, index );
+		_indices.setFromBufferAttribute( geometry.attributes.joints, index );
+		_weights.setFromBufferAttribute( geometry.attributes.weights, index );
 
 		_basePosition.copy( vector ).applyMatrix4( this.bindMatrix );
 
@@ -274,6 +296,7 @@ class SkinnedMesh extends Mesh {
 	}
 	
 	update() {
+		this.updateWorldMatrix(true, true);
 		this.skeleton.update(this.bindMatrixInverse);
 		this.write(this.skeleton.boneMatrices, 'joint_matrices');
 		this.write(this.skeleton.inverseBindMatrices, 'inverse_bind_matrices');

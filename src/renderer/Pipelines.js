@@ -22,7 +22,7 @@ class Pipelines {
             },
             primitive: {
                 topology: 'triangle-list',
-                cullMode: renderObject.mesh.material.cullFace,
+                cullMode: renderObject.mesh.material.cullMode,
             },
             depthStencil: {
                 depthWriteEnabled: true,
@@ -63,7 +63,7 @@ class Pipelines {
             },
             primitive: {
                 topology: 'triangle-list',
-                cullMode: renderObject.mesh.material.cull,
+                cullMode: renderObject.mesh.material.cullMode,
             },
             depthStencil: {
                 depthWriteEnabled: true,

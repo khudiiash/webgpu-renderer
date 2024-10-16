@@ -93,9 +93,6 @@ export class Skeleton {
 		const boneTexture = this.boneTexture;
 		this.globalMatrixInverse.copy(globalWorldMatrix);
 
-
-		// flatten bone matrices to array
-
 		for ( let i = 0; i < bones.length; i ++ ) {
 			const bone = bones[ i ];
 			_offsetMatrix.multiplyMatrices( this.globalMatrixInverse, bone.matrixWorld);

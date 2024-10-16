@@ -1,1 +1,1 @@
-output.vWorldPosition = (modelMatrix * vec4f(input.position, 1.0)).xyz;
+output.vPositionW = (modelMatrix * vec4f(input.position, 1.0)).xyz;

@@ -5,6 +5,8 @@ const _v1 = new Vector3();
 const _v2 = new Vector3();
 const _v3 = new Vector3();
 
+
+
 class Mesh extends Object3D {
     constructor(geometry, material) {
         super();
@@ -16,49 +18,71 @@ class Mesh extends Object3D {
         this.material = material;
     }
     
+    
     getHeightAt(x, z) {
         const rayOrigin = new Vector3(x, 1000, z);
         const rayDirection = new Vector3(0, -1, 0);
-
-        const inverseMatrix = this.matrixWorld.clone().invert();
-        const localRayOrigin = inverseMatrix.transformPoint(rayOrigin);
-        const localRayDirection = inverseMatrix.transformDirection(rayDirection).normalize();
-
+    
         const positions = this.geometry.positions;
         const indices = this.geometry.indices;
-
+    
         let closestIntersection = Infinity;
         let found = false;
-
+    
+        const worldTransform = this.matrixWorld;
+        if (!this.worldPositions) {
+            this.worldPositions = new Float32Array(positions.length);
+            for (let i = 0; i < positions.length; i += 3) {
+                const v = _v1.set(positions[i], positions[i + 1], positions[i + 2]);
+                const w = worldTransform.transformPoint(v);
+                this.worldPositions[i] = w.x;
+                this.worldPositions[i + 1] = w.y;
+                this.worldPositions[i + 2] = w.z;
+            }
+        }
+    
         for (let i = 0; i < (indices ? indices.length : positions.length) / 3; i++) {
             const i1 = indices ? indices[i * 3] : i * 3;
             const i2 = indices ? indices[i * 3 + 1] : i * 3 + 1;
             const i3 = indices ? indices[i * 3 + 2] : i * 3 + 2;
-
-            const v1 = _v1.set(positions[i1 * 3], positions[i1 * 3 + 1], positions[i1 * 3 + 2]);
-            const v2 = _v2.set(positions[i2 * 3], positions[i2 * 3 + 1], positions[i2 * 3 + 2]);
-            const v3 = _v3.set(positions[i3 * 3], positions[i3 * 3 + 1], positions[i3 * 3 + 2]);
-
-            if (x < v1.x && x < v2.x && x < v3.x) continue;
-            if (x > v1.x && x > v2.x && x > v3.x) continue;
-            if (z < v1.z && z < v2.z && z < v3.z) continue;
-            if (z > v1.z && z > v2.z && z > v3.z) continue;
-
-            const intersection = this.rayTriangleIntersection(localRayOrigin, localRayDirection, v1, v2, v3);
             
-            if (intersection && intersection.t < closestIntersection) {
-                closestIntersection = intersection.t;
-                found = true;
+            const w1 = _v1.set(this.worldPositions[i1 * 3], this.worldPositions[i1 * 3 + 1], this.worldPositions[i1 * 3 + 2]);
+            const w2 = _v2.set(this.worldPositions[i2 * 3], this.worldPositions[i2 * 3 + 1], this.worldPositions[i2 * 3 + 2]);
+            const w3 = _v3.set(this.worldPositions[i3 * 3], this.worldPositions[i3 * 3 + 1], this.worldPositions[i3 * 3 + 2]);
+    
+            if (this.pointInTriangle(x, z, w1.x, w1.z, w2.x, w2.z, w3.x, w3.z)) {
+                const intersection = this.rayTriangleIntersection(rayOrigin, rayDirection, w1, w2, w3);
+                
+                if (intersection && intersection.t < closestIntersection) {
+                    closestIntersection = intersection.t;
+                    found = true;
+                }
             }
         }
-
+    
         if (found) {
-            const localIntersectionPoint = localRayOrigin.clone().add(localRayDirection.mulScalar(closestIntersection));
-            const worldIntersectionPoint = this.matrixWorld.transformPoint(localIntersectionPoint);
-            return worldIntersectionPoint.y;
+            return rayOrigin.y + rayDirection.y * closestIntersection;
         } else {
             return 0; // No intersection found, return 0
         }
+    } 
+    
+    getVertexPosition(index, target) {
+        const positions = this.geometry.positions;
+        const x = positions[index * 3];
+        const y = positions[index * 3 + 1];
+        const z = positions[index * 3 + 2];
+        target.set(x, y, z);
+        return target;
+    }
+
+    pointInTriangle(px, pz, x1, z1, x2, z2, x3, z3) {
+        const denominator = ((z2 - z3) * (x1 - x3) + (x3 - x2) * (z1 - z3));
+        const a = ((z2 - z3) * (px - x3) + (x3 - x2) * (pz - z3)) / denominator;
+        const b = ((z3 - z1) * (px - x3) + (x1 - x3) * (pz - z3)) / denominator;
+        const c = 1 - a - b;
+    
+        return 0 <= a && a <= 1 && 0 <= b && b <= 1 && 0 <= c && c <= 1;
     }
 
     rayTriangleIntersection(rayOrigin, rayDirection, v1, v2, v3) {

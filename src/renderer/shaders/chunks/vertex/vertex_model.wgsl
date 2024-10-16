@@ -1,5 +1,3 @@
 let modelMatrix = model;
 var worldPosition = modelMatrix * vec4f(input.position, 1.0);
-
-output.vWorldPosition = worldPosition.xyz;
-output.vPosition = input.position;
+var worldNormal = normalize((modelMatrix * vec4f(input.normal, 0.0)).xyz);

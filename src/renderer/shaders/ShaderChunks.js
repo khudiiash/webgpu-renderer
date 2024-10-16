@@ -64,17 +64,22 @@ class ShaderChunks {
     static common = new ShaderChunk('common', common);
     static vertex = {
         
-        position: new VertexChunk('vertex_position', vertex_position, [ new Varying('vPosition', 'vec3f'), new Varying('vWorldPosition', 'vec3f') ]),
 
         model: new VertexChunk('vertex_model', vertex_model),
         model_instanced: new VertexChunk('vertex_model_instanced', vertex_model_instanced),
         model_skinned: new VertexChunk('vertex_model_skinned', vertex_model_skinned),
+
+        position: new VertexChunk('vertex_position', vertex_position, [ 
+            new Varying('vPosition', 'vec3f'), 
+            new Varying('vPositionW', 'vec3f'),
+            new Varying('vNormal', 'vec3f'),
+            new Varying('vNormalW', 'vec3f'),
+        ]),
         
         projection_camera: new VertexChunk('vertex_projection_camera', vertex_projection_camera).setUse(USE.RENDER),
         projection_shadow: new VertexChunk('vertex_projection_light', vertex_projection_shadow).setUse(USE.SHADOW),
 
         uv: new VertexChunk('vertex_uv', vertex_uv, [ new Varying('vUv', 'vec2f')]),
-        normal: new VertexChunk('vertex_normal', vertex_normal, [ new Varying('vNormal', 'vec3f')]).setUse(USE.RENDER),
         fog: new VertexChunk('vertex_fog', vertex_fog, [ new Varying('vFogDistance', 'f32') ]).setUse(USE.RENDER),
         shadowmap: new VertexChunk('vertex_shadowmap', vertex_shadowmap, [ new Varying('vShadowCoord', 'vec4f') ]).setUse(USE.RENDER),
         wind: new VertexChunk('vertex_wind', vertex_wind),

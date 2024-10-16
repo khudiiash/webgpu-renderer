@@ -15,12 +15,6 @@ class DirectionalLight extends Light {
         this.isDirectionalLight = true;
         this.lightType = 'DirectionalLight';
         this.buffer = 'scene';
-        this.rotation.onChange(() => {
-            this.quaternion.setFromEuler(this.rotation);
-            this.rotationMatrix.setFromQuaternion(this.quaternion);
-            this.updateMatrix();
-            this.needsUpdate = true;
-        });
         this.shadow = new DirectionalLightShadow();
         this.offsets = new Map();
         this.offsets.set(this.color, 0);
@@ -40,8 +34,25 @@ class DirectionalLight extends Light {
         this.shadow.updateMatrices(this);
     }
     
+    setPosition(x, y, z) {
+        super.setPosition(x, y, z);
+    }
+    
     updateMatrixWorld(force) {
         super.updateMatrixWorld(force);
+        if (this.position.length()) {
+            this.direction.subVectors(this.position, _zero).normalize();
+        }
+        this.shadow.updateMatrices(this);
+
+        if (!this.direction.equalsArray(this._data, this.offsets.get(this.direction))) { 
+            this._data.set(this.direction.data, this.offsets.get(this.direction));
+            this.write(this._data, 'directionalLights'); 
+        }
+    }
+    
+    updateWorldMatrix(force) {
+        super.updateWorldMatrix(force);
         if (this.position.length()) {
             this.direction.subVectors(this.position, _zero).normalize();
         }

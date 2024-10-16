@@ -223,7 +223,7 @@ class Vector4 {
         return this;
     }
     
-    mulScalar(s) {
+    multiplyScalar(s) {
         vec4.scale(this.data, s, this.data);
         return this;
     }
@@ -260,13 +260,13 @@ class Vector4 {
     
     clampLength(min, max) {
         const length = this.length();
-        this.mulScalar(Math.max(min, Math.min(max, length)) / length);
+        this.multiplyScalar(Math.max(min, Math.min(max, length)) / length);
         this._onChangeCallback();
         return this;
     }
     
     lerpVectors(v1, v2, alpha) {
-        this.subVectors(v2, v1).mulScalar(alpha).add(v1);
+        this.subVectors(v2, v1).multiplyScalar(alpha).add(v1);
         return this;
     }
     

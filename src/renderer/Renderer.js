@@ -8,7 +8,18 @@ import { Samplers } from './Samplers';
 import { Buffers } from './Buffers';
 import { RenderObject } from './RenderObject';
 import { Events } from '../core/Events';
+import { Frustum } from '../math/Frustum';
+import { Matrix4 } from '../math/Matrix4';
+import { PlaneGeometry } from '../geometry/PlaneGeometry';
+import { MeshPhongMaterial } from '../materials/MeshPhongMaterial';
+import { Mesh } from '../core/Mesh';
+import { BoxGeometry } from '../geometry/BoxGeometry';
+import { Vector3 } from '../math/Vector3';
+import { Color } from '../math/Color';
 
+const _projScreenMatrix = new Matrix4();
+const _frustum = new Frustum();
+     
 class Renderer extends Events {
     constructor(canvas) {
         super();
@@ -35,6 +46,7 @@ class Renderer extends Events {
             console.error('WebGPU device not found');
             return;
         }
+        this.count = 0;
         this.data = new WeakMap();
         this.format = navigator.gpu.getPreferredCanvasFormat();
         this.context = this.canvas.getContext('webgpu');
@@ -202,8 +214,15 @@ class Renderer extends Events {
             pass.setPipeline(renderObject.render.pipeline);
             pass.setBindGroup(0, renderObject.render.bindGroup);
             pass.setVertexBuffer(0, renderObject.buffers.vertex);
-            pass.setIndexBuffer(renderObject.buffers.index, 'uint16');
+            pass.setIndexBuffer(renderObject.buffers.index, object.geometry.indexFormat);
+
             const instanceCount = object.isInstancedMesh ? object.count : 1;
+
+            // if (!object.isInstancedMesh && !_frustum.intersectsObject(object)) {
+            //     return;
+            // } else {
+                this.count += instanceCount;
+            //}
 
             if (object.geometry.isIndexed) {
                 pass.drawIndexed(object.geometry.indices.length, instanceCount);
@@ -254,7 +273,10 @@ class Renderer extends Events {
         }
     }
     
+    
     render(scene, camera) {
+        _projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorld.invert());
+        _frustum.setFromProjectionMatrix(_projScreenMatrix);
         const dt = (performance.now() - this._lastTime) * 0.001;
         this.elapsed += dt;
         this._lastTime = performance.now();
@@ -276,24 +298,43 @@ class Renderer extends Events {
             .createView();
         this.renderPassDescriptor.colorAttachments[0].clearValue = scene.background.data;
 
-        if (this.shadowNeedsUpdate) {
-            const shadowDepthPass = encoder.beginRenderPass({
-                colorAttachments: [],
-                depthStencilAttachment: {
-                    view: this.textures.getView('shadowMap'),
-                    depthLoadOp: 'clear',
-                    depthClearValue: 1.0,
-                    depthStoreOp: 'store',
-                }
-            });
-            this.drawShadowDepth(scene, shadowDepthPass, scene.directionalLights);
-            shadowDepthPass.end();
-            //this.shadowNeedsUpdate = this.frames < 5;
+        const shadowDepthPass = encoder.beginRenderPass({
+            colorAttachments: [],
+            depthStencilAttachment: {
+                view: this.textures.getView('shadowMap'),
+                depthLoadOp: 'clear',
+                depthClearValue: 1.0,
+                depthStoreOp: 'store',
+            }
+        });
+        if (this.shadowBundle) {
+            shadowDepthPass.executeBundles([this.shadowBundle]);
+        } else {
+            const shadowPassEncoder = this.device.createRenderBundleEncoder({
+                colorFormats: [],
+                depthStencilFormat: 'depth32float',
+            }); 
+            this.drawShadowDepth(scene, shadowPassEncoder, scene.directionalLights);
+            this.shadowBundle = shadowPassEncoder.finish();
         }
+        shadowDepthPass.end();
 
+        this.count = 0;
         const renderPass = encoder.beginRenderPass(this.renderPassDescriptor);
+        // if (this.renderBundle) {
+        //     renderPass.executeBundles([this.renderBundle]);
+        // } else {
+        //     const renderPassEncoder = this.device.createRenderBundleEncoder({
+        //         colorFormats: [this.format],
+        //         depthStencilFormat: 'depth32float',
+        //     });
+        //     this.drawObject(scene, camera, renderPassEncoder);
+        //     this.renderBundle = renderPassEncoder.finish();
+        // }
         this.drawObject(scene, camera, renderPass);
+
         renderPass.end();
+        console.log(this.count);
 
         this.device.queue.submit([encoder.finish()]);
         this.frames++;

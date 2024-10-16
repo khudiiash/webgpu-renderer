@@ -60,14 +60,22 @@ class Vector3 {
         return vec3.equals(this.data, v.data);
     }
     
-    min(v) {
-        vec3.min(this.data, v.data, this.data);
+    min(x, y, z) {
+        if (x instanceof Vector3) {
+            vec3.min(this.data, x.data, this.data);
+        } else {
+            vec3.min(this.data, [x, y, z], this.data);
+        }
         this._onChangeCallback();
         return this;
     }
     
-    max(v) {
-        vec3.max(this.data, v.data, this.data);
+    max(x, y, z) {
+        if (x instanceof Vector3) { 
+            vec3.max(this.data, x.data, this.data);
+        } else { 
+            vec3.max(this.data, [x, y, z], this.data);
+        }
         this._onChangeCallback();
         return this;
     }
@@ -127,6 +135,7 @@ class Vector3 {
     
     copy(v) {
         vec3.copy(v.data, this.data);
+        this._onChangeCallback();
         return this;
     }
     
@@ -156,8 +165,20 @@ class Vector3 {
         return this;
     }
     
-    applyMatrix4(matrix) {
-        vec3.transformMat4(this.data, this.data, matrix);
+    applyMatrix4(m) {
+        
+		const x = this.x, y = this.y, z = this.z;
+		const e = m.data;
+
+		const w = 1 / ( e[ 3 ] * x + e[ 7 ] * y + e[ 11 ] * z + e[ 15 ] );
+
+		this.x = ( e[ 0 ] * x + e[ 4 ] * y + e[ 8 ] * z + e[ 12 ] ) * w;
+		this.y = ( e[ 1 ] * x + e[ 5 ] * y + e[ 9 ] * z + e[ 13 ] ) * w;
+		this.z = ( e[ 2 ] * x + e[ 6 ] * y + e[ 10 ] * z + e[ 14 ] ) * w;
+
+		// return this;
+
+        // vec3.transformMat4(this.data, this.data, matrix);
         return this;
     }
     
@@ -166,7 +187,7 @@ class Vector3 {
         return this;
     }
     
-    mulScalar(s) {
+    multiplyScalar(s) {
         vec3.scale(this.data, s, this.data);
         return this;
     }
@@ -202,10 +223,15 @@ class Vector3 {
     
     clampLength(min, max) {
         const length = this.length();
-        this.mulScalar(Math.max(min, Math.min(max, length)) / length);
+        this.multiplyScalar(Math.max(min, Math.min(max, length)) / length);
         this._onChangeCallback();
         return this;
     }
+    
+    distanceToSquared(v) {
+        return vec3.distanceSq(this.data, v.data);
+    }
+    
     
     lerpVectors(v1, v2, alpha) {
         vec3.lerp(v1.data, v2.data, alpha, this.data);
@@ -224,7 +250,7 @@ class Vector3 {
         return this;
     }
     
-    setFromBufferAttribute(attribute, index) {
+    setFromAttribute(attribute, index) {
         this.data[0] = attribute.getX(index);
         this.data[1] = attribute.getY(index);
         this.data[2] = attribute.getZ(index);

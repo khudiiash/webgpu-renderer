@@ -142,7 +142,7 @@ class Material extends Events {
         this.id = generateID();
         this.isMaterial = true;
         this.type = 'Material';
-        this.cull = 'back';
+        this.cullMode = 'back';
         this.blending = Material.BLEND.DEFAULT;
     }
     

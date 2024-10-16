@@ -25,7 +25,7 @@ const COMPONENT_TYPES = {
     5126: Float32Array
 };
 
-const TYPE_SIZES = {
+const COMPONENT_COUNT = {
     SCALAR: 1,
     VEC2: 2,
     VEC3: 3,
@@ -50,6 +50,7 @@ class GLTFLoader {
         this.cache.clear();
         this.instances = instances;
         this.data = await load(url, GLTF);
+        console.log(this.data);
         const parsed = this.parse(this.data, instances);
         return parsed;
     }    
@@ -78,14 +79,17 @@ class GLTFLoader {
       }
     
      createMaterial(mesh, gltf, buffers) {
-         const material = new MeshPhongMaterial({ color: '#ffffff' });
+         let material = new MeshPhongMaterial({ color: '#ffffff' });
          try {
             const primitive = mesh.primitives[0];
             if (primitive.material !== undefined) {
-                   const gltfMaterial = gltf.materials[primitive.material];
+                  const gltfMaterial = gltf.materials[primitive.material];
                   const pbrMetallicRoughness = gltfMaterial.pbrMetallicRoughness;
-                  if (pbrMetallicRoughness.baseColorTexture !== undefined) {
-                      const image = gltf.images[pbrMetallicRoughness.baseColorTexture.index];
+
+
+                    if (pbrMetallicRoughness?.baseColorTexture !== undefined) {
+                      const textureToImageMap = gltf.textures[pbrMetallicRoughness.baseColorTexture.index];
+                      const image = gltf.images[textureToImageMap.source];
                       if (!image) {
                             return new MeshPhongMaterial({ color: '#ffffff' });
                       }
@@ -111,11 +115,13 @@ class GLTFLoader {
         
         const scenes = this.parseScenes(gltf, buffers);
         const animations = this.parseAnimations(gltf, buffers);
+        const scene = scenes[gltf.scene || 0];
+        const instancedMeshes = scene.find(node => node.isInstancedMesh);
         
         return {
             scenes,
             animations,
-            skinnedMeshes: [],
+            instancedMeshes,
             scene: scenes[gltf.scene || 0]
         };
     }
@@ -187,7 +193,7 @@ class GLTFLoader {
     } 
     
     isBone(nodeIndex) {
-        return this.data.json.skins.some( skin => skin.joints.includes(nodeIndex));
+        return this.data.json.skins?.some( skin => skin.joints.includes(nodeIndex));
     }
 
     parseNode(gltf, buffers, nodeIndex) {
@@ -252,22 +258,21 @@ class GLTFLoader {
             return null;
         }
         const bufferView = gltf.bufferViews[accessorDef.bufferView];
-        if (!bufferView) {
-            return null;
-        }
         const buffer = buffers[bufferView.buffer];
-
-        const itemSize = COMPONENT_TYPES[accessorDef.componentType].BYTES_PER_ELEMENT * TYPE_SIZES[accessorDef.type];
         const count = accessorDef.count;
-        const byteOffset = accessorDef.byteOffset || 0;
-        const byteStride = bufferView.byteStride || itemSize;
-        
-        const array = new COMPONENT_TYPES[accessorDef.componentType](
-            buffer.arrayBuffer,
-            buffer.byteOffset + bufferView.byteOffset + byteOffset,
-            count * itemSize / COMPONENT_TYPES[accessorDef.componentType].BYTES_PER_ELEMENT
-        );
-        
+        const numberOfComponents = COMPONENT_COUNT[accessorDef.type];
+        const byteOffset = buffer.byteOffset + (accessorDef.byteOffset || 0) + bufferView.byteOffset;
+        const TypedArray = COMPONENT_TYPES[accessorDef.componentType];
+        let arrayByteLength = count * numberOfComponents * TypedArray.BYTES_PER_ELEMENT;
+        let array = new TypedArray(buffer.arrayBuffer, byteOffset, count * numberOfComponents);
+
+        if (arrayByteLength % 4 !== 0) {
+            const size = Math.ceil(arrayByteLength / 4) * 4;
+            const newArray = new TypedArray(size);
+            newArray.set(array);
+            array = newArray;
+        }
+
         return array; 
      }
     

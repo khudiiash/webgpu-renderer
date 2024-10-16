@@ -132,5 +132,30 @@ fn smootherstep3(edge0: vec3<f32>, edge1: vec3<f32>, x: vec3<f32>) -> vec3<f32> 
 fn circularOut(t: f32) -> f32 {
     return sqrt((2.0 - t) * t);
 }
+
+fn random(vec2f: vec2<f32>) -> f32 {
+    return fract(sin(dot(vec2f, vec2<f32>(12.9898, 78.233)) * 43758.5453));
+}
 const MAX_LIGHTS = 4;
-const MAX_SAMPLES = 36; 
+const MAX_SAMPLES = 32; 
+
+fn inverse3x3(m: mat3x3<f32>) -> mat3x3<f32> {
+    let a00 = m[0][0]; let a01 = m[0][1]; let a02 = m[0][2];
+    let a10 = m[1][0]; let a11 = m[1][1]; let a12 = m[1][2];
+    let a20 = m[2][0]; let a21 = m[2][1]; let a22 = m[2][2];
+
+    let b01 = a22 * a11 - a12 * a21;
+    let b11 = -a22 * a10 + a12 * a20;
+    let b21 = a21 * a10 - a11 * a20;
+
+    let det = a00 * b01 + a01 * b11 + a02 * b21;
+    let invDet = 1.0 / det;
+
+    let result = mat3x3<f32>(
+        vec3(b01, (-a22 * a01 + a02 * a21), (a12 * a01 - a02 * a11)) * invDet,
+        vec3(b11, (a22 * a00 - a02 * a20), (-a12 * a00 + a02 * a10)) * invDet,
+        vec3(b21, (-a21 * a00 + a01 * a20), (a11 * a00 - a01 * a10)) * invDet
+    );
+
+    return result;
+}

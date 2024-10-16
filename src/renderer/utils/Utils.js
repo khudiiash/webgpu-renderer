@@ -34,6 +34,7 @@ class Utils {
         }
     }
     
+    
     arraysEqual(a, b, aOffset = 0, bOffset = 0, length = a.length) {
         for (let i = 0; i < length; i++) {
             if (a[aOffset + i] !== b[bOffset + i]) {
