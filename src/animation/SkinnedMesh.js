@@ -47,7 +47,7 @@ class SkinnedMesh extends Mesh {
 				bufferType: 'storage',
 				visibility: GPUShaderStage.VERTEX,
 				uniforms: [
-					new Uniform('joint_matrices').storage(skeleton.bones.length, 'mat4x4f')
+					new Uniform('joint_matrices').storage('mat4x4f', skeleton.bones.length)
 				]
 			}),
 			new UniformGroup({
@@ -56,7 +56,7 @@ class SkinnedMesh extends Mesh {
 				bufferType: 'storage',
 				visibility: GPUShaderStage.VERTEX,
 				uniforms: [
-					new Uniform('inverse_bind_matrices').storage(skeleton.bones.length, 'mat4x4f')
+					new Uniform('inverse_bind_matrices').storage('mat4x4f', skeleton.bones.length)
 				]
 			})
 	    );

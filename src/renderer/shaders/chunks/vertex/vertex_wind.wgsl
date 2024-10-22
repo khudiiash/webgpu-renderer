@@ -6,7 +6,7 @@
     let normalizedHeight = input.position.y / material.windHeight;
     
     // Coherent wind calculation using world position
-    let worldNoiseScale = material.windHeight * 0.05; // Adjust for desired world noise frequency
+    let worldNoiseScale = 0.01; // Adjust for desired world noise frequency
     let worldTimeScale = material.windSpeed;
     let worldNoise = noise2D(vec2f(
         dot(worldPosition.xz, windDirectionModelSpace.xz) * worldNoiseScale + time * worldTimeScale,
@@ -29,10 +29,10 @@
     );
     
     // Individual branch movement (local noise)
-    let localNoiseScale = material.windHeight * 0.1; // Adjust for desired local noise frequency
+    let localNoiseScale = normalizedHeight * 0.1;
     let localTimeScale = material.windSpeed;  // Adjust for desired local movement speed
     let localNoise = noise2D(vec2f(
-        input.position.xz * localNoiseScale + vec2f(f32(input.instanceIndex) * 1.0) + time * localTimeScale
+        input.position.xz * localNoiseScale + time * localTimeScale
     ));
     
     let branchAmplitude =  normalizedHeight; // More movement higher up;

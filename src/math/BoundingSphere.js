@@ -3,13 +3,35 @@ const _v1 = new Vector3();
 
 class BoundingSphere {
     constructor(center = new Vector3(), radius = 0) {  
-        this.center = center;  // Vector3
-        this.radius = radius;  // Number
+        this._center = center;
+        this._radius = radius;
+		this.data = new Float32Array([center.x, center.y, center.z, radius]);
     } 
+	
+	get radius() {
+		return this._radius;
+	}
+	
+	set radius(value) {
+		this._radius = value;
+		this.data[3] = value;
+	}
+	
+	get center() {
+		return this._center;
+	}
+	
+	set center(value) {
+		this._center = value;
+		this.data[0] = value.x;
+		this.data[1] = value.y;
+		this.data[2] = value.z;
+	}
     
     set(center, radius) {
         this.center.copy(center);
         this.radius = radius;
+		this.data.set([center.x, center.y, center.z, radius]);
         return this;
     }
     
@@ -36,6 +58,7 @@ class BoundingSphere {
 		}
 
 		this.radius = Math.sqrt( maxRadiusSq );
+		this.data.set([center.x, center.y, center.z, this.radius]);
 
 		return this;
 
@@ -135,15 +158,14 @@ class BoundingSphere {
 
 		this.center.applyMatrix4( matrix );
 		this.radius = this.radius * matrix.getMaxScaleOnAxis();
-
+		this.data.set([this.center.x, this.center.y, this.center.z, this.radius]);
 		return this;
 
 	}
 
 	translate( offset ) {
-
 		this.center.add( offset );
-
+		this.data.set([this.center.x, this.center.y, this.center.z, this.radius]);
 		return this;
 
 	}
@@ -177,6 +199,8 @@ class BoundingSphere {
 			this.radius += delta;
 
 		}
+		
+		this.data.set([this.center.x, this.center.y, this.center.z, this.radius]);
 
 		return this;
 

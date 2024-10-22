@@ -64,172 +64,82 @@ class App {
         this.scene = new Scene();
 
         this.camera = new PerspectiveCamera(50, this.renderer.aspect, 1, 100);
-        this.camera.position.z = 20;
+        this.camera.position.z = -20;
         this.camera.position.y = 20;
         this.camera.position.x = -20;
         this.camera.lookAt(0, 0, 0);
+        this.camera.target.set(0, -20, 0);
         this.camera.name = 'MainCamera';
         this.scene.add(this.camera);
         
-        const grassGeometry = new GrassGeometry(3, 0.2, 1);
-        
-        const grassMaterial = new MeshPhongMaterial({color: '#859b45' });
-        grassMaterial.chunks.fragment.push(new ShaderChunk('grass', `
-            let noise = 1.0 - noise2D(input.vPositionW.xz * 0.05) + 1.0;
-            // fake ao
-            let ao = (1.0 - abs(2.0 * input.vUv.x - 1.0)) + 1.0;
-            let r = noise2D(input.vPositionW.xz * 0.1) * 0.1;
-            let g = noise2D(input.vPositionW.xz * 0.1) * 0.1;
-            let c = vec3(color.r + r, color.g + g, color.b);
 
-            
-            color = vec4(c * ao * noise * (input.vUv.y * 0.3), 1.0);
-        `))
-        grassMaterial.useWind = true;
-        grassMaterial.windStrength = 34;
-        grassMaterial.windHeight = 2.5;
-        grassMaterial.windDirection = new Vector3(1, 0, 1).normalize();
-        const grass = new InstancedMesh(grassGeometry, grassMaterial, 150000);
-        this.grass = grass;
-        this.scene.add(grass);
+        const floor = new Mesh(new PlaneGeometry(80, 80), new MeshPhongMaterial({color: '#ffffff' }));
+        floor.rotation.x = Math.PI / 2;
+        //this.scene.add(floor);
+        
+        const terrain = await new GLTFLoader(this.renderer).loadMesh(TerrainModel);
+        terrain.isCulled = false;
+        terrain.material.ambientIntensity = -1.0;
+        this.scene.add(terrain);
+        
+        
+        const trees = await new GLTFLoader(this.renderer).load(TreeModel, 5000);
         const pos = new Vector3();
         
-        const treeScene = await new GLTFLoader(this.renderer).load(TreeModel);
-        treeScene.scene.setScale(1.5);
-        treeScene.scene.setPosition(3, 0, 4);
-        treeScene.scene.children.forEach(child => {
-            if (child.isMesh) {
-                child.material.useWind = true;
-                child.material.windStrength = 1; 
-                child.material.windHeight = 20;
-                child.material.windDirection = new Vector3(1, 0, 1).normalize();
-                child.material.cullMode = 'none';
-            }
-        })
-        this.scene.add(treeScene.scene);
-        
-        
-        const knight = await new GLTFLoader(this.renderer).load(KnightModel);
-        knight.scene.position.set(-2, 0, -5);
-        knight.scene.setScale(4);
-        knight.scene.rotation.y = -Math.PI / 2;
-        knight.scene.traverse((child) => {
-            if (child.isMesh) {
-                child.material.ambientIntensity = 5;
-            }
-        });
-        this.knightMixer = new AnimationMixer(knight.scene);
-        this.knightMixer.addAnimation(knight.animations[0]).playAtIndex(0);
-        this.scene.add(knight.scene);
+        for (let i = 0; i < trees.instancedMeshes[0].count; i++) {
+            pos.set(randomFloat(-100, 100), 0, randomFloat(-100, 100));
+            pos.y = terrain.getHeightAt(pos.x, pos.z);
+            let scale = randomFloat(0.1, 0.3);
+            let rotation = randomFloat(0, Math.PI * 2);
 
-        const zerg = await new GLTFLoader(this.renderer).load(ZergModel);
-        zerg.scene.position.set(-8, 0, 5);
-        zerg.scene.setScale(3);
-        zerg.scene.rotation.y = -Math.PI / 2;
-        zerg.scene.traverse((child) => {
-            if (child.isMesh) {
-                child.material.ambientIntensity = 5;
-            }
-        });
-        this.zergMixer = new AnimationMixer(zerg.scene);
-        this.zergMixer.addAnimation(zerg.animations[0]).playAtIndex(0);
-        this.scene.add(zerg.scene);
-
-        const girl = await new GLTFLoader(this.renderer).load(GirlModel);
-        girl.scene.position.set(-5, 0, 9);
-        girl.scene.setScale(3);
-        girl.scene.rotation.y = -Math.PI / 2;
-        girl.scene.traverse((child) => {
-            if (child.isMesh) {
-                child.material.ambientIntensity = 3;
-            }
-        });
-        this.girlMixer = new AnimationMixer(girl.scene);
-        this.girlMixer.addAnimation(girl.animations[1]).playAtIndex(0);
-        this.scene.add(girl.scene);
-
-        const triz = await new GLTFLoader(this.renderer).load(TrizModel);
-        triz.scene.position.set(-8, 0, -6);
-        triz.scene.setScale(3);
-        triz.scene.rotation.y = Math.PI / 2;
-        triz.scene.traverse((child) => {
-            if (child.isMesh) {
-                child.material.ambientIntensity = 3;
-            }
-        });
-        this.trizMixer = new AnimationMixer(triz.scene);
-        this.trizMixer.addAnimation(triz.animations[0]).playAtIndex(0);
-        this.scene.add(triz.scene);
-
-        const fox = await new GLTFLoader(this.renderer).load(FoxModel);
-        fox.scene.position.set(-6, 0, -12);
-        fox.scene.rotation.y = Math.PI / 3;
-        fox.scene.setScale(4);
-        fox.scene.lookAt(knight.scene.position);
-        // fox.scene.traverse((child) => {
-        //     if (child.isMesh) {
-        //         child.material.ambientIntensity = -1;
-        //     }
-        // });
-        
-        this.scene.add(fox.scene);
-        this.foxMixer = new AnimationMixer(fox.scene);
-        this.foxMixer.addAnimation(fox.animations[0]).playAtIndex(0);
-         
-
-
-        for (let i = 0; i < grass.count; ++i) {
-            pos.x = randomFloat(-25, 25);
-            pos.z = randomFloat(-25, 25);
-            pos.y = 0;
-            const scale = randomFloat(0.5, 1);
-            grass.setPositionAt(pos, i);
-            grass.setScaleAt(scale, i);
-            grass.rotateYAt(randomFloat(0, Math.PI * 2), i);
-            grass.rotateXAt(randomFloat(-Math.PI * 0.1, Math.PI * 0.1), i);
-            grass.rotateZAt(randomFloat(-Math.PI * 0.1, Math.PI * 0.1), i);
-        }   
-        
-        const trees = [TreeModel];
-        
-
-        for (const treeModel of trees) {
-            const treeScene = await new GLTFLoader(this.renderer).load(treeModel, 100);
-            const rot = new Vector3();
-            for (let i = 0; i < treeScene.instancedMeshes[0].count; ++i) {
-                pos.x = randomFloat(-25, 25);
-                pos.z = randomFloat(-25, 25);
-                pos.y = 0;
-                rot.y = randomFloat(0, Math.PI * 2);
-                const scale = randomFloat(0.1, 0.2);
-
-                for (let j = 0; j < treeScene.instancedMeshes.length; ++j) {
-                    const inst = treeScene.instancedMeshes[j];
-                    inst.setPositionAt(pos, i);
-                    inst.rotateYAt(rot.y, i);
-                    inst.setScaleAt(scale, i);
+            for (let j = 0; j < trees.instancedMeshes.length; j++) {
+                if (pos.y > 15) {
+                    scale = 0;  
                 }
+                trees.instancedMeshes[j].setPositionAt(pos, i);
+                trees.instancedMeshes[j].setScaleAt(scale, i);
+                trees.instancedMeshes[j].rotateYAt(rotation, i);
             }
-            // treeScene.instancedMeshes.forEach(inst => {
-            //     this.scene.add(inst)
-            //     inst.material.useWind = true;
-            //     inst.material.windStrength = 15;
-            //     inst.material.windHeight = 30;
-            // });
-
         }
+        
+        // const clouds = await new GLTFLoader(this.renderer).loadMesh(CloudModel, 100);
+        // clouds.material.ambientIntensity = 20.0;
+        // clouds.isCulled = false;
 
+        // for (let i = 0; i < clouds.count; i++) {
+        //     pos.set(randomFloat(-100, 100), randomFloat(30, 50), randomFloat(-100, 100));
+        //     clouds.setPositionAt(pos, i);
+        //     clouds.setScaleAt(randomFloat(3, 5), i); 
+        //     clouds.rotateYAt(randomFloat(0, Math.PI * 2), i);
+        //     clouds.rotateXAt(randomFloat(0, Math.PI * 2), i);
 
-        const floor = new Mesh(new PlaneGeometry(50, 50), new MeshPhongMaterial({color: '#000000' }));
-        floor.rotation.x = Math.PI / 2;
-        this.scene.add(floor);
+        // }
+        
+        // this.scene.add(clouds);
 
-        this.light = new DirectionalLight({intensity: 1.5 });
+        trees.instancedMeshes.forEach((tree, i) => {
+            tree.material.useWind = true;
+            tree.material.windHeight = 35;
+            tree.material.windStrength = 40;
+            if (i === 1) {
+                tree.material.chunks.fragment.splice(4, 0, new ShaderChunk('color_variation', `
+                    let worldNoise = noise2D(input.vPositionW.xz * 0.1);
+                    // slightly vary between yellow and green based on noise
+                    let new_color = vec4f(mix(vec3(0.8, 0.5, 0.2), vec3(0.3, 0.5, 0.2), worldNoise), color.a);
+                    color = vec4f(color.rgb * new_color.rgb, color.a);
+                `));
+                tree.material.ambientIntensity = 4.0;
+            }
+            this.scene.add(tree)
+        });
+        
+        
+        this.light = new DirectionalLight({intensity: 2.0 });
         this.light.name = 'MyDirectionalLight';
         this.light.rotation.x = -Math.PI / 4; 
         this.light.rotation.y = -0.3;
         this.scene.add(this.light);
-        this.controls = new OrbitControls(this.camera, canvas);
+        //this.controls = new OrbitControls(this.camera, canvas);
         
         requestAnimationFrame(() => this.loop());
         
@@ -246,21 +156,16 @@ class App {
     
     
     update(dt) {
-        // const cameraDistance = 10;
-        // const cameraHeight = 5;
-        // const cameraSpeed = 0.2;
+        const cameraDistance = 30;
+        const cameraHeight = 40;
+        const cameraSpeed = 0.2;
 
-        // const cameraX = -(Math.sin(this.elapsed * cameraSpeed) + 2) * cameraDistance;
-        // const cameraZ = (Math.cos(this.elapsed * cameraSpeed) + 2) * cameraDistance;
-        // const cameraY = (Math.sin(this.elapsed * cameraSpeed) + 2) * 5 + cameraHeight;
-        // this.camera.setPosition(cameraX, cameraY, cameraZ);
-        this.foxMixer.update(dt);
-        this.knightMixer.update(dt);
-        this.zergMixer.update(dt);
-        this.girlMixer.update(dt);
-        this.trizMixer.update(dt);
+        const cameraX = -(Math.sin(this.elapsed * cameraSpeed) + 2) * cameraDistance;
+        const cameraZ = (Math.cos(this.elapsed * cameraSpeed) + 2) * cameraDistance;
+        const cameraY = (Math.sin(this.elapsed * cameraSpeed) + 2) * 5 + cameraHeight;
+        this.camera.setPosition(Math.cos(this.elapsed * cameraSpeed) * cameraDistance, cameraHeight, Math.sin(this.elapsed * cameraSpeed) * cameraDistance);
         this.stats.update(); 
-        this.controls?.update(dt);
+        //this.controls?.update(dt);
         this.renderer.render(this.scene, this.camera);
     }
 }

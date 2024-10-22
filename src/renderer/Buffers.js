@@ -8,6 +8,7 @@ class Buffers {
         this._objects = new Map();
         this._buffers = new Map();
         this._data = new Map();
+        this._instanceBuffers = new Map();
         this.createLightProjectionViewBuffer();
     }
     
@@ -49,6 +50,7 @@ class Buffers {
             debugger;
         }
         
+        
         if (object) {
             if (!this._objects.has(object)) {
                 this._objects.set(object, new Map());
@@ -63,13 +65,11 @@ class Buffers {
                 this.write(buffer, object.data);
             }
 
-            if (uniform.name === 'model') {
-                this.write(buffer, object.matrixWorld.data);
-                this._data.set(buffer, new Float32Array(object.matrixWorld.data));
-            }
             if (uniform.name === 'instances') {
-                this.write(buffer, object.instanceMatrix);
-                this._data.set(buffer, new Float32Array(object.instanceMatrix));
+                buffer.label = object.name;
+                this.write(buffer, object.instanceMatrix || object.matrixWorld.data);
+                this._data.set(buffer, new Float32Array(object.instanceMatrix ?? object.matrixWorld.data));
+                this._instanceBuffers.set(object, buffer);
             }
 
             object.on('write', ({ data, name, byteOffset }) => {
@@ -78,6 +78,8 @@ class Buffers {
 
             if (!uniform.perMesh) {
                 this._buffers.set(uniform.name, buffer);
+            } else {
+                this._buffers.set(object, buffer);
             }
         } else {
             this._buffers.set(uniform.name, buffer);
@@ -97,6 +99,7 @@ class Buffers {
         }
         if (!(buffer instanceof GPUBuffer)) return false;
         if (arraysEqual(this._data.get(buffer), data)) return false;
+
         this.device.queue.writeBuffer(buffer, byteOffset, data);
         this._data.get(buffer)?.set(data, byteOffset / Float32Array.BYTES_PER_ELEMENT);
         return true;
@@ -118,6 +121,10 @@ class Buffers {
     
     getBufferDataByObject(object, name) {
         return this._data.get(this._objects.get(object).get(name));
+    }
+    
+    getInstanceBuffer(object) {
+        return this._instanceBuffers.get(object);
     }
     
     

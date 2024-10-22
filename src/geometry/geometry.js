@@ -111,12 +111,45 @@ class Geometry {
         if (this.boundingSphere === null) {
             this.boundingSphere = new BoundingSphere();
         }
-
+    
         const position = this.attributes.position;
-        if (position) {
-            const center = this.boundingSphere.center;
-			_box.setFromAttribute( position );
+    
+        if (!position) {
+            console.error('Geometry has no position attribute.');
+            return this;
         }
+    
+        const positions = position.array;
+        const center = [0, 0, 0];
+        const vertexCount = positions.length / 3;
+    
+        // Calculate the center of the bounding sphere
+        for (let i = 0; i < vertexCount; i++) {
+            center[0] += positions[i * 3];
+            center[1] += positions[i * 3 + 1];
+            center[2] += positions[i * 3 + 2];
+        }
+    
+        center[0] /= vertexCount;
+        center[1] /= vertexCount;
+        center[2] /= vertexCount;
+    
+        // Calculate the radius of the bounding sphere
+        let maxRadiusSq = 0;
+        for (let i = 0; i < vertexCount; i++) {
+            const dx = positions[i * 3] - center[0];
+            const dy = positions[i * 3 + 1] - center[1];
+            const dz = positions[i * 3 + 2] - center[2];
+            const distanceSq = dx * dx + dy * dy + dz * dz;
+            if (distanceSq > maxRadiusSq) {
+                maxRadiusSq = distanceSq;
+            }
+        }
+    
+        this.boundingSphere.center.set(center[0], center[1], center[2]);
+        this.boundingSphere.radius = Math.sqrt(maxRadiusSq);
+    
+        return this;
         
     }
             
@@ -232,27 +265,6 @@ class Geometry {
 		}
     }
     
-    computeBoundingSphere() {
-        if (this.boundingSphere === null) {
-            this.boundingSphere = new BoundingSphere();
-        }
-        const position = this.attributes.position;
-
-        const center = this.boundingSphere.center;
-	    _box.setFromAttribute( position );
-        _box.getCenter( center );
-        let maxRadiusSq = 0;
-
-        for ( let i = 0, il = position.count; i < il; i ++ ) {
-
-            _vector.setFromAttribute( position, i );
-
-            maxRadiusSq = Math.max( maxRadiusSq, center.distanceToSquared( _vector ) );
-
-        }
-        
-        this.boundingSphere.radius = Math.sqrt( maxRadiusSq );
-    }
     setAttribute(name, data) {
         this.attributes[name] = data;
         return this;

@@ -71,7 +71,7 @@ class MeshPhongMaterial extends Material {
       
       
       this.uniforms = [
-         UniformLib.model,
+         UniformLib.instances(),
          UniformLib.camera,
          UniformLib.scene,
          UniformLib.time,
@@ -101,13 +101,13 @@ class MeshPhongMaterial extends Material {
 
       this.chunks = {
          vertex: [ 
-            { mesh: ShaderChunks.vertex.model, instanced_mesh: ShaderChunks.vertex.model_instanced, skinned_mesh: ShaderChunks.vertex.model_skinned },
+            { mesh: ShaderChunks.vertex.model_instanced, instanced_mesh: ShaderChunks.vertex.model_instanced, skinned_mesh: ShaderChunks.vertex.model_skinned },
             ShaderChunks.vertex.projection_camera,
             ShaderChunks.vertex.projection_shadow,
             ShaderChunks.vertex.uv,
-            ShaderChunks.vertex.fog,
             ShaderChunks.vertex.wind,
             ShaderChunks.vertex.position,
+            ShaderChunks.vertex.fog,
          ],
          fragment: [
             ShaderChunks.fragment.diffuse_map,

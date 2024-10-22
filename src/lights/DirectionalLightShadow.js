@@ -5,7 +5,7 @@ import { Vector3 } from '../math/Vector3.js';
 class DirectionalLightShadow extends LightShadow {
 
 	constructor() {
-		super( new OrthographicCamera( -50, 50, -50, 50, -50, 200) );
+		super( new OrthographicCamera( -100, 100, -100, 100, -100, 200) );
 
 		this.isDirectionalLightShadow = true;
 	}

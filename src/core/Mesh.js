@@ -14,6 +14,8 @@ class Mesh extends Object3D {
         this.geomatID = `${geometry.id}_${material.id}`;
         this.isMesh = true;
         this.type = 'mesh';
+        this.count = 1;
+        this.isCulled = true;
         this.geometry = geometry;
         this.material = material;
     }

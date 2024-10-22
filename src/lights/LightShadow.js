@@ -30,12 +30,12 @@ class LightShadow extends Events {
         this.projectionMatrixInverse = new Matrix4();
         this.camera.updateProjectionMatrix();
         this._shadowIntensity = 1;
-        this._shadowBias = 0.00001;
+        this._shadowBias = 0.001;
         this._shadowNormalBias = 0;
         this._shadowRadius = 1;
         this._shadowMapOffsetTextureSize = 4;
         this._shadowMapOffsetFilterSize = 3;
-        this._shadowMapRandomRadius = 10;
+        this._shadowMapRandomRadius = 10; 
         this.camera.isShadowCamera = true;
 
         this._data = new Float32Array([

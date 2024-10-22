@@ -16,9 +16,9 @@ import { Mesh } from '../core/Mesh';
 import { BoxGeometry } from '../geometry/BoxGeometry';
 import { Vector3 } from '../math/Vector3';
 import { Color } from '../math/Color';
+import { CullingSystem } from './CullingSystem';
 
 const _projScreenMatrix = new Matrix4();
-const _frustum = new Frustum();
      
 class Renderer extends Events {
     constructor(canvas) {
@@ -70,6 +70,8 @@ class Renderer extends Events {
         this.pipelines = new Pipelines(this.device, this);
         this.buffers = new Buffers(this.device, this);
         this.buffers.createShadowDepthBuffer(this.textures.getTexture('shadowMap'));
+        
+        this.cullingSystem = new CullingSystem(this);
 
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
@@ -204,7 +206,7 @@ class Renderer extends Events {
         return renderObject;
     }
     
-    drawObject(object, camera, pass) {
+    drawObject(object, camera, pass, encoder) {
         if (object.isMesh) {
             const existing = this.has(object);
             const renderObject = existing ? 
@@ -216,25 +218,25 @@ class Renderer extends Events {
             pass.setVertexBuffer(0, renderObject.buffers.vertex);
             pass.setIndexBuffer(renderObject.buffers.index, object.geometry.indexFormat);
 
-            const instanceCount = object.isInstancedMesh ? object.count : 1;
+            const instanceCount = object.count;
 
-            // if (!object.isInstancedMesh && !_frustum.intersectsObject(object)) {
-            //     return;
-            // } else {
-                this.count += instanceCount;
-            //}
+            this.count += instanceCount;
 
             if (object.geometry.isIndexed) {
-                pass.drawIndexed(object.geometry.indices.length, instanceCount);
+                object.isCulled ? 
+                    pass.drawIndexedIndirect(object.visibilityInfo.drawCommandBuffer, 0) :
+                    pass.drawIndexed(object.geometry.indices.length, instanceCount);
             } else {
-                pass.draw(object.geometry.vertexCount, instanceCount);
+                object.isCulled ? 
+                    pass.drawIndirect(object.drawCommandBuffer, 0) :
+                    pass.draw(object.geometry.positions.length / 3, instanceCount);
             }
             
         }
         
         if (object.children.length) {
             for (let i = 0; i < object.children.length; i++) {
-                this.drawObject(object.children[i], camera, pass);
+                this.drawObject(object.children[i], camera, pass, encoder);
             }
         }
     }
@@ -254,12 +256,15 @@ class Renderer extends Events {
                 pass.setBindGroup(0, renderObject.shadow.bindGroup);
                 pass.setVertexBuffer(0, renderObject.buffers.vertex)
                 pass.setIndexBuffer(renderObject.buffers.index, object.geometry.indexFormat);
-                const instanceCount = object.isInstancedMesh ? object.count : 1;
 
                 if (object.geometry.isIndexed) {
-                    pass.drawIndexed(object.geometry.indices.length, instanceCount);
+                    object.isCulled ? 
+                        pass.drawIndexedIndirect(object.visibilityInfo.drawCommandBuffer, 0) :
+                        pass.drawIndexed(object.geometry.indices.length, object.count);
                 } else {
-                    pass.draw(object.geometry.vertexCount, instanceCount);
+                    object.isCulled ?
+                        pass.drawIndirect(object.visibilityInfo.drawCommandBuffer, 0) :
+                        pass.draw(object.geometry.positions.length / 3, object.count);
                 }
             }
                 
@@ -275,8 +280,6 @@ class Renderer extends Events {
     
     
     render(scene, camera) {
-        _projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorld.invert());
-        _frustum.setFromProjectionMatrix(_projScreenMatrix);
         const dt = (performance.now() - this._lastTime) * 0.001;
         this.elapsed += dt;
         this._lastTime = performance.now();
@@ -288,9 +291,11 @@ class Renderer extends Events {
             this.buffers.createUniformBuffer(UniformLib.camera, camera);
         }
 
-         this.buffers.write('time', new Float32Array([this.elapsed]));
+        this.buffers.write('time', new Float32Array([this.elapsed]));
 
         const encoder = this.device.createCommandEncoder();
+        
+        this.cullingSystem.compute(scene, camera, encoder, this.textures.getTexture('depth'));
 
         
         this.renderPassDescriptor.colorAttachments[0].view = this.context
@@ -321,20 +326,9 @@ class Renderer extends Events {
 
         this.count = 0;
         const renderPass = encoder.beginRenderPass(this.renderPassDescriptor);
-        // if (this.renderBundle) {
-        //     renderPass.executeBundles([this.renderBundle]);
-        // } else {
-        //     const renderPassEncoder = this.device.createRenderBundleEncoder({
-        //         colorFormats: [this.format],
-        //         depthStencilFormat: 'depth32float',
-        //     });
-        //     this.drawObject(scene, camera, renderPassEncoder);
-        //     this.renderBundle = renderPassEncoder.finish();
-        // }
-        this.drawObject(scene, camera, renderPass);
+        this.drawObject(scene, camera, renderPass, encoder);
 
         renderPass.end();
-        console.log(this.count);
 
         this.device.queue.submit([encoder.finish()]);
         this.frames++;

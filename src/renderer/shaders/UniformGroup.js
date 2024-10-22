@@ -42,7 +42,7 @@ class UniformGroup {
         this.bindGroup = bindGroup;
         this.storageOp = storageOp;
         this.bufferType = bufferType;
-        this.byteSize = this.calculateGroupByteSize();
+        this.calculateGroupByteSize();
         this._data = new Float32Array(this.byteSize / Float32Array.BYTES_PER_ELEMENT);
         this.offsets = {};
         this.byteOffsets = {};
@@ -80,7 +80,8 @@ class UniformGroup {
             return acc + uniform.byteSize;
         }, 0);
         
-        return Utils.align16(size);
+        this.byteSize = Utils.align16(size);
+        return this.byteSize;
     }
 
     getStructsString() {
@@ -93,6 +94,10 @@ class UniformGroup {
             });
         }
         return structStrings;
+    }
+    
+    getByName(name) {
+        return this.uniforms.find(uniform => uniform.name === name);
     }
 
     getMainStructString() {

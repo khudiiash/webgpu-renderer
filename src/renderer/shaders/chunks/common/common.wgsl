@@ -137,7 +137,7 @@ fn random(vec2f: vec2<f32>) -> f32 {
     return fract(sin(dot(vec2f, vec2<f32>(12.9898, 78.233)) * 43758.5453));
 }
 const MAX_LIGHTS = 4;
-const MAX_SAMPLES = 32; 
+const MAX_SAMPLES = 4; 
 
 fn inverse3x3(m: mat3x3<f32>) -> mat3x3<f32> {
     let a00 = m[0][0]; let a01 = m[0][1]; let a02 = m[0][2];

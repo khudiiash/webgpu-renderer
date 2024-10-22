@@ -19,6 +19,20 @@ class UniformLib {
         ]
     });
     
+    static instances = () => new UniformGroup({
+        name: 'instances',
+        bindGroup: 0,
+        perMesh: true,
+        visibility: GPUShaderStage.VERTEX,
+        type: 'storage',
+        bufferType: 'storage',
+        uniforms: [
+            new Uniform('instances').storage('mat4x4f', 1)
+        ]
+    });
+
+        
+    
     static lightProjViewMatrix = new UniformGroup({
         name: 'lightProjViewMatrix',
         bindGroup: 0,

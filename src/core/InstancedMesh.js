@@ -25,19 +25,11 @@ class InstancedMesh extends Mesh {
         this.type = 'instanced_mesh';
         this.instanceMatrix = new Float32Array(count * 16);
         this.count = count;
+        this.boundingSpheres = new Float32Array(count * 4);
         this.needsUpdate = true;
-        
-        material.uniforms[0] = new UniformGroup({
-            name: 'instances',
-            visibility: GPUShaderStage.VERTEX,
-            type: 'storage',
-            perMesh: true,
-            bufferType: 'storage',
-            uniforms: [
-                new Uniform('instances').storage(count, 'mat4x4f'),
-            ]
-        });
-        
+        material.uniforms[0].uniforms[0].storage('mat4x4f', count);
+        material.uniforms[0].calculateGroupByteSize();
+
         for ( let i = 0; i < count; i ++ ) {
 			this.setMatrixAt( _identity, i );
 		}
@@ -90,7 +82,7 @@ class InstancedMesh extends Mesh {
             _mat.setPosition(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
 		    _mat.toArray( this.instanceMatrix, i * 16 );
          }
-        this.geometry.computeBoundingBox();
+         this.geometry.computeBoundingBox();
          this.write(this.instanceMatrix, 'instances');
     }
     
@@ -118,6 +110,7 @@ class InstancedMesh extends Mesh {
     setMatrixAt( matrix, index ) {
 		matrix.toArray( this.instanceMatrix, index * 16 );
         this.geometry.computeBoundingBox();
+        this.boundingSpheres.set(this.geometry.boundingSphere.data, index * 4);
         this.write(matrix.data, 'instances', index * 16 * 4);
 	}
     

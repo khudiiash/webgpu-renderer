@@ -5,11 +5,11 @@ for (var i = 0u; i < MAX_LIGHTS; i++) {
     var lightingFactor = 0.0;
     var shadowPos = vec3<f32>(0.0);
 
-    if (i < u32(scene.directionalLightsNum)) {
+    if (i < DIR_LIGHT_NUM) {
         let light = scene.directionalLights[i];
         let shadowConfig = scene.directionalLightShadows[i];
         let matrix = scene.directionalLightMatrices[i];
-        let shadowBias = shadowConfig.shadowBias * 40.0;
+        let shadowBias = shadowConfig.shadowBias;
         let lightPos = light.direction * -500.0;
         let distToLight = length(lightPos - input.vPositionW);
         
@@ -18,33 +18,33 @@ for (var i = 0u; i < MAX_LIGHTS; i++) {
             posFromLight.xy * vec2f(0.5, -0.5) + vec2f(0.5, 0.5), 
             posFromLight.z
         );
+
+        // Implement PCF directly in the loop
+        let pcfScale = 2.0; // Adjust for shadow softness
+        let texelSize = 0.5 / shadowMapSize;
+        var totalSamples = 0.0;
         
-        let f = fract(input.position.xy / shadowConfig.shadowMapOffsetTextureSize);
-        var offsetCoord = vec3<i32>(0, vec2<i32>(f * shadowConfig.shadowMapOffsetTextureSize));
-
-        var sum: f32 = 0.0;
-        let samplesDiv2 = min(i32(shadowConfig.shadowMapOffsetFilterSize * shadowConfig.shadowMapOffsetFilterSize / 2.0), MAX_SAMPLES / 2);
-        let texelSize = 1.0 / shadowMapSize;
-        let bias = shadowBias;
-        let normalizeDistFactor = 1.0 / distToLight;
-
-        let randomRadius = shadowConfig.shadowMapRandomRadius;
-        for (var j = 0; j < MAX_SAMPLES / 2; j++) {
-            if (j >= samplesDiv2) { break; }
-            offsetCoord.x = j;
-            let offsets = textureLoad(shadowOffset, offsetCoord, 0) * randomRadius;
-            
-            sum += textureSampleCompare(
-                shadowMap, samplerComparison,
-                shadowPos.xy + offsets.rg * texelSize, shadowPos.z - bias
-            );
-            sum += textureSampleCompare(
-                shadowMap, samplerComparison,
-                shadowPos.xy + offsets.ba * texelSize, shadowPos.z - bias
-            );
+        for (var x = -pcfScale; x <= pcfScale; x += 1.0) {
+            for (var y = -pcfScale; y <= pcfScale; y += 1.0) {
+                let offset = vec2<f32>(x, y) * texelSize * shadowConfig.shadowMapRandomRadius;
+                visibility += textureSampleCompare(
+                    shadowMap,
+                    samplerComparison,
+                    shadowPos.xy + offset,
+                    shadowPos.z - shadowBias
+                );
+                totalSamples += 1.0;
+            }
         }
-
-        visibility = sum / f32(samplesDiv2 * 2) + normalizeDistFactor;
+        
+        // Normalize the visibility
+        visibility = visibility / totalSamples;
+        
+        // Apply distance-based fade
+        let fadeStart = 400.0;
+        let fadeEnd = 1500.0;
+        let shadowFade = smoothstep(fadeStart, fadeEnd, distToLight);
+        visibility = mix(visibility, 1.0, shadowFade);
 
         let lambertFactor = max(dot(normalize(light.direction), normalize(input.vNormalW)), 0.0);
         lightingFactor = min(scene.ambientLight.intensity + visibility * lambertFactor * light.intensity, 1.0);

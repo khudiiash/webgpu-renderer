@@ -17,6 +17,9 @@ import fragment_light_phong from './chunks/fragment/fragment_light_phong.wgsl?ra
 import fragment_shadowmap from './chunks/fragment/fragment_shadowmap.wgsl?raw';
 import fragment_emission from './chunks/fragment/fragment_emission.wgsl?raw';
 import fragment_shadow_depth from './chunks/fragment/fragment_shadow_depth.wgsl?raw';
+
+import culling from './chunks/compute/culling.wgsl?raw';
+
 import { Varying } from './Varying';
 import { USE } from '../constants';
 
@@ -60,6 +63,13 @@ class FragmentChunk extends ShaderChunk {
     }
 }
 
+class ComputeChunk extends ShaderChunk {
+    constructor(name, code) {
+        super(name, code);
+        this.isComputeChunk = true;
+    }
+}
+
 class ShaderChunks {
     static common = new ShaderChunk('common', common);
     static vertex = {
@@ -91,6 +101,10 @@ class ShaderChunks {
         fog: new FragmentChunk('fragment_fog', fragment_fog).setUse(USE.RENDER),
         light_phong: new FragmentChunk('fragment_light_phong', fragment_light_phong).setUse(USE.RENDER),
         shadowmap: new FragmentChunk('fragment_shadowmap', fragment_shadowmap).setUse(USE.RENDER),
+    }
+    
+    static compute = {
+        culling: new ComputeChunk('culling', culling),
     }
 }
 

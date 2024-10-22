@@ -15,6 +15,10 @@ class Uniform {
         this._data = new Float32Array([]);
     }
     
+    recalculateByteSize(count) {
+        return this;
+    }
+    
     setBuffer(buffer) {
         this.buffer = buffer;
         return this;
@@ -92,7 +96,7 @@ class Uniform {
         return this;
     }
     
-    storage(count, type) {
+    storage(type, count = 1) {
         this.isStorage = true;
         this.type = `array<${type}>`;
         this.byteSize = count * TYPE_BYTE_SIZE[type];
@@ -116,6 +120,17 @@ class Uniform {
         this.type = 'mat3x3f';
         this._data = new Float32Array(value.data);
         return this;
+    }
+    
+    storageStruct(structName, struct, count = 1) {
+        this.isStorageStruct = true;
+        this.structString = StringUtils.structToString(structName, struct);
+        this.type = `array<${structName}, ${count}>`;
+        const size = Object.values(struct).reduce((acc, type) => {
+            return acc + TYPE_BYTE_SIZE[type];
+        }, 0);
+        this.byteSize = Utils.align16(size * count);
+        this._data = new Float32Array(this.byteSize / Float32Array.BYTES_PER_ELEMENT);
     }
     
     struct(structName, struct) {

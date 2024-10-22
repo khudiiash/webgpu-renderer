@@ -25,7 +25,6 @@ class Object3D extends Events {
         this.id = generateID();
         this.name = 'Object';
         this.type = 'Object3D';
-        this.buffers = ['model'];
         this.isObject3D = true;
         this.version = 0;
         this.matrixWorldAutoUpdate = true;

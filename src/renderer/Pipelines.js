@@ -40,6 +40,14 @@ class Pipelines {
         return this.shadowDepthPipeline;
     }
     
+    createFrustumPipeline() {
+        
+    }
+    
+    createOcclusionPipeline() {
+        
+    }
+    
     createRenderPipeline(renderObject, bindGroupLayout) {
         const material = renderObject.mesh.material;
         const { vertexShader, fragmentShader } = ShaderLib.compose(renderObject.mesh);

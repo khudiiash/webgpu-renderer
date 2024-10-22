@@ -8,9 +8,6 @@ class BindGroups {
     
     
     createRenderBindGroupLayout(renderObject) {
-        // if (this.layoutCache.has(renderObject.mesh.material)) {
-        //     return this.layoutCache.get(renderObject.mesh.material);
-        // }
         const mesh = renderObject.mesh;
         const material = mesh.material;
         const entries = [];
