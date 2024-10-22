@@ -63,7 +63,7 @@ class App {
         await this.renderer.init();
         this.scene = new Scene();
 
-        this.camera = new PerspectiveCamera(50, this.renderer.aspect, 1, 100);
+        this.camera = new PerspectiveCamera(50, this.renderer.aspect, 1, 80);
         this.camera.position.z = -20;
         this.camera.position.y = 20;
         this.camera.position.x = -20;
@@ -79,7 +79,7 @@ class App {
         
         const terrain = await new GLTFLoader(this.renderer).loadMesh(TerrainModel);
         terrain.isCulled = false;
-        terrain.material.ambientIntensity = -1.0;
+        //terrain.material.ambientIntensity = -1.5;
         this.scene.add(terrain);
         
         
@@ -118,9 +118,9 @@ class App {
         // this.scene.add(clouds);
 
         trees.instancedMeshes.forEach((tree, i) => {
-            tree.material.useWind = true;
-            tree.material.windHeight = 35;
-            tree.material.windStrength = 40;
+            // tree.material.useWind = true;
+            // tree.material.windHeight = 35;
+            // tree.material.windStrength = 40;
             if (i === 1) {
                 tree.material.chunks.fragment.splice(4, 0, new ShaderChunk('color_variation', `
                     let worldNoise = noise2D(input.vPositionW.xz * 0.1);
@@ -128,13 +128,13 @@ class App {
                     let new_color = vec4f(mix(vec3(0.8, 0.5, 0.2), vec3(0.3, 0.5, 0.2), worldNoise), color.a);
                     color = vec4f(color.rgb * new_color.rgb, color.a);
                 `));
-                tree.material.ambientIntensity = 4.0;
+                tree.material.ambientIntensity = 8.0;
             }
             this.scene.add(tree)
         });
         
         
-        this.light = new DirectionalLight({intensity: 2.0 });
+        this.light = new DirectionalLight({intensity: 1.0 });
         this.light.name = 'MyDirectionalLight';
         this.light.rotation.x = -Math.PI / 4; 
         this.light.rotation.y = -0.3;

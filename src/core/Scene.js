@@ -17,10 +17,10 @@ class Scene extends Object3D {
         this.directionalLights = [];
         this.pointLights = [];
         this.meshes = [];
-        this.background = new Color(0.85, 0.90, 1, 1);
+        this.background = new Color(0.54, 0.54, 0.55, 1);
 
         this._needsUpdate = true;
-        this._fog = new Fog({ color: this.background, start: 50, end: 100, density: 0.01, type: Fog.LINEAR});
+        this._fog = new Fog({ color: this.background, start: 30, end: 80, density: 0.01, type: Fog.LINEAR});
         this._ambientLight = new AmbientLight({ color: '#ffffff', intensity: 0.3 });
         
         this.uniformGroup = UniformLib.scene.clone();
