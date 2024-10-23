@@ -20,8 +20,8 @@ for (var i = 0u; i < MAX_LIGHTS; i++) {
         );
 
         // Implement PCF directly in the loop
-        let pcfScale = 2.0; // Adjust for shadow softness
-        let texelSize = 0.5 / shadowMapSize;
+        let pcfScale = 0.5; // Adjust for shadow softness
+        let texelSize = 0.1 / shadowMapSize;
         var totalSamples = 0.0;
         
         for (var x = -pcfScale; x <= pcfScale; x += 1.0) {

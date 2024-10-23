@@ -68,7 +68,7 @@ class App {
         this.camera.position.y = 20;
         this.camera.position.x = -20;
         this.camera.lookAt(0, 0, 0);
-        this.camera.target.set(0, -20, 0);
+        this.camera.target.set(0, -25, 0);
         this.camera.name = 'MainCamera';
         this.scene.add(this.camera);
         
@@ -79,11 +79,11 @@ class App {
         
         const terrain = await new GLTFLoader(this.renderer).loadMesh(TerrainModel);
         terrain.isCulled = false;
-        //terrain.material.ambientIntensity = -1.5;
+        terrain.material.ambientIntensity = 2.0;
         this.scene.add(terrain);
         
         
-        const trees = await new GLTFLoader(this.renderer).load(TreeModel, 5000);
+        const trees = await new GLTFLoader(this.renderer).load(TreeModel, 4000);
         const pos = new Vector3();
         
         for (let i = 0; i < trees.instancedMeshes[0].count; i++) {
@@ -156,7 +156,7 @@ class App {
     
     
     update(dt) {
-        const cameraDistance = 30;
+        const cameraDistance = 35;
         const cameraHeight = 40;
         const cameraSpeed = 0.2;
 

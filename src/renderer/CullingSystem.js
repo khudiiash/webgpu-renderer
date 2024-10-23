@@ -9,12 +9,6 @@ class MeshVisibilityInfo {
     constructor(renderer, mesh) {
         const instanceCount = mesh.isInstancedMesh ? mesh.count : 1;
         
-        // Buffer for visibility flags
-        this.visibilityBuffer = renderer.device.createBuffer({
-            size: instanceCount * 4,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
-        });
-
         // Instance buffer for culling input
         this.cullingInstanceBuffer = renderer.device.createBuffer({
             label: 'Culling Instance Buffer',
@@ -213,10 +207,9 @@ class CullingSystem {
                 { binding: 0, resource: { buffer: this.cameraBuffer }},
                 { binding: 1, resource: { buffer: visInfo.cullingInstanceBuffer }}, // Use mesh's own culling buffer
                 { binding: 2, resource: { buffer: visInfo.boundingSphereBuffer }},
-                { binding: 3, resource: { buffer: visInfo.visibilityBuffer }},
-                { binding: 4, resource: depthTexture.createView() },
-                { binding: 5, resource: { buffer: visInfo.drawCommandBuffer }},
-                { binding: 6, resource: { buffer: visInfo.visibleInstancesBuffer }},
+                { binding: 3, resource: depthTexture.createView() },
+                { binding: 4, resource: { buffer: visInfo.drawCommandBuffer }},
+                { binding: 5, resource: { buffer: visInfo.visibleInstancesBuffer }},
             ]
         });
 

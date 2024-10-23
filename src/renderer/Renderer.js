@@ -321,6 +321,9 @@ class Renderer extends Events {
             }); 
             this.drawShadowDepth(scene, shadowPassEncoder, scene.directionalLights);
             this.shadowBundle = shadowPassEncoder.finish();
+            if (this.frames > 5) {
+                this.shadowNeedsUpdate = false; 
+            }
         }
         shadowDepthPass.end();
 

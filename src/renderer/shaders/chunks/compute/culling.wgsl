@@ -27,10 +27,9 @@ struct VisibleInstance {
 @group(0) @binding(0) var<uniform> camera: Camera;
 @group(0) @binding(1) var<storage, read> instances: array<Instance>;
 @group(0) @binding(2) var<storage, read> boundingSpheres: array<BoundingSphere>;
-@group(0) @binding(3) var<storage, read_write> visibilityBuffer: array<atomic<u32>>;
-@group(0) @binding(4) var depthTexture: texture_depth_2d;
-@group(0) @binding(5) var<storage, read_write> drawCommands: array<DrawCommand>;
-@group(0) @binding(6) var<storage, read_write> visibleInstances: array<mat4x4f>;
+@group(0) @binding(3) var depthTexture: texture_depth_2d;
+@group(0) @binding(4) var<storage, read_write> drawCommands: array<DrawCommand>;
+@group(0) @binding(5) var<storage, read_write> visibleInstances: array<mat4x4f>;
 
 fn checkFrustum(worldPos: vec3f, radius: f32, frustumPlanes: array<vec4f, 6>) -> bool {
   for (var i = 0u; i < 6u; i++) {
@@ -99,8 +98,5 @@ fn main(@builtin(global_invocation_id) global_id: vec3u) {
     if (isVisible) {
         let visibleIndex = atomicAdd(&drawCommands[0].instanceCount, 1u);
         visibleInstances[visibleIndex] = instance.modelMatrix;
-        atomicStore(&visibilityBuffer[index], 1u);
-    } else {
-        atomicStore(&visibilityBuffer[index], 0u);
-    }
+    } 
 }

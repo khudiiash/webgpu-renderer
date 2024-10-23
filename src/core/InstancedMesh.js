@@ -104,13 +104,13 @@ class InstancedMesh extends Mesh {
     setScaleAt(scale, index) {
         this.getMatrixAt(_mat, index);
         _mat.scale(scale);
+        this.boundingSpheres[index * 4 + 3] = this.geometry.boundingSphere.radius * scale * 1.7;
         this.setMatrixAt(_mat, index);
     }
     
     setMatrixAt( matrix, index ) {
 		matrix.toArray( this.instanceMatrix, index * 16 );
         this.geometry.computeBoundingBox();
-        this.boundingSpheres.set(this.geometry.boundingSphere.data, index * 4);
         this.write(matrix.data, 'instances', index * 16 * 4);
 	}
     
