@@ -8,9 +8,5 @@ struct FragmentInput {
 
 @fragment
 fn main(input: FragmentInput) -> @location(0) f32 {
-    let color = textureSample(diffuseMap, sampler2D, input.vUv);
-    if (color.a < 0.01) {
-        discard;
-    }
     return input.position.z / input.position.w;
 }

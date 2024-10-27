@@ -170,7 +170,6 @@ class ShaderLib {
                 var color = material.color;
                 ${fragmentChunks}
                 output.color = color;
-                //output.color = vec4f(vec3f(material.alpha), 1.0);
                 return output;
             }
         `;

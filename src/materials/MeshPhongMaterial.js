@@ -7,6 +7,7 @@ import { SamplerAttachment } from '../renderer/shaders/SamplerAttachment.js';
 import { UniformGroup } from '../renderer/shaders/UniformGroup.js';
 import { Uniform } from '../renderer/shaders/Uniform.js';
 import { Vector3 } from '../math/Vector3.js';
+import { Vector2 } from '../math/Vector2.js';
 import { Utils } from '../renderer/utils/Utils.js';
 import { TYPE_BYTE_SIZE, TYPE_COUNT, USE } from '../renderer/constants';
 
@@ -29,8 +30,16 @@ class MeshPhongMaterial extends Material {
       useLighting: 'f32',
       useWind: 'f32',
       windStrength: 'f32',
+
       windSpeed: 'f32',
       windHeight: 'f32',
+      alphaTest: 'f32',
+
+      diffuseMapScale: 'vec2f',
+      normalMapScale: 'vec2f',
+      diffuseMapOffset: 'vec2f',
+      normalMapOffset: 'vec2f',
+
    }
    constructor(params = {}) {
       super(params);
@@ -40,6 +49,7 @@ class MeshPhongMaterial extends Material {
       this._diffuseMap = params.diffuseMap;
       this._normalMap = params.normalMap;
       this._emissionMap = params.emissionMap;
+      this._heightMap = params.heightMap;
 
       this._color = params.color instanceof Color ? params.color : new Color(params.color || 0xffffff);
       this._specularColor = params.specularColor instanceof Color ? params.specularColor : new Color(params.specularColor || 0xffffff);
@@ -51,12 +61,17 @@ class MeshPhongMaterial extends Material {
       this._useLighting = params.useLighting !== undefined ? Number(params.useLighting) : 1;
       this._useWind = params.useWind || 0;
       this._ambientIntensity = params.ambientIntensity || 1;
-      console.log(this._ambientIntensity)
       this._alpha = params.alpha || 1;
       this._windStrength = params.windStrength || 15;
       this._windDirection = params.windDirection || new Vector3(1, 0, 0, 0);
       this._windSpeed = params.windSpeed || 0.5;
       this._windHeight = params.windHeight || 20;
+      this._alphaTest = params.alphaTest || 0.5;
+
+      this._diffuseMapScale = params.diffuseMapScale || new Vector2(1, 1);
+      this._normalMapScale = params.normalMapScale || new Vector2(1, 1);
+      this._diffuseMapOffset = params.diffuseMapOffset || new Vector2(0, 0);
+      this._normalMapOffset = params.normalMapOffset || new Vector2(0, 0);
 
       this._color.onChange(() => {
          this._data.set(this._color.data, 0);
@@ -110,6 +125,7 @@ class MeshPhongMaterial extends Material {
             ShaderChunks.vertex.fog,
          ],
          fragment: [
+            ShaderChunks.fragment.normal_map,
             ShaderChunks.fragment.diffuse_map,
             ShaderChunks.fragment.shadowmap,
             ShaderChunks.fragment.light_phong,
@@ -148,10 +164,26 @@ class MeshPhongMaterial extends Material {
          this._windStrength,
          this._windSpeed,
          this._windHeight,
+         this._alphaTest,
+
+         this._diffuseMapScale.x, this._diffuseMapScale.y,
+         this._normalMapScale.x, this._normalMapScale.y,
+         this._diffuseMapOffset.x, this._diffuseMapOffset.y,
+         this._normalMapOffset.x, this._normalMapOffset.y,
       ]);
       
       this.write(this._data);
    } 
+   
+   get alphaTest() {
+      return this._alphaTest;
+   }
+
+   set alphaTest(value) {
+      this._alphaTest = value;
+      this._data[this.offsets.alphaTest] = value;
+      this.write([value], this.byteOffsets.alphaTest);
+   }
    
    set windDirection(value) {
       this._windDirection = value;
@@ -280,9 +312,9 @@ class MeshPhongMaterial extends Material {
    }
    
    set useWind(value) {
-      this._useWind = value;
-      this._data[this.offsets.useWind] = value ? 1 : 0;
-      this.write([value], this.byteOffsets.useWind);
+      this._useWind = value ? 1 : 0;
+      this._data[this.offsets.useWind] = this._useWind;
+      this.write([this._useWind], this.byteOffsets.useWind);
    }
    
    get data() {

@@ -86,6 +86,7 @@ class Renderer extends Events {
                 this.broadcast('resize', { width: this.width, height: this.height, aspect: this.aspect });
             }
             this.textures.createDepthTexture();
+            this.cullingSystem.updateDepthTexture(this.textures.getView('depth')); 
             this.createRenderPassDescriptor();
         });
         
@@ -168,14 +169,6 @@ class Renderer extends Events {
         this.canvas.height = height;
     }
     
-    
-    createRenderPipelineLayout(bindGroupLayout) {
-        return this.device.createPipelineLayout({
-            bindGroupLayouts: [bindGroupLayout]
-        });
-    }
-       
-
     createRenderObject(mesh) {
         const renderObject = new RenderObject(mesh);
         const renderBindGroupLayout = this.bindGroups.createRenderBindGroupLayout(renderObject);
@@ -223,11 +216,11 @@ class Renderer extends Events {
             this.count += instanceCount;
 
             if (object.geometry.isIndexed) {
-                object.isCulled ? 
+                object.isCulled && object.visibilityInfo ? 
                     pass.drawIndexedIndirect(object.visibilityInfo.drawCommandBuffer, 0) :
                     pass.drawIndexed(object.geometry.indices.length, instanceCount);
             } else {
-                object.isCulled ? 
+                object.isCulled && object.visibilityInfo ? 
                     pass.drawIndirect(object.drawCommandBuffer, 0) :
                     pass.draw(object.geometry.positions.length / 3, instanceCount);
             }
@@ -258,11 +251,11 @@ class Renderer extends Events {
                 pass.setIndexBuffer(renderObject.buffers.index, object.geometry.indexFormat);
 
                 if (object.geometry.isIndexed) {
-                    object.isCulled ? 
+                    object.isCulled && object.visibilityInfo ? 
                         pass.drawIndexedIndirect(object.visibilityInfo.drawCommandBuffer, 0) :
                         pass.drawIndexed(object.geometry.indices.length, object.count);
                 } else {
-                    object.isCulled ?
+                    object.isCulled && object.visibilityInfo ?
                         pass.drawIndirect(object.visibilityInfo.drawCommandBuffer, 0) :
                         pass.draw(object.geometry.positions.length / 3, object.count);
                 }
@@ -294,9 +287,8 @@ class Renderer extends Events {
         this.buffers.write('time', new Float32Array([this.elapsed]));
 
         const encoder = this.device.createCommandEncoder();
-        
-        this.cullingSystem.compute(scene, camera, encoder, this.textures.getTexture('depth'));
-
+        this.cullingSystem.prepare(scene, this.textures.getView('depth'));
+        this.cullingSystem.compute(scene, camera, encoder);
         
         this.renderPassDescriptor.colorAttachments[0].view = this.context
             .getCurrentTexture()
@@ -312,19 +304,17 @@ class Renderer extends Events {
                 depthStoreOp: 'store',
             }
         });
-        if (this.shadowBundle) {
-            shadowDepthPass.executeBundles([this.shadowBundle]);
-        } else {
-            const shadowPassEncoder = this.device.createRenderBundleEncoder({
-                colorFormats: [],
-                depthStencilFormat: 'depth32float',
-            }); 
-            this.drawShadowDepth(scene, shadowPassEncoder, scene.directionalLights);
-            this.shadowBundle = shadowPassEncoder.finish();
-            if (this.frames > 5) {
-                this.shadowNeedsUpdate = false; 
-            }
-        }
+
+        // if (this.shadowBundle) {
+        //     shadowDepthPass.executeBundles([this.shadowBundle]);
+        // } else {
+            // const shadowPassEncoder = this.device.createRenderBundleEncoder({
+            //     colorFormats: [],
+            //     depthStencilFormat: 'depth32float',
+            // }); 
+            this.drawShadowDepth(scene, shadowDepthPass, scene.directionalLights);
+            //this.shadowBundle = shadowPassEncoder.finish();
+        //}
         shadowDepthPass.end();
 
         this.count = 0;
@@ -332,6 +322,7 @@ class Renderer extends Events {
         this.drawObject(scene, camera, renderPass, encoder);
 
         renderPass.end();
+
 
         this.device.queue.submit([encoder.finish()]);
         this.frames++;

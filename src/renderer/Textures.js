@@ -28,7 +28,7 @@ class Textures {
             { width: 1, height: 1 },
         );
         this._textures.default = texture;
-        this._views.default = texture.createView();
+        this._views.default = texture.createView({ label: 'Default Texture' });
     }
     
     writeDepthToTexture(depthBuffer) {
@@ -82,7 +82,7 @@ class Textures {
     
     createShadowDepthTexture() {
         const texture = this.device.createTexture({
-            size: [1024, 1024].map(i => i * 2),
+            size: [1024, 1024].map(i => i * 8),
             format: 'depth32float',
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
         });
@@ -96,13 +96,14 @@ class Textures {
             this._textures.depth.destroy();
         }
         const texture = this.device.createTexture({
-            size: [this.renderer.width, this.renderer.height],
+            label: 'Depth Texture',
+            size: [this.renderer.width, this.renderer.height, 1],
             format: 'depth32float',
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
         });
         
         this._textures.depth = texture;
-        this._views.depth = texture.createView();
+        this._views.depth = texture.createView({ label: 'Depth Texture' });
     }
     
     add(name, texture) {

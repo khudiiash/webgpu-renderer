@@ -123,7 +123,7 @@ class TextureLoader {
         return await createImageBitmap(blob, { colorSpaceConversion: 'none' });
     }
     
-    async load(url) {
+    async load(url, options = { rotateY: false }) {
         const source = await this.getBitmap(url);
         return this.createTexture(source, { mips: true, url });
     }

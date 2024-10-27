@@ -25,7 +25,6 @@ class InstancedMesh extends Mesh {
         this.type = 'instanced_mesh';
         this.instanceMatrix = new Float32Array(count * 16);
         this.count = count;
-        this.boundingSpheres = new Float32Array(count * 4);
         this.needsUpdate = true;
         material.uniforms[0].uniforms[0].storage('mat4x4f', count);
         material.uniforms[0].calculateGroupByteSize();
@@ -86,6 +85,26 @@ class InstancedMesh extends Mesh {
          this.write(this.instanceMatrix, 'instances');
     }
     
+    setAllScalesArray(scales) {
+        for (let i = 0; i < this.count; i++) {
+            this.getMatrixAt(_mat, i);
+            _mat.scale(scales[i]);
+            _mat.toArray( this.instanceMatrix, i * 16 );
+        }
+        this.write(this.instanceMatrix, 'instances');
+    }
+    
+    setAllRotationsArray(rotations) {
+        for (let i = 0; i < this.count; i++) {
+            this.getMatrixAt(_mat, i);
+            _quat.set(rotations[i * 4], rotations[i * 4 + 1], rotations[i * 4 + 2], rotations[i * 4 + 3]);
+            _rotMat.setFromQuaternion(_quat);
+            _mat.compose(_mat.getPosition(), _quat, _mat.getScale());
+            _mat.toArray( this.instanceMatrix, i * 16 );
+        }
+        this.write(this.instanceMatrix, 'instances');
+    }
+    
 
     setAllDirectionsArray(directions) {
         for (let i = 0; i < this.count; i++) {
@@ -104,7 +123,6 @@ class InstancedMesh extends Mesh {
     setScaleAt(scale, index) {
         this.getMatrixAt(_mat, index);
         _mat.scale(scale);
-        this.boundingSpheres[index * 4 + 3] = this.geometry.boundingSphere.radius * scale * 1.7;
         this.setMatrixAt(_mat, index);
     }
     

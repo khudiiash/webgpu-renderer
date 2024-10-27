@@ -34,11 +34,11 @@ class Material extends Events {
             srcFactor: 'src-alpha',
             dstFactor: 'one-minus-src-alpha',
           },
-            alpha: {
-                operation: 'add',
-                srcFactor: 'src-alpha',
-                dstFactor: 'one-minus-src-alpha',
-            },
+          alpha: {
+              operation: 'add',
+              srcFactor: 'src-alpha',
+              dstFactor: 'one-minus-src-alpha',
+          },
         },
         DEST_OVER: {
           color: {
@@ -143,7 +143,7 @@ class Material extends Events {
         this.isMaterial = true;
         this.type = 'Material';
         this.cullMode = 'back';
-        this.blending = Material.BLEND.DEFAULT;
+        this.blending = params.alpha < 1 ? Material.BLEND.PREMULTIPLIED : Material.BLEND.DEFAULT;
     }
     
     get diffuseMap() {

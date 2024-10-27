@@ -1,5 +1,6 @@
 import { ShaderLib } from './shaders/ShaderLib.js';
 import { ShaderChunks } from './shaders/ShaderChunks.js';
+import { Material } from '../materials/Material.js';
 
 class Pipelines {
     constructor(device, renderer) {
@@ -66,12 +67,12 @@ class Pipelines {
                 module: this.device.createShaderModule({ label: `${renderObject.name} Fragment Module`, code: fragmentShader }),
                 targets: [ { 
                     format: this.renderer.context.getCurrentTexture().format,
-                    blend: material.blending,
+                    blend: Material.BLEND.SOURCE_ATOP
                 } ]
             },
             primitive: {
                 topology: 'triangle-list',
-                cullMode: renderObject.mesh.material.cullMode,
+                cullMode: material.cullMode,
             },
             depthStencil: {
                 depthWriteEnabled: true,

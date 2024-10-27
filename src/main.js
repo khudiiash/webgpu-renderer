@@ -3,6 +3,7 @@ import { Renderer } from "./renderer/Renderer";
 import { PerspectiveCamera } from "./cameras/PerspectiveCamera";
 import { Scene } from "./core/Scene";
 import { PlaneGeometry } from "./geometry/PlaneGeometry";
+import { SphereGeometry } from "./geometry/SphereGeometry";
 import { Mesh } from "./core/Mesh";
 import { MeshPhongMaterial } from "./materials/MeshPhongMaterial";
 import { DirectionalLight } from "./lights/DirectionalLight";
@@ -17,10 +18,20 @@ import { Boids } from "./extra/Boids";
 import { BoundingBox } from "./math/BoundingBox";
 import { AnimationMixer } from "./animation/AnimationMixer";
 import { SkinnedMesh } from "./animation/SkinnedMesh";
+import { GrassGeometry } from "./geometry/GrassGeometry";
+import MountainsModel from "../assets/mountains.glb";
 
 import TerrainModel from "../assets/terrain_2.glb";
-import TreeModel from "../assets/tree_3.glb";
-import { ShaderChunk } from "./renderer/shaders/ShaderChunks";
+import TreeModel from "../assets/tree.gltf";
+import PineModel from "../assets/pine.glb";
+import GrassModel from "../assets/grass.glb";
+import CastleModel from "../assets/castle_09.glb";
+import { FragmentChunk, ShaderChunk } from "./renderer/shaders/ShaderChunks";
+import { BoxGeometry } from "./geometry/BoxGeometry";
+import { TextureLoader } from "./loaders/TextureLoader";
+import { Material } from "./materials/Material";
+import { FirstPersonControls } from "./cameras/FirstPersonControls";
+import { Quaternion } from "./math/Quaternion";
 
 const _vec = new Vector3();
 
@@ -28,6 +39,39 @@ class App {
     constructor() {
         
     } 
+    
+    createPatchesOfGrass(center, grassCount, areaToCover, terrain) {
+        const grass = new InstancedMesh(new GrassGeometry(4, 0.2, 1), new MeshPhongMaterial({color: '#9DA326'}), grassCount);
+        const quat = new Quaternion();
+        const positions = [];
+        const rotations = [];
+        const scales = [];
+        for (let i = 0; i < grassCount; i++) {
+            const x = randomFloat(center.x - areaToCover, center.x + areaToCover);
+            const z = randomFloat(center.z - areaToCover, center.z + areaToCover);
+            const y = terrain.getHeightAt(x, z);
+            positions.push(x, y, z);
+            quat.setFromEulerAngles(randomFloat(-0.3, 0.3), randomFloat(-Math.PI, Math.PI), randomFloat(-0.3, -0.5));
+            rotations.push(quat.x, quat.y, quat.z, quat.w);
+            scales.push(randomFloat(0.1, 2.5));
+        }
+        grass.material.useWind = true;
+        grass.material.windHeight = 2.5;
+        grass.material.windStrength = 50;
+        grass.material.ambientIntensity = 1.0;
+        
+        grass.setAllPositionsArray(positions);
+        grass.setAllRotationsArray(rotations);
+        grass.setAllScalesArray(scales);
+        
+        grass.material.chunks.fragment.push(new FragmentChunk('fragment_diffuse_map', `
+            let noise = noise2D(input.vPositionW.xz * 0.02) * 0.3 + 1.0;
+            let y = 1.0;
+            color = vec4f(color.r * noise * y, color.g * noise * y, color.b * y * noise, 1.0);
+        `));
+        return grass;
+        
+    }
     
     async init() {
         const canvas = document.getElementById('canvas');
@@ -38,8 +82,8 @@ class App {
         this.renderer = new Renderer(canvas);
         await this.renderer.init();
         this.scene = new Scene();
-
-        this.camera = new PerspectiveCamera(50, this.renderer.aspect, 1, 80);
+        
+        this.camera = new PerspectiveCamera(50, this.renderer.aspect, 0.1, 600);
         this.camera.position.z = -20;
         this.camera.position.y = 20;
         this.camera.position.x = -20;
@@ -48,74 +92,58 @@ class App {
         this.camera.name = 'MainCamera';
         this.scene.add(this.camera);
         
-
-        const floor = new Mesh(new PlaneGeometry(80, 80), new MeshPhongMaterial({color: '#ffffff' }));
-        floor.rotation.x = Math.PI / 2;
-        //this.scene.add(floor);
-        
         const terrain = await new GLTFLoader(this.renderer).loadMesh(TerrainModel);
-        terrain.isCulled = false;
-        terrain.material.ambientIntensity = 2.0;
+        terrain.material.diffuseMap = this.renderer.textures.getTexture('default');
+        terrain.setScale(4);
+        this.terrain = terrain;
         this.scene.add(terrain);
+        terrain.initializeSpatialGrid(64);
+        terrain.isCulled = false;
         
-        
-        const trees = await new GLTFLoader(this.renderer).load(TreeModel, 4000);
-        const pos = new Vector3();
-        
+        // const floor = new Mesh(new PlaneGeometry(200, 200), new MeshPhongMaterial({color: '#111111' }));
+        // floor.rotation.x = Math.PI / 2;
+        // this.scene.add(floor);
+        const trees = await new GLTFLoader(this.renderer).load(TreeModel, 50);
+        const positions = [];
+        const rotations = [];
+        const scales = [];
+        const quat = new Quaternion();
         for (let i = 0; i < trees.instancedMeshes[0].count; i++) {
-            pos.set(randomFloat(-100, 100), 0, randomFloat(-100, 100));
-            pos.y = terrain.getHeightAt(pos.x, pos.z);
-            let scale = randomFloat(0.1, 0.3);
-            let rotation = randomFloat(0, Math.PI * 2);
-
-            for (let j = 0; j < trees.instancedMeshes.length; j++) {
-                if (pos.y > 15) {
-                    scale = 0;  
-                }
-                trees.instancedMeshes[j].setPositionAt(pos, i);
-                trees.instancedMeshes[j].setScaleAt(scale, i);
-                trees.instancedMeshes[j].rotateYAt(rotation, i);
-            }
+            const x = randomFloat(-400, 400);
+            const z = randomFloat(-400, 400);
+            const y = terrain.getHeightAt(x, z);
+            positions.push(x, y, z);
+            scales.push(randomFloat(2, 3));
+            quat.setFromEulerAngles(0, randomFloat(0, Math.PI * 2), 0);
+            rotations.push(quat.x, quat.y, quat.z, quat.w);
         }
+        trees.instancedMeshes.forEach(instancedMesh => {
+            instancedMesh.material.alphaTest = 0.2;
+            instancedMesh.material.ambientIntensity = 2.0;
+            instancedMesh.setAllPositionsArray(positions);
+            instancedMesh.setAllScalesArray(scales);
+            instancedMesh.setAllRotationsArray(rotations);
+            this.scene.add(instancedMesh);
+        })
         
-        // const clouds = await new GLTFLoader(this.renderer).loadMesh(CloudModel, 100);
-        // clouds.material.ambientIntensity = 20.0;
-        // clouds.isCulled = false;
-
-        // for (let i = 0; i < clouds.count; i++) {
-        //     pos.set(randomFloat(-100, 100), randomFloat(30, 50), randomFloat(-100, 100));
-        //     clouds.setPositionAt(pos, i);
-        //     clouds.setScaleAt(randomFloat(3, 5), i); 
-        //     clouds.rotateYAt(randomFloat(0, Math.PI * 2), i);
-        //     clouds.rotateXAt(randomFloat(0, Math.PI * 2), i);
-
-        // }
-        
-        // this.scene.add(clouds);
-
-        trees.instancedMeshes.forEach((tree, i) => {
-            // tree.material.useWind = true;
-            // tree.material.windHeight = 35;
-            // tree.material.windStrength = 40;
-            if (i === 1) {
-                tree.material.chunks.fragment.splice(4, 0, new ShaderChunk('color_variation', `
-                    let worldNoise = noise2D(input.vPositionW.xz * 0.1);
-                    // slightly vary between yellow and green based on noise
-                    let new_color = vec4f(mix(vec3(0.8, 0.5, 0.2), vec3(0.3, 0.5, 0.2), worldNoise), color.a);
-                    color = vec4f(color.rgb * new_color.rgb, color.a);
-                `));
-                tree.material.ambientIntensity = 8.0;
+        const patchSize = 400;
+        const area = 800;
+        for (let x = -area / 2; x < area / 2; x += patchSize) {
+            for (let z = -area / 2; z < area / 2; z += patchSize) {
+                this.scene.add(this.createPatchesOfGrass({x: x + patchSize * 0.5, z: z + patchSize * 0.5 }, 1_000_000, patchSize / 2, terrain));
             }
-            this.scene.add(tree)
-        });
+             
+        }
         
         
         this.light = new DirectionalLight({intensity: 1.0 });
         this.light.name = 'MyDirectionalLight';
-        this.light.rotation.x = -Math.PI / 4; 
+        this.light.rotation.x = -Math.PI / 3; 
         this.light.rotation.y = -0.3;
         this.scene.add(this.light);
+
         //this.controls = new OrbitControls(this.camera, canvas);
+        this.controls = new FirstPersonControls(this.camera, canvas);
         
         requestAnimationFrame(() => this.loop());
         
@@ -132,16 +160,9 @@ class App {
     
     
     update(dt) {
-        const cameraDistance = 35;
-        const cameraHeight = 40;
-        const cameraSpeed = 0.2;
-
-        const cameraX = -(Math.sin(this.elapsed * cameraSpeed) + 2) * cameraDistance;
-        const cameraZ = (Math.cos(this.elapsed * cameraSpeed) + 2) * cameraDistance;
-        const cameraY = (Math.sin(this.elapsed * cameraSpeed) + 2) * 5 + cameraHeight;
-        this.camera.setPosition(Math.cos(this.elapsed * cameraSpeed) * cameraDistance, cameraHeight, Math.sin(this.elapsed * cameraSpeed) * cameraDistance);
         this.stats.update(); 
-        //this.controls?.update(dt);
+        this.controls?.update(dt);
+        this.camera.setPosition(this.camera.position.x, this.terrain.getHeightAt(this.camera.position.x, this.camera.position.z) + 10, this.camera.position.z);
         this.renderer.render(this.scene, this.camera);
     }
 }

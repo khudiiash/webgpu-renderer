@@ -17,6 +17,8 @@ import fragment_light_phong from './chunks/fragment/fragment_light_phong.wgsl?ra
 import fragment_shadowmap from './chunks/fragment/fragment_shadowmap.wgsl?raw';
 import fragment_emission from './chunks/fragment/fragment_emission.wgsl?raw';
 import fragment_shadow_depth from './chunks/fragment/fragment_shadow_depth.wgsl?raw';
+import fragment_normal_map from './chunks/fragment/fragment_normal_map.wgsl?raw';
+import fragment_height_map from './chunks/fragment/fragment_height_map.wgsl?raw';
 
 import culling from './chunks/compute/culling.wgsl?raw';
 
@@ -101,6 +103,8 @@ class ShaderChunks {
         fog: new FragmentChunk('fragment_fog', fragment_fog).setUse(USE.RENDER),
         light_phong: new FragmentChunk('fragment_light_phong', fragment_light_phong).setUse(USE.RENDER),
         shadowmap: new FragmentChunk('fragment_shadowmap', fragment_shadowmap).setUse(USE.RENDER),
+        normal_map: new FragmentChunk('fragment_normal_map', fragment_normal_map).setUse(USE.RENDER),
+        height_map: new FragmentChunk('fragment_height_map', fragment_height_map).setUse(USE.RENDER),
     }
     
     static compute = {

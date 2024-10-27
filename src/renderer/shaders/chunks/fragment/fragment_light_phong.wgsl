@@ -6,13 +6,7 @@ var finalColor = color.rgb * scene.ambientLight.color.rgb * scene.ambientLight.i
 
 for (var i = 0u; i < DIR_NUM; i = i + 1u) {
     let light = scene.directionalLights[i];
-    let isFrontFace = dot(input.vNormalW, camera.direction) > 0.0;
     var lightDirection = light.direction;
-    var normal = input.vNormalW;
-    if (!isFrontFace) {
-        normal = -normal;
-    }
-
     let lightDot = dot(normal, lightDirection);
     let lightColor = vec3f(light.color.rgb * light.intensity);
     let diffuseFactor = max(lightDot, 0.0);
@@ -35,4 +29,4 @@ for (var i = 0u; i < DIR_NUM; i = i + 1u) {
 // Ensure the final color doesn't exceed (1, 1, 1)
 finalColor = min(finalColor, vec3f(1.0));
 
-color = vec4f(finalColor, color.a * material.alpha);
+color = vec4f(finalColor, material.alpha);

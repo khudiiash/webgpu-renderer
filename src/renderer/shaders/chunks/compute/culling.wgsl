@@ -1,3 +1,48 @@
+fn getDepthOffset(worldPos: vec3f) -> f32 {
+    let h = dot(worldPos, vec3f(0.8191725, 0.6710726, 0.9497474));
+    return fract(h * 1677.0) * 0.0001;
+}
+
+fn getScaleFromMatrix(matrix: mat4x4f) -> vec3f {
+    // Each column vector's length represents the scale in that axis
+    let scaleX = length(matrix[0].xyz);
+    let scaleY = length(matrix[1].xyz);
+    let scaleZ = length(matrix[2].xyz);
+    
+    return vec3f(scaleX, scaleY, scaleZ);
+}
+
+fn isOccluded(worldPos: vec3f, radius: f32, viewProj: mat4x4f) -> bool {
+    let projected = viewProj * vec4f(worldPos, 1.0);
+    
+    // Early out if behind camera
+    if (projected.w <= 0.0) {
+        return true;
+    }
+    
+    let ndc = projected.xyz / projected.w;
+    
+    // Convert NDC depth to 0-1 range
+    let depthNorm = (ndc.z + 1.0) * 0.5 + getDepthOffset(worldPos);
+    
+    // Apply radius in view space (before projection)
+    // This is a simplified approach - ideally radius should be projected properly
+    let radiusInDepth = radius / projected.w;
+    let depth = depthNorm - radiusInDepth;
+    
+    // Convert to UV space (handle Y-flip if needed based on API)
+    let uv = vec2f(ndc.x * 0.5 + 0.5, ndc.y * -0.5 + 0.5); // Flip Y for Vulkan
+    let uvSize = vec2f(textureDimensions(depthTexture));
+    let pixelCoord = vec2u(uv * uvSize);
+    
+    // Sample depth
+    let storedDepth = textureLoad(depthTexture, pixelCoord, 0);
+    
+    // Compare with bias to avoid z-fighting
+    let bias = 0.0001;
+    return depth > (storedDepth + bias);
+}
+
 struct Camera {
   viewProjection: mat4x4f,
   frustumPlanes: array<vec4f, 6>,
@@ -25,13 +70,13 @@ struct VisibleInstance {
 }
 
 @group(0) @binding(0) var<uniform> camera: Camera;
-@group(0) @binding(1) var<storage, read> instances: array<Instance>;
-@group(0) @binding(2) var<storage, read> boundingSpheres: array<BoundingSphere>;
+@group(0) @binding(1) var<uniform> boundingSphere: BoundingSphere;
+@group(0) @binding(2) var<storage, read> instances: array<Instance>;
 @group(0) @binding(3) var depthTexture: texture_depth_2d;
 @group(0) @binding(4) var<storage, read_write> drawCommands: array<DrawCommand>;
 @group(0) @binding(5) var<storage, read_write> visibleInstances: array<mat4x4f>;
 
-fn checkFrustum(worldPos: vec3f, radius: f32, frustumPlanes: array<vec4f, 6>) -> bool {
+fn inFrustum(worldPos: vec3f, radius: f32, frustumPlanes: array<vec4f, 6>) -> bool {
   for (var i = 0u; i < 6u; i++) {
     let plane = frustumPlanes[i];
     let distance = dot(vec4f(worldPos, 1.0), plane);
@@ -42,36 +87,7 @@ fn checkFrustum(worldPos: vec3f, radius: f32, frustumPlanes: array<vec4f, 6>) ->
   return true;
 }
 
-fn checkOcclusion(worldPos: vec3f, radius: f32, viewProj: mat4x4f) -> bool {
-  let projected = viewProj * vec4f(worldPos, 1.0);
-  if (projected.w <= 0.0) {
-    return false;
-  }
-  
-  let ndc = projected.xyz / projected.w;
-  
-  // Check if sphere is behind near plane or beyond far plane
-  if (ndc.z >= 1.0 || ndc.z <= -1.0) {
-    return false;
-  }
-  
-  // Check if sphere is outside screen bounds (with radius)
-  let radiusInNDC = (radius * 2.0) / projected.w;
-  if (abs(ndc.x) > 1.0 + radiusInNDC || abs(ndc.y) > 1.0 + radiusInNDC) {
-    return false;
-  }
-  
-  // Convert to UV space
-  let uv = ndc.xy * vec2f(0.5, 0.5) + vec2f(0.5, 0.5);
-  let uvSize = vec2f(textureDimensions(depthTexture));
-  let pixelCoord = vec2u(uv * uvSize);
-  
-  // Sample depth with some offset points around center for more robust testing
-  let depth = textureLoad(depthTexture, pixelCoord, 0);
-  
-  // Compare with some bias to avoid z-fighting
-  return (ndc.z + radius / projected.w) > depth;
-}
+
 
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) global_id: vec3u) {
@@ -81,18 +97,29 @@ fn main(@builtin(global_invocation_id) global_id: vec3u) {
     }
 
     let instance = instances[index];
-    let sphere = boundingSpheres[index];
+    let sphere = boundingSphere;
+    let scale = getScaleFromMatrix(instance.modelMatrix);
+    let radius = sphere.radius * max(max(scale.x, scale.y), scale.z);
     let worldCenter = (instance.modelMatrix * vec4f(sphere.center, 1.0)).xyz;
-    
+    let cameraPos = camera.position;
+    var isInsideSphere = distance(worldCenter, cameraPos) < radius * scale.x;
     var isVisible = true;
-    
-    if (!checkFrustum(worldCenter, sphere.radius, camera.frustumPlanes)) {
+
+    var isFar = distance(worldCenter, cameraPos) > 200.0;
+    if (isFar && radius < 10.0) {
         isVisible = false;
     }
     
-    if (isVisible && !checkOcclusion(worldCenter, sphere.radius, camera.viewProjection)) {
-        isVisible = false;
+    if (!isInsideSphere) {
+        if (!inFrustum(worldCenter, radius, camera.frustumPlanes)) {
+            isVisible = false;
+        }
+        
+        if (isVisible && isOccluded(worldCenter, radius, camera.viewProjection)) {
+            isVisible = false;
+        }
     }
+
 
     // If visible, append to visible instances array and increment count
     if (isVisible) {

@@ -136,6 +136,15 @@ fn circularOut(t: f32) -> f32 {
 fn random(vec2f: vec2<f32>) -> f32 {
     return fract(sin(dot(vec2f, vec2<f32>(12.9898, 78.233)) * 43758.5453));
 }
+fn getScaleFromMatrix(matrix: mat4x4f) -> vec3f {
+    // Each column vector's length represents the scale in that axis
+    let scaleX = length(matrix[0].xyz);
+    let scaleY = length(matrix[1].xyz);
+    let scaleZ = length(matrix[2].xyz);
+    
+    return vec3f(scaleX, scaleY, scaleZ);
+}
+
 const MAX_LIGHTS = 4;
 const MAX_SAMPLES = 32; 
 

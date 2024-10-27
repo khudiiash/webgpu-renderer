@@ -113,29 +113,28 @@ class Geometry {
         }
     
         const position = this.attributes.position;
+        const positions = position.array;
     
         if (!position) {
             console.error('Geometry has no position attribute.');
             return this;
         }
-    
-        const positions = position.array;
+        
         const center = [0, 0, 0];
         const vertexCount = positions.length / 3;
-    
-        // Calculate the center of the bounding sphere
-        for (let i = 0; i < vertexCount; i++) {
-            center[0] += positions[i * 3];
-            center[1] += positions[i * 3 + 1];
-            center[2] += positions[i * 3 + 2];
+
+        for (let i = 0; i < positions.length; i += 3) {
+            center[0] += position.array[i];
+            center[1] += position.array[i + 1];
+            center[2] += position.array[i + 2];
         }
-    
+        
         center[0] /= vertexCount;
         center[1] /= vertexCount;
         center[2] /= vertexCount;
-    
-        // Calculate the radius of the bounding sphere
+
         let maxRadiusSq = 0;
+
         for (let i = 0; i < vertexCount; i++) {
             const dx = positions[i * 3] - center[0];
             const dy = positions[i * 3 + 1] - center[1];
@@ -148,7 +147,6 @@ class Geometry {
     
         this.boundingSphere.center.set(center[0], center[1], center[2]);
         this.boundingSphere.radius = Math.sqrt(maxRadiusSq);
-    
         return this;
         
     }

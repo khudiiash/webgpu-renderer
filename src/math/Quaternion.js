@@ -102,8 +102,13 @@ class Quaternion {
     setFromEuler(euler, update) {
         quat.fromEuler(euler.x, euler.y, euler.z, euler.order, this.data);
         if (update) this._onChangeCallback();
-        
         return this; 
+    }
+    
+    setFromEulerAngles(x, y, z, order = 'xyz') {
+        quat.fromEuler(x, y, z, order, this.data);
+        this._onChangeCallback();
+        return this;
     }
     
     multiply(q1, q2) {

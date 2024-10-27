@@ -6,7 +6,7 @@ const _mat = new Matrix4();
 const _vec3 = new Vector3();
 
 class MeshVisibilityInfo {
-    constructor(renderer, mesh) {
+    constructor(renderer, mesh, cullingPipeline, depthTexture, cameraBuffer) {
         const instanceCount = mesh.isInstancedMesh ? mesh.count : 1;
         
         // Instance buffer for culling input
@@ -15,6 +15,7 @@ class MeshVisibilityInfo {
             size: instanceCount * 64, // mat4x4
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         });
+        
 
         // Use the mesh's instance buffer directly for render output
         this.visibleInstancesBuffer = renderer.buffers.getInstanceBuffer(mesh);
@@ -29,23 +30,40 @@ class MeshVisibilityInfo {
         
         this.boundingSphereBuffer = renderer.device.createBuffer({
             label: 'Bounding Sphere Buffer',
-            size: instanceCount * 4 * 4,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+            size: 4 * 4,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         });
-
+        
         const instanceMatrix = mesh.instanceMatrix || mesh.matrixWorld.data;
-        const boundingSphere = mesh.boundingSpheres || mesh.geometry.boundingSphere.data;
+        const boundingSphere = mesh.geometry.boundingSphere.data;
         renderer.device.queue.writeBuffer(this.cullingInstanceBuffer, 0, instanceMatrix);
         renderer.device.queue.writeBuffer(this.boundingSphereBuffer, 0, boundingSphere);
+
+        mesh.on('write', () => {
+            renderer.device.queue.writeBuffer(this.cullingInstanceBuffer, 0, mesh.instanceMatrix || mesh.matrixWorld.data);
+        })
+
         
         new Uint32Array(this.drawCommandBuffer.getMappedRange()).set([
             mesh.geometry.indices?.length || mesh.geometry.vertexCount,
-            0,  // instanceCount - will be updated by compute shader
+            mesh.count,  // instanceCount - will be updated by compute shader
             0,  // firstVertex
             0,  // firstInstance
             0   // baseVertex
         ]);
         this.drawCommandBuffer.unmap();
+
+        this.bindGroup = renderer.device.createBindGroup({
+            layout: cullingPipeline.getBindGroupLayout(0),
+            entries: [
+                { binding: 0, resource: { buffer: cameraBuffer }},
+                { binding: 1, resource: { buffer: this.boundingSphereBuffer }},
+                { binding: 2, resource: { buffer: this.cullingInstanceBuffer }}, // Use mesh's own culling buffer
+                { binding: 3, resource: depthTexture },
+                { binding: 4, resource: { buffer: this.drawCommandBuffer }},
+                { binding: 5, resource: { buffer: this.visibleInstancesBuffer }},
+            ]
+        });
 
         this.instanceCount = instanceCount;
     }
@@ -64,7 +82,32 @@ class CullingSystem {
         this.device = renderer.device;
         this.depthTexture = null;
         this.setupPipelines();
-        this.visibilityCache = new WeakMap();
+        this.visibilityCache = new Map();
+    }
+    
+    updateDepthTexture(depthTexture) { 
+        this.depthTexture = depthTexture;
+        this.visibilityCache.clear();
+    }
+    
+    prepare(mesh, depthTexture) {
+        const haveInfo = this.visibilityCache.has(mesh);
+        if (haveInfo) return;
+
+        if (mesh.isMesh && mesh.isCulled) {
+            if (!this.renderer.has(mesh)) {
+                this.renderer.createRenderObject(mesh);
+            }
+            const visInfo = new MeshVisibilityInfo(this.renderer, mesh, this.cullingPipeline, depthTexture, this.cameraBuffer);
+            this.visibilityCache.set(mesh, visInfo);
+            mesh.visibilityInfo = visInfo;
+        }
+        if (mesh.children) {
+            for (const child of mesh.children) {
+                this.prepare(child, depthTexture);
+            }
+        }
+        
     }
     
     setupPipelines() {
@@ -79,49 +122,31 @@ class CullingSystem {
         this.setupBuffers();
     }
     
-    compute(scene, camera, encoder, depthTexture) {
+    compute(scene, camera, encoder) {
         const frustum = this.buildFrustum(camera.projectionMatrix, camera.viewMatrix, new Float32Array(6 * 4));
         this.device.queue.writeBuffer(this.cameraBuffer, 0, camera.projectionViewMatrix.data);
         this.device.queue.writeBuffer(this.cameraBuffer, 64, frustum);
         this.device.queue.writeBuffer(this.cameraBuffer, 64 + (4 * 6 * 4), camera.position.data);
     
         for (const node of scene.children) {
-          this.processSceneNode(encoder, node, camera, depthTexture);
+          this.processSceneNode(encoder, node, camera);
         }
     }
     
-    processSceneNode(commandEncoder, node, camera, depthTexture) {
+    processSceneNode(commandEncoder, node, camera) {
         if (node.isMesh) {
-          this.processMesh(commandEncoder, node, node.worldMatrix, camera, depthTexture);
+          this.processMesh(commandEncoder, node, node.worldMatrix, camera);
         }
     
         if (node.children) {
           for (const child of node.children) {
-            this.processSceneNode(commandEncoder, child, camera, depthTexture);
+            this.processSceneNode(commandEncoder, child, camera);
           }
         }
     }
      
     
     setupBuffers() {
-        this.maxInstancesPerBatch = 500_000;
-        
-        // Add explicit size calculations
-        const instanceMatrixSize = 16 * 4; // 4x4 matrix of floats
-        const boundingSphereSize = 4 * 4; // vec3 + radius (4 floats)
-        
-        this.instanceBuffer = this.device.createBuffer({
-            label: 'Instance Buffer',
-            size: this.maxInstancesPerBatch * instanceMatrixSize,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-        });
-
-        this.boundingSphereBuffer = this.device.createBuffer({
-            label: 'Bounding Sphere Buffer',
-            size: this.maxInstancesPerBatch * boundingSphereSize,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-        });
-
         // Camera buffer needs exact size alignment
         const cameraBufferSize = 16 * 4 + // viewProj matrix
                                 24 * 4 + // 6 frustum planes
@@ -184,42 +209,16 @@ class CullingSystem {
     }
     
     processMesh(commandEncoder, mesh, worldMatrix, camera, depthTexture) {
-        if (!this.renderer.has(mesh)) {
-            this.renderer.createRenderObject(mesh);
-        }
-        if (!mesh.isCulled) {
-            return;
-        }
-
         let visInfo = this.visibilityCache.get(mesh);
         if (!visInfo) {
-            visInfo = new MeshVisibilityInfo(this.renderer, mesh);
-            this.visibilityCache.set(mesh, visInfo);
+            return;
         }
-        
-        
-        // Reset instance count
         this.device.queue.writeBuffer(visInfo.drawCommandBuffer, 4, new Uint32Array([0]));
-
-        const bindGroup = this.device.createBindGroup({
-            layout: this.cullingPipeline.getBindGroupLayout(0),
-            entries: [
-                { binding: 0, resource: { buffer: this.cameraBuffer }},
-                { binding: 1, resource: { buffer: visInfo.cullingInstanceBuffer }}, // Use mesh's own culling buffer
-                { binding: 2, resource: { buffer: visInfo.boundingSphereBuffer }},
-                { binding: 3, resource: depthTexture.createView() },
-                { binding: 4, resource: { buffer: visInfo.drawCommandBuffer }},
-                { binding: 5, resource: { buffer: visInfo.visibleInstancesBuffer }},
-            ]
-        });
-
         const pass = commandEncoder.beginComputePass();
         pass.setPipeline(this.cullingPipeline);
-        pass.setBindGroup(0, bindGroup);
+        pass.setBindGroup(0, visInfo.bindGroup);
         pass.dispatchWorkgroups(Math.ceil(visInfo.instanceCount / 64));
         pass.end();
-
-        mesh.visibilityInfo = visInfo;
     }
 } 
     
