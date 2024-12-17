@@ -8,6 +8,8 @@ function arraysEqual(a, b, aOffset = 0, bOffset = 0) {
     return true;
 }
 
-window.arraysEqual = arraysEqual;
+if (typeof window !== 'undefined') {
+    window.arraysEqual = arraysEqual;
+}
 
 export { arraysEqual };

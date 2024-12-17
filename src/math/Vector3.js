@@ -1,6 +1,6 @@
 import { vec3 } from 'wgpu-matrix';
 
-class Vector3 {
+class Vector3 extends Float32Array {
     static byteSize = 3 * Float32Array.BYTES_PER_ELEMENT;
     
     static ZERO = new Vector3(0, 0, 0);
@@ -13,58 +13,60 @@ class Vector3 {
     static BACKWARD = new Vector3(0, 0, 1);
 
     constructor(x = 0, y = 0, z = 0) {
-        this.data = new Float32Array([x, y, z]);
-        this.needsUpdate = false;
-        this.isVector3 = true;
-        vec3.create(x, y, z, this.data);
+        super([x, y, z]);
+        Object.defineProperty(this, 'isVector3', { 
+            value: true, 
+            writable: false,
+            enumerable: false,
+        });
     }
     
     get x() {
-        return this.data[0];
+        return this[0];
     }
     
     set x(value) {
-        this.data[0] = value;
+        this[0] = value;
         this._onChangeCallback();
     }
     
     get y() {
-        return this.data[1];
+        return this[1];
     }
 
     set y(value) {
-        this.data[1] = value;
+        this[1] = value;
         this._onChangeCallback();
     }
 
     get z() {
-        return this.data[2];
+        return this[2];
     }
 
     set z(value) {
-        this.data[2] = value;
+        this[2] = value;
         this._onChangeCallback();
     }
     
     print() {
-        return `Vec3 { x: ${this.data[0]}, y: ${this.data[1]}, z: ${this.data[2]} }`;
+        return `Vec3 { x: ${this[0]}, y: ${this[1]}, z: ${this[2]} }`;
     }
     
     invert() {
-        vec3.negate(this.data, this.data);
+        vec3.negate(this, this);
         this._onChangeCallback();
         return this;
     }
     
     equals(v) {
-        return vec3.equals(this.data, v.data);
+        return vec3.equals(this, v);
     }
     
     min(x, y, z) {
         if (x instanceof Vector3) {
-            vec3.min(this.data, x.data, this.data);
+            vec3.min(this, x, this);
         } else {
-            vec3.min(this.data, [x, y, z], this.data);
+            vec3.min(this, [x, y, z], this);
         }
         this._onChangeCallback();
         return this;
@@ -72,69 +74,71 @@ class Vector3 {
     
     max(x, y, z) {
         if (x instanceof Vector3) { 
-            vec3.max(this.data, x.data, this.data);
+            vec3.max(this, x, this);
         } else { 
-            vec3.max(this.data, [x, y, z], this.data);
+            vec3.max(this, [x, y, z], this);
         }
         this._onChangeCallback();
         return this;
     }
     
     setFromMatrixColumn(matrix, index) {
-        return this.fromArray( matrix.data, index * 4 ); 
+        return this.fromArray( matrix, index * 4 ); 
     }
     
     fromArray(array, offset = 0) {
-        this.data[0] = array[offset];
-        this.data[1] = array[offset + 1];
-        this.data[2] = array[offset + 2];
+        this[0] = array[offset];
+        this[1] = array[offset + 1];
+        this[2] = array[offset + 2];
         this._onChangeCallback();
         return this
     }
 
     setFromMatrixPosition(matrix) {
-        this.data[0] = matrix.data[12];
-        this.data[1] = matrix.data[13];
-        this.data[2] = matrix.data[14];
+        this[0] = matrix[12];
+        this[1] = matrix[13];
+        this[2] = matrix[14];
         this._onChangeCallback();
         return this;
     }
     
     divScalar(scalar) {
-        vec3.scale(this.data, 1 / scalar, this.data);
+        vec3.scale(this, 1 / scalar, this);
         this._onChangeCallback();
         return this;
     }
     
     set(x, y, z) {
-        vec3.set(x, y, z, this.data);
+        this[0] = x;
+        this[1] = y;
+        this[2] = z;
         this._onChangeCallback();
         return this;
     }
-    
+
     add(v) {
-        vec3.add(v.data, this.data, this.data);
+        vec3.add(v, this, this);
         return this;
     }
     
     addVectors(a, b) {
-        vec3.add(a.data, b.data, this.data);
+        vec3.add(a, b, this);
         return this;
     }
     
     sub(v1) {
-        vec3.sub(this.data, v1.data, this.data);
+        vec3.sub(this, v1, this);
         return this;
     }
     
     subVectors(a, b) {
-        vec3.sub(a.data, b.data, this.data);
+        vec3.sub(a, b, this);
         this._onChangeCallback();
         return this;
     }
     
     copy(v) {
-        vec3.copy(v.data, this.data);
+        vec3.copy(v, this);
         this._onChangeCallback();
         return this;
     }
@@ -144,31 +148,32 @@ class Vector3 {
     }
     
     distanceTo(v) {
-        return vec3.distance(this.data, v.data);
+        return vec3.distance(this, v);
     }
     
     dot(v) {
-        return vec3.dot(this.data, v.data);
+        return vec3.dot(this, v);
     }
     
     cross(v) {
-        vec3.cross(this.data, v.data, this.data);
+        vec3.cross(this, v, this);
         return this;
     }
     
     length() {
-        return vec3.length(this.data);
+        return vec3.length(this);
     }
     
     normalize() {
-        vec3.normalize(this.data, this.data);
+        vec3.normalize(this, this);
+        this._onChangeCallback();
         return this;
     }
     
     applyMatrix4(m) {
         
 		const x = this.x, y = this.y, z = this.z;
-		const e = m.data;
+		const e = m;
 
 		const w = 1 / ( e[ 3 ] * x + e[ 7 ] * y + e[ 11 ] * z + e[ 15 ] );
 
@@ -178,45 +183,46 @@ class Vector3 {
 
 		// return this;
 
-        // vec3.transformMat4(this.data, this.data, matrix);
+        // vec3.transformMat4(this, this, matrix);
         return this;
     }
     
     applyQuaternion(q) {
-        vec3.transformQuat(this.data, this.data, q.data);
+        vec3.transformQuat(this, this, q);
         return this;
     }
     
     multiplyScalar(s) {
-        vec3.scale(this.data, s, this.data);
+        vec3.scale(this, s, this);
+        this._onChangeCallback();
         return this;
     }
     
     toArray(array = [], offset = 0) {
-        array[offset + 0] = this.data[0];
-        array[offset + 1] = this.data[1];
-        array[offset + 2] = this.data[2];
+        array[offset + 0] = this[0];
+        array[offset + 1] = this[1];
+        array[offset + 2] = this[2];
         return array;
     }
     
     
     
     subVectors(a, b) {
-        vec3.sub(a.data, b.data, this.data);
+        vec3.sub(a, b, this);
         this._onChangeCallback();
         return this;
     }
     
     equalsArray(array, offset = 0) {
-        return this.data[0] === array[offset] && this.data[1] === array[offset + 1] && this.data[2] === array[offset + 2];
+        return this[0] === array[offset] && this[1] === array[offset + 1] && this[2] === array[offset + 2];
     }
     
     lengthSq() {
-        return vec3.lengthSq(this.data);
+        return vec3.lengthSq(this);
     }
     
     crossVectors(a, b) {
-        vec3.cross(a.data, b.data, this.data);
+        vec3.cross(a, b, this);
         this._onChangeCallback();
         return this;
     }
@@ -229,17 +235,17 @@ class Vector3 {
     }
     
     distanceToSquared(v) {
-        return vec3.distanceSq(this.data, v.data);
+        return vec3.distanceSq(this, v);
     }
     
     
     lerpVectors(v1, v2, alpha) {
-        vec3.lerp(v1.data, v2.data, alpha, this.data);
+        vec3.lerp(v1, v2, alpha, this);
         return this;
     }
     
     lerp(v, alpha) {
-        vec3.lerp(this.data, v.data, alpha, this.data);
+        vec3.lerp(this, v, alpha, this);
         return this;
     }
     
@@ -251,19 +257,19 @@ class Vector3 {
     }
     
     setFromAttribute(attribute, index) {
-        this.data[0] = attribute.getX(index);
-        this.data[1] = attribute.getY(index);
-        this.data[2] = attribute.getZ(index);
+        this[0] = attribute.getX(index);
+        this[1] = attribute.getY(index);
+        this[2] = attribute.getZ(index);
         return this;
     }
     
     addScaledVector(v, s) {
-        vec3.addScaled(this.data, v.data, s, this.data);
+        vec3.addScaled(this, v, s, this);
         return this;
     }
     
     clear() {
-        this.data.fill(0);
+        this.fill(0);
         this._onChangeCallback();
         return this;
     }

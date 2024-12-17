@@ -1,9 +1,16 @@
-class Color {
-    gpuType = 'vec4f';
+class Color extends Float32Array {
     static byteSize = 16;
+    
+    // Helper function to clean up floating point values
+    static cleanFloat(value) {
+        // Convert to string with high precision and remove trailing zeros
+        const str = value.toFixed(7);
+        // Parse back to float and return
+        return parseFloat(str);
+    }
 
-    constructor(r = 1, g, b, a = 1) {
-        this._data = new Float32Array(4);
+    constructor(r = 0xffffff, g, b, a = 1) {
+        super(4);
         if (typeof r === 'string') {
             if (r[0] === '#') {
                 this.fromString(r);
@@ -12,80 +19,68 @@ class Color {
             }
             return;
         }
-        if (typeof r === 'number' && g === undefined) {
+        if (typeof r === 'number' &&  g === undefined) {
             this.fromHex(r);
             return;
         }
 
-        this._r = r;
-        this._g = g;
-        this._b = b;
-        this._a = a || 1;
-        this._data.set([this._r, this._g, this._b, this._a]);
-        this.byteSize = this._data.byteLength;
+        this[0] = Color.cleanFloat(r);
+        this[1] = Color.cleanFloat(g);
+        this[2] = Color.cleanFloat(b);
+        this[3] = Color.cleanFloat(a || 1);
     }
     
     get r() {
-        return this._r;
+        return Color.cleanFloat(this[0]);
     }
 
     set r(value) {
-        this._r = value;
-        this._data[0] = value;
+        this[0] = Color.cleanFloat(value);
         this.onChangeCallback();
     }
 
     get g() {
-        return this._g;
+        return Color.cleanFloat(this[1]);
     }
 
     set g(value) {
-        this._g = value;
-        this._data[1] = value;
+        this[1] = Color.cleanFloat(value);
         this.onChangeCallback();
     }
 
     get b() {
-        return this._b;
+        return Color.cleanFloat(this[2]);
     }
 
     set b(value) {
-        this._b = value;
-        this._data[2] = value;
+        this[2] = Color.cleanFloat(value);
         this.onChangeCallback();
     }
 
     get a() {
-        return this._a;
+        return Color.cleanFloat(this[3]);
     }
 
     set a(value) {
-        this._a = value;
-        this._data[3] = value;
+        this[3] = Color.cleanFloat(value);
         this.onChangeCallback();
     }
 
-    get data() {
-        return this._data;
-    }
-    
     fromHex(hex) {
-        this._r = ((hex >> 16) & 255) / 255;
-        this._g = ((hex >> 8) & 255) / 255;
-        this._b = (hex & 255) / 255;
-        this._a = 1;
-        this._data.set([this._r, this._g, this._b, this._a]);
+        this[0] = Color.cleanFloat(((hex >> 16) & 255) / 255);
+        this[1] = Color.cleanFloat(((hex >> 8) & 255) / 255);
+        this[2] = Color.cleanFloat((hex & 255) / 255);
+        this[3] = 1;
         this.onChangeCallback();
         return this;
     }
     
     fromString(str) {
         const color = parseInt(str.slice(1), 16);
-        this._r = ((color >> 16) & 255) / 255;
-        this._g = ((color >> 8) & 255) / 255;
-        this._b = (color & 255) / 255;
-        this._a = 1;
-        this._data.set([this._r, this._g, this._b, this._a]);
+        this[0] = Color.cleanFloat(((color >> 16) & 255) / 255);
+        this[1] = Color.cleanFloat(((color >> 8) & 255) / 255);
+        this[2] = Color.cleanFloat((color & 255) / 255);
+        this[3] = 1;
         this.onChangeCallback();
         return this;
     }
@@ -101,35 +96,36 @@ class Color {
         if (typeof r === 'number' && g === undefined) {
             return this.fromHex(r);
         }
-        this._r = r;
-        this._g = g;
-        this._b = b;
-        this._a = a || 1;
-        this._data.set([this._r, this._g, this._b, this._a]);
+        this[0] = Color.cleanFloat(r);
+        this[1] = Color.cleanFloat(g);
+        this[2] = Color.cleanFloat(b);
+        this[3] = Color.cleanFloat(a);
         this.onChangeCallback();
         return this;
     }
     
     copy(color) {
-        this._r = color.r;
-        this._g = color.g;
-        this._b = color.b;
-        this._a = color.a;
-        this._data.set([this._r, this._g, this._b, this._a]);
+        this[0] = Color.cleanFloat(color.r);
+        this[1] = Color.cleanFloat(color.g);
+        this[2] = Color.cleanFloat(color.b);
+        this[3] = Color.cleanFloat(color.a);
         this.onChangeCallback();
         return this;
     }
     
     clone() {
-        return new Color(this._r, this._g, this._b, this._a);
+        return new Color(this[0], this[1], this[2], this[3]);
     }
     
     printRGBA() {
-        return `rgba(${this._r}, ${this._g}, ${this._b}, ${this._a})`;
+        return `rgba(${Color.cleanFloat(this[0])}, ${Color.cleanFloat(this[1])}, ${Color.cleanFloat(this[2])}, ${Color.cleanFloat(this[3])})`;
     }
     
     printHex() {
-        return `#${((this._r * 255) << 16 | (this._g * 255) << 8 | (this._b * 255)).toString(16)}`;
+        const r = Math.round(this[0] * 255);
+        const g = Math.round(this[1] * 255);
+        const b = Math.round(this[2] * 255);
+        return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
     }
     
     onChange(callback) {
@@ -137,8 +133,6 @@ class Color {
     }
     
     onChangeCallback() { }
-
-    
 }
 
 export { Color };
