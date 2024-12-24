@@ -19,6 +19,8 @@
   <p align="center">
     An awesome WebGPU renderer !
     <br />
+    <a href="https://mebyz.github.io/webgpu-renderer-demo">View Demo</a>
+    ·
     <a href="https://github.com/khudiiash/webgpu-renderer/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     ·
     <a href="https://github.com/khudiiash/webgpu-renderer/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
