@@ -5,7 +5,7 @@
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
-[![Unlicense License][license-shield]][license-url]
+[![MIT License][license-shield]][license-url]
 
 <!-- PROJECT LOGO -->
 <br />
@@ -54,7 +54,9 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-### A WebGPU 3D renderer for web. For a few years, we were stuck developing games on WebGL, and now WebGPU seems to be a breath of fresh air ! 
+### A WebGPU 3D renderer for web. 
+
+### For a few years, we were stuck developing games on WebGL, and now WebGPU seems to be a breath of fresh air ! 
 
 https://github.com/user-attachments/assets/e652ba67-bbc2-480b-92f7-59c617efb217
 
@@ -137,7 +139,7 @@ Don't forget to give the project a star! Thanks again!
 <!-- LICENSE -->
 ## License
 
-Distributed under the Unlicense License. See `LICENSE.txt` for more information.
+Distributed under the MIT License. See `LICENSE` for more information.
 
 
 <!-- CONTACT -->
@@ -165,5 +167,5 @@ mebyz - u/mebyz on reddit - [https://github.com/mebyz](https://github.com/mebyz)
 [issues-shield]: https://img.shields.io/github/issues/khudiiash/webgpu-renderer.svg?style=for-the-badge
 [issues-url]: https://github.com/khudiiash/webgpu-renderer/issues
 [license-shield]: https://img.shields.io/github/license/khudiiash/webgpu-renderer.svg?style=for-the-badge
-[license-url]: https://github.com/khudiiash/webgpu-renderer/blob/master/LICENSE.txt
+[license-url]: https://github.com/khudiiash/webgpu-renderer/blob/master/LICENSE
 
