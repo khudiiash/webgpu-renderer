@@ -7,6 +7,7 @@ import { SphereGeometry } from "./geometry/SphereGeometry";
 import { Mesh } from "./core/Mesh";
 import { MeshPhongMaterial } from "./materials/MeshPhongMaterial";
 import { DirectionalLight } from "./lights/DirectionalLight";
+import { VoxelConeTracingGI } from './lights/VoxelConeTracingGI';
 import { modMinMax, randomFloat } from "./math/MathUtils";
 import { Vector3 } from "./math/Vector3";
 import { GLTFLoader } from "./loaders/GLTFLoader";
@@ -20,7 +21,6 @@ import { AnimationMixer } from "./animation/AnimationMixer";
 import { SkinnedMesh } from "./animation/SkinnedMesh";
 import { GrassGeometry } from "./geometry/GrassGeometry";
 import MountainsModel from "../assets/mountains.glb";
-
 import TerrainModel from "../assets/terrain_2.glb";
 import TreeModel from "../assets/tree.gltf";
 import PineModel from "../assets/pine.glb";
@@ -36,10 +36,7 @@ import { Quaternion } from "./math/Quaternion";
 const _vec = new Vector3();
 
 class App {
-    constructor() {
-        
-    } 
-    
+
     createPatchesOfGrass(center, grassCount, areaToCover, terrain) {
         const grass = new InstancedMesh(new GrassGeometry(4, 0.2, 1), new MeshPhongMaterial({color: '#9DA326'}), grassCount);
         const quat = new Quaternion();
@@ -70,9 +67,8 @@ class App {
             color = vec4f(color.r * noise * y, color.g * noise * y, color.b * y * noise, 1.0);
         `));
         return grass;
-        
     }
-    
+
     async init() {
         const canvas = document.getElementById('canvas');
         this.stats = new Stats();
@@ -100,9 +96,6 @@ class App {
         terrain.initializeSpatialGrid(64);
         terrain.isCulled = false;
         
-        // const floor = new Mesh(new PlaneGeometry(200, 200), new MeshPhongMaterial({color: '#111111' }));
-        // floor.rotation.x = Math.PI / 2;
-        // this.scene.add(floor);
         const trees = await new GLTFLoader(this.renderer).load(TreeModel, 50);
         const positions = [];
         const rotations = [];
@@ -124,17 +117,15 @@ class App {
             instancedMesh.setAllScalesArray(scales);
             instancedMesh.setAllRotationsArray(rotations);
             this.scene.add(instancedMesh);
-        })
-        
+        });
+
         const patchSize = 400;
         const area = 800;
         for (let x = -area / 2; x < area / 2; x += patchSize) {
             for (let z = -area / 2; z < area / 2; z += patchSize) {
                 this.scene.add(this.createPatchesOfGrass({x: x + patchSize * 0.5, z: z + patchSize * 0.5 }, 1_000_000, patchSize / 2, terrain));
             }
-             
         }
-        
         
         this.light = new DirectionalLight({intensity: 1.0 });
         this.light.name = 'MyDirectionalLight';
@@ -142,11 +133,14 @@ class App {
         this.light.rotation.y = -0.3;
         this.scene.add(this.light);
 
-        //this.controls = new OrbitControls(this.camera, canvas);
+        // Add FirstPersonControls
         this.controls = new FirstPersonControls(this.camera, canvas);
         
+        // Initialize GI system (VoxelConeTracingGI)
+        this.giSystem = new VoxelConeTracingGI(this.renderer);
+        this.giSystem.init();
+
         requestAnimationFrame(() => this.loop());
-        
     }
     
     loop() {
@@ -158,12 +152,18 @@ class App {
         requestAnimationFrame(() => this.loop());
     }
     
-    
     update(dt) {
         this.stats.update(); 
         this.controls?.update(dt);
+        
+        // Update camera position with terrain height
         this.camera.setPosition(this.camera.position.x, this.terrain.getHeightAt(this.camera.position.x, this.camera.position.z) + 10, this.camera.position.z);
-        this.renderer.render(this.scene, this.camera);
+        
+        // Call the GI system before rendering the scene
+        this.renderer.render(this.scene, this.camera, (pass) => {
+            // Add global illumination (Voxel Cone Tracing)
+            this.giSystem.runGI(pass); // Perform voxelization, cone tracing, and GI integration
+        });
     }
 }
 
