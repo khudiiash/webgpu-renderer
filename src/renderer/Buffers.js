@@ -180,6 +180,10 @@ class Buffers {
         }
     }
     
+    set(object, value) {
+        this._buffers.set(object, value);
+    }
+    
     delete(name) {
         this._buffers.delete(name);
     }

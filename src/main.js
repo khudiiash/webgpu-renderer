@@ -138,7 +138,10 @@ class App {
         
         // Initialize GI system (VoxelConeTracingGI)
         this.giSystem = new VoxelConeTracingGI(this.renderer);
-        this.giSystem.init();
+        this.giSystem.init(); 
+        
+        // Prepare the debug texture render pass
+        // this.debugTexturePipeline = this.createDebugTextureRenderPipeline();
 
         requestAnimationFrame(() => this.loop());
     }
@@ -160,10 +163,124 @@ class App {
         this.camera.setPosition(this.camera.position.x, this.terrain.getHeightAt(this.camera.position.x, this.camera.position.z) + 10, this.camera.position.z);
         
         // Call the GI system before rendering the scene
-        this.renderer.render(this.scene, this.camera, (pass) => {
+        this.renderer.render(this.scene, this.camera, async (pass) => {
             // Add global illumination (Voxel Cone Tracing)
             this.giSystem.runGI(pass); // Perform voxelization, cone tracing, and GI integration
+            // Now, render the debug texture to the screen
+            // this.renderDebugTexture(pass); // Render the debug texture to the screen
         });
+    }
+    
+    createDebugTextureRenderPipeline() {
+        const vertexShaderCode = `
+            // Vertex Shader
+            @vertex
+            fn vertexMain(@location(0) position: vec3<f32>, @location(1) uv: vec2<f32>) -> @builtin(position) vec4<f32> {
+                // Output both the position and the UV coordinates
+                var outPos: vec4<f32> = vec4<f32>(position, 1.0);
+                var outUV: vec2<f32> = uv;
+                return outPos; // Return the position
+            }
+        `;
+    
+        const fragmentShaderCode = `
+            // Fragment Shader
+            @group(0) @binding(0) var debugTexture: texture_2d<f32>; // Debug texture
+            @group(0) @binding(1) var debugTextureSampler: sampler; // Debug texture sampler
+    
+            @fragment
+            fn fragmentMain(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
+                // Sample the texture at the given UV coordinate
+                return textureSample(debugTexture, debugTextureSampler, uv); // Sample from the debug texture
+            }
+        `;
+    
+        const quadVertexData = new Float32Array([
+            -1.0,  1.0, 0.0,  0.0, 1.0,  // Top-left (Position and UV)
+            -1.0, -1.0, 0.0,  0.0, 0.0,  // Bottom-left (Position and UV)
+             1.0,  1.0, 0.0,  1.0, 1.0,  // Top-right (Position and UV)
+             1.0, -1.0, 0.0,  1.0, 0.0   // Bottom-right (Position and UV)
+        ]);
+    
+        // Create a buffer for the quad vertices and UV coordinates
+        const quadVertexBuffer = this.renderer.device.createBuffer({
+            size: quadVertexData.byteLength,
+            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+        });
+    
+        this.renderer.device.queue.writeBuffer(quadVertexBuffer, 0, quadVertexData);
+    
+        const debugShaderModule = this.renderer.device.createShaderModule({
+            code: vertexShaderCode + fragmentShaderCode,
+        });
+    
+        return this.renderer.device.createRenderPipeline({
+            vertex: {
+                module: debugShaderModule,
+                entryPoint: 'vertexMain',
+                buffers: [
+                    {
+                        arrayStride: 5 * 4, // Each vertex contains 3 floats for position and 2 floats for UV
+                        attributes: [
+                            { format: 'float32x3', offset: 0, shaderLocation: 0 },  // Position
+                            { format: 'float32x2', offset: 3 * 4, shaderLocation: 1 },  // UV
+                        ],
+                    },
+                ],
+            },
+            fragment: {
+                module: debugShaderModule,
+                entryPoint: 'fragmentMain',
+                targets: [
+                    { format: 'bgra8unorm' }, // Color format for rendering
+                ],
+            },
+            primitive: {
+                topology: 'triangle-strip', // We are rendering a full-screen quad
+            },
+            layout: 'auto', // Let the WebGPU device handle the layout automatically
+        });
+    }    
+        
+    // Render the debug texture to the screen after GI pass
+    renderDebugTexture(pass) {
+        // Ensure the debugTexture is available in the GI system
+        if (!this.giSystem.debugTexture) {
+            console.error("Debug texture is not available.");
+            return;
+        }
+    
+        // Create the bind group for the debug texture
+        const debugTextureBindGroup = this.renderer.device.createBindGroup({
+            layout: this.debugTexturePipeline.getBindGroupLayout(),
+            entries: [
+                { binding: 0, resource: this.giSystem.debugTexture.getTextureView() },  // Bind the debug texture
+                { binding: 1, resource: this.giSystem.debugTextureSampler },  // Bind the debug texture sampler
+            ],
+        });
+    
+        // Set up the render pass
+        const commandEncoder = this.renderer.device.createCommandEncoder();
+        const renderPassDescriptor = {
+            colorAttachments: [
+                {
+                    view: this.renderer.getSwapChainTextureView(),
+                    loadOp: 'clear',
+                    clearColor: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+                    storeOp: 'store',
+                },
+            ],
+        };
+    
+        const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+        passEncoder.setPipeline(this.debugTexturePipeline);  // Set the debug texture pipeline
+        passEncoder.setBindGroup(0, debugTextureBindGroup);  // Set the bind group
+        passEncoder.setVertexBuffer(0, quadVertexBuffer);  // Set the quad vertex buffer
+        passEncoder.draw(4, 1, 0, 0);  // Draw the quad
+        passEncoder.endPass();
+    
+        // Submit the commands to the GPU
+        this.renderer.device.queue.submit([commandEncoder.finish()]);
     }
 }
 
