@@ -1,35 +1,34 @@
-import { UniformBuffer } from '../renderer/UniformBuffer.js';
-import { UniformLibGroup } from '../renderer/shaders/UniformLibGroup.js';
+import { StagingBuffer } from '../renderer/StagingBuffer.js';
 
 class VoxelConeTracingGI {
-    constructor(renderer) {
+    constructor(renderer, camera, light) {
         this.renderer = renderer;
-        this.voxelGridSize = 16;
+        this.voxelGridSize = 8;
         this.maxRayDistance = 500.0;
         this.debugTextureSampler = this.renderer.device.createSampler({
             magFilter: 'linear',
             minFilter: 'linear'
         });
+        this.cameraBufferMapped = false;
+        this.lightBufferMapped = false;
+        this.paramsBufferMapped = false;
+        this.cam = camera;
+        this.lig = light;
+        this.cb = null;
+        this.lb = null;
     }
 
     async init() {
         this.createTextures();
         await this.createPipelines();
-        await this.createUniformBuffers();
-        this.createBindGroups();
+        this.createStagingBuffers();
     }
 
-    createUniformBuffers() {
-        this.cameraBuffer = new UniformBuffer(this.renderer.device, UniformLibGroup.camera);
-        this.lightBuffer = new UniformBuffer(this.renderer.device, UniformLibGroup.light);
-        this.paramsBuffer = new UniformBuffer(this.renderer.device, UniformLibGroup.params);
-        this.renderer.buffers.set(this, {
-            camera: this.cameraBuffer,
-            light: this.lightBuffer,
-            params: this.paramsBuffer
-        });
-        this.renderer.buffers.write('voxelGridSize', new Uint32Array([this.voxelGridSize]), this);
-        this.renderer.buffers.write('maxRayDistance', new Float32Array([this.maxRayDistance]), this);
+    createStagingBuffers() {
+        // Use the StagingBuffers class CORRECTLY
+        this.cameraBuffer = new StagingBuffer(this.renderer.device, { size: 64 }, 'cameraStaging');
+        this.lightBuffer = new StagingBuffer(this.renderer.device, { size: 16 }, 'lightStaging');
+        this.paramsBuffer = new StagingBuffer(this.renderer.device, { size: 8 }, 'paramsStaging');
     }
 
     createTextures() {
@@ -37,7 +36,7 @@ class VoxelConeTracingGI {
             size: [this.voxelGridSize, this.voxelGridSize, this.voxelGridSize],
             format: 'rgba16float',
             dimension: '3d',
-            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+            usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC,
         };
 
         this.voxelTextureR = this.renderer.device.createTexture(textureDescriptor);
@@ -47,9 +46,9 @@ class VoxelConeTracingGI {
 
         const stagingTextureDescriptor = {
             size: [this.voxelGridSize, this.voxelGridSize, this.voxelGridSize],
-            format: 'rgba32float',
+            format: 'rgba16float',
             dimension: '3d',
-            usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC,
+            usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
         };
 
         this.voxelStagingTextureR = this.renderer.device.createTexture(stagingTextureDescriptor);
@@ -59,13 +58,34 @@ class VoxelConeTracingGI {
 
         const debugTextureDescriptor = {
             size: [this.voxelGridSize, this.voxelGridSize],
-            format: 'rgba32float',
-            usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+            format: 'rgba16float', // Good format for rendering
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC, // Add RENDER_ATTACHMENT
         };
+
         this.debugTextureR = this.renderer.device.createTexture(debugTextureDescriptor);
         this.debugTextureG = this.renderer.device.createTexture(debugTextureDescriptor);
         this.debugTextureB = this.renderer.device.createTexture(debugTextureDescriptor);
         this.debugTextureA = this.renderer.device.createTexture(debugTextureDescriptor);
+
+        // *** CREATE THE VIEWS HERE! ***
+        const viewDescriptor3D = { dimension: '3d' };
+        const viewDescriptor2D = { dimension: '2d' };
+
+        this.voxelTextureViewR = this.voxelTextureR.createView(viewDescriptor3D);
+        this.voxelTextureViewG = this.voxelTextureG.createView(viewDescriptor3D);
+        this.voxelTextureViewB = this.voxelTextureB.createView(viewDescriptor3D);
+        this.voxelTextureViewA = this.voxelTextureA.createView(viewDescriptor3D);
+
+        this.voxelStagingTextureViewR = this.voxelStagingTextureR.createView(viewDescriptor3D);
+        this.voxelStagingTextureViewG = this.voxelStagingTextureG.createView(viewDescriptor3D);
+        this.voxelStagingTextureViewB = this.voxelStagingTextureB.createView(viewDescriptor3D);
+        this.voxelStagingTextureViewA = this.voxelStagingTextureA.createView(viewDescriptor3D);
+
+        this.debugTextureViewR = this.debugTextureR.createView(viewDescriptor2D);
+        this.debugTextureViewG = this.debugTextureG.createView(viewDescriptor2D);
+        this.debugTextureViewB = this.debugTextureB.createView(viewDescriptor2D);
+        this.debugTextureViewA = this.debugTextureA.createView(viewDescriptor2D);
+
     }
 
 
@@ -95,22 +115,22 @@ class VoxelConeTracingGI {
                 {
                     binding: 4,
                     visibility: GPUShaderStage.COMPUTE,
-                    storageTexture: { format: 'rgba32float', access: 'write-only' },
+                    storageTexture: { format: 'rgba16float', access: 'write-only' },
                 },
                 {
                     binding: 5,
                     visibility: GPUShaderStage.COMPUTE,
-                    storageTexture: { format: 'rgba32float', access: 'write-only' },
+                    storageTexture: { format: 'rgba16float', access: 'write-only' },
                 },
                 {
                     binding: 6,
                     visibility: GPUShaderStage.COMPUTE,
-                    storageTexture: { format: 'rgba32float', access: 'write-only' },
+                    storageTexture: { format: 'rgba16float', access: 'write-only' },
                 },
                 {
                     binding: 7,
                     visibility: GPUShaderStage.COMPUTE,
-                    storageTexture: { format: 'rgba32float', access: 'write-only' },
+                    storageTexture: { format: 'rgba16float', access: 'write-only' },
                 },
                 {
                     binding: 8,
@@ -133,7 +153,7 @@ class VoxelConeTracingGI {
 
     async createPipelines() {
         const voxelizeShader = `
-            @group(0) @binding(0) var voxelTexture: texture_storage_3d<rgba32float, write>;
+            @group(0) @binding(0) var voxelTexture: texture_storage_3d<rgba16float, write>;
             @group(0) @binding(1) var<uniform> camera: mat4x4<f32>;
 
             @compute @workgroup_size(4, 4, 4)
@@ -154,10 +174,10 @@ class VoxelConeTracingGI {
             @group(0) @binding(1) var voxelTextureG: texture_3d<f32>;
             @group(0) @binding(2) var voxelTextureB: texture_3d<f32>;
             @group(0) @binding(3) var voxelTextureA: texture_3d<f32>;
-            @group(0) @binding(4) var outputTexR: texture_storage_2d<rgba32float, write>;
-            @group(0) @binding(5) var outputTexG: texture_storage_2d<rgba32float, write>;
-            @group(0) @binding(6) var outputTexB: texture_storage_2d<rgba32float, write>;
-            @group(0) @binding(7) var outputTexA: texture_storage_2d<rgba32float, write>;
+            @group(0) @binding(4) var outputTexR: texture_storage_2d<rgba16float, write>;
+            @group(0) @binding(5) var outputTexG: texture_storage_2d<rgba16float, write>;
+            @group(0) @binding(6) var outputTexB: texture_storage_2d<rgba16float, write>;
+            @group(0) @binding(7) var outputTexA: texture_storage_2d<rgba16float, write>;
             @group(0) @binding(8) var<uniform> camera: mat4x4<f32>;
             @group(0) @binding(9) var<uniform> light: vec4<f32>;
             @group(0) @binding(10) var voxelGrid_sampler: sampler;
@@ -215,12 +235,12 @@ class VoxelConeTracingGI {
         this.coneTraceBindGroupLayout = this.coneTracePipeline.getBindGroupLayout(0);
     }
 
-    createBindGroups() {
+    createBindGroups(cb, lb) {
         this.voxelizeBindGroup = this.renderer.device.createBindGroup({
             layout: this.voxelizeBindGroupLayout,
             entries: [
-                { binding: 0, resource: this.voxelStagingTextureR.createView() },
-                { binding: 1, resource: { buffer: this.cameraBuffer.buffer } },
+                { binding: 0, resource: this.voxelStagingTextureViewR },
+                { binding: 1, resource: { buffer: cb } },
             ],
         });
 
@@ -228,16 +248,16 @@ class VoxelConeTracingGI {
             label: "b1",
             layout: this.coneTraceBindGroupLayout,
             entries: [
-                { binding: 0, resource: this.voxelTextureR.createView() },
+                { binding: 0, resource: this.voxelTextureViewR },
                 { binding: 1, resource: this.voxelTextureG.createView() },
                 { binding: 2, resource: this.voxelTextureB.createView() },
                 { binding: 3, resource: this.voxelTextureA.createView() },
-                { binding: 4, resource: this.debugTextureR.createView() },
+                { binding: 4, resource: this.debugTextureViewR },
                 { binding: 5, resource: this.debugTextureG.createView() },
                 { binding: 6, resource: this.debugTextureB.createView() },
                 { binding: 7, resource: this.debugTextureA.createView() },
-                { binding: 8, resource: { buffer: this.cameraBuffer.buffer } },
-                { binding: 9, resource: { buffer: this.lightBuffer.buffer } },
+                { binding: 8, resource: { buffer: cb } }, // Use the uniform buffer!
+                { binding: 9, resource: { buffer: lb } }, // Use the uniform buffer!
                 { binding: 10, resource: this.debugTextureSampler }
             ]
         });
@@ -246,23 +266,32 @@ class VoxelConeTracingGI {
     async updateBuffers(camera, light) {
         const cameraMatrixData = camera.projectionViewMatrix.data;
         const lightData = [light.position.x, light.position.y, light.position.z, light.intensity];
+        //const paramsData = new Float32Array([this.voxelGridSize, this.maxRayDistance]);
 
-        await this.cameraBuffer.mapAsync(GPUMapMode.WRITE);
-        const cameraBufferData = new Float32Array(this.cameraBuffer.getMappedRange());
-        cameraBufferData.set(cameraMatrixData);
-        this.cameraBuffer.unmap();
-
-        await this.lightBuffer.mapAsync(GPUMapMode.WRITE);
-        const lightBufferData = new Float32Array(this.lightBuffer.getMappedRange());
-        lightBufferData.set(lightData);
-        this.lightBuffer.unmap();
+                await this.cameraBuffer.update(cameraMatrixData);
+                await this.lightBuffer.update(lightData);
+                //await this.paramsBuffer.update(paramsData);
     }
 
-    async runGI(pass, camera, light) {
+
+    async runGI(renderTargetView, camera, light) {
+
+        //ONLY ONE
+        if(this.cb == null) {
+            this.cb = this.renderer.buffers.get('camera');
+            this.lb =  this.renderer.buffers.get('lightProjViewMatrix');
+            this.createBindGroups(this.cb, this.lb);
+        }
+        //else
+        //    await this.updateBuffers(this.cb, this.lb); // Update buffers ONCE, at the beginning
+
         const commandEncoder = this.renderer.device.createCommandEncoder();
 
-        await this.updateBuffers(camera, light); // Call updateBuffers here
-
+        commandEncoder.copyBufferToBuffer(this.cameraBuffer.getBuffer(), 0, this.cb, 0, 64);
+        commandEncoder.copyBufferToBuffer(this.lightBuffer.getBuffer(), 0, this.lb, 0, 16);
+        //commandEncoder.copyBufferToBuffer(this.paramsBuffer.getBuffer(), 0, this.paramsUniformBuffer, 0, 8);
+  
+        // Voxelization Pass
         const voxelPass = commandEncoder.beginComputePass();
         voxelPass.setPipeline(this.voxelizePipeline);
         voxelPass.setBindGroup(0, this.voxelizeBindGroup);
@@ -272,28 +301,16 @@ class VoxelConeTracingGI {
             Math.ceil(this.voxelGridSize / 4)
         );
         voxelPass.end();
-
+    
+        // Copy Texture
+            const midSlice = Math.floor(this.voxelGridSize / 2);
         commandEncoder.copyTextureToTexture(
-            this.voxelStagingTextureR, { mipLevel: 0 },
-            this.voxelTextureR, { mipLevel: 0 },
-            [this.voxelGridSize, this.voxelGridSize, this.voxelGridSize]
+            { texture: this.voxelStagingTextureR, origin: [0, midSlice, 0] },
+            { texture: this.debugTextureR, origin: [0, 0, 0] },
+            { width: this.voxelGridSize, height: midSlice, depthOrArrayLayers: 1 }
         );
-                commandEncoder.copyTextureToTexture(
-            this.voxelStagingTextureG, { mipLevel: 0 },
-            this.voxelTextureG, { mipLevel: 0 },
-            [this.voxelGridSize, this.voxelGridSize, this.voxelGridSize]
-        );
-                commandEncoder.copyTextureToTexture(
-            this.voxelStagingTextureB, { mipLevel: 0 },
-            this.voxelTextureB, { mipLevel: 0 },
-            [this.voxelGridSize, this.voxelGridSize, this.voxelGridSize]
-        );
-                commandEncoder.copyTextureToTexture(
-            this.voxelStagingTextureA, { mipLevel: 0 },
-            this.voxelTextureA, { mipLevel: 0 },
-            [this.voxelGridSize, this.voxelGridSize, this.voxelGridSize]
-        );
-
+    
+        // Cone Tracing Pass
         const conePass = commandEncoder.beginComputePass();
         conePass.setPipeline(this.coneTracePipeline);
         conePass.setBindGroup(0, this.coneTraceBindGroup);
@@ -302,7 +319,21 @@ class VoxelConeTracingGI {
             Math.ceil(this.voxelGridSize / 8)
         );
         conePass.end();
-
+    
+        // Render Pass
+        const renderPass = commandEncoder.beginRenderPass({
+            colorAttachments: [
+                {
+                    view: renderTargetView,
+                    loadValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+                    loadOp: 'load',
+                    storeOp: 'store'
+                },
+            ],
+        });
+        renderPass.end();
+    
+        // Submit the command buffer ONLY ONCE
         this.renderer.device.queue.submit([commandEncoder.finish()]);
     }
 }

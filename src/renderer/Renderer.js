@@ -272,7 +272,7 @@ class Renderer extends Events {
     }
     
     
-    render(scene, camera) {
+    async render(scene, camera, callback) {
         const dt = (performance.now() - this._lastTime) * 0.001;
         this.elapsed += dt;
         this._lastTime = performance.now();
@@ -320,6 +320,13 @@ class Renderer extends Events {
         this.count = 0;
         const renderPass = encoder.beginRenderPass(this.renderPassDescriptor);
         this.drawObject(scene, camera, renderPass, encoder);
+        
+        let currentTexture = this.context.getCurrentTexture();
+        let currentTextureView = currentTexture.createView();
+
+        if (callback) { // Check if callback exists
+            await callback(currentTextureView); // Call the callback with the currentTextureView
+        }
 
         renderPass.end();
 
