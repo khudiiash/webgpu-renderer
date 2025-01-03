@@ -1,86 +1,32 @@
 import { Vector3 } from './Vector3.js';
 import { quat } from 'wgpu-matrix';
 import { Euler } from './Euler.js';
-import { RAD2DEG } from './MathUtils.js';
+import { DataMonitor } from '../utils/DataMonitor.js';
 
 class Quaternion extends Float32Array {
-
     constructor(x = 0, y = 0, z = 0, w = 1) {
         super([x, y, z, w]);
         Object.defineProperties(this, {
-            isQuaternion: {
-                value: true,
-                writable: false,
-                enumerable: false,
-            },
-            needsUpdate: {
-                value: false,
-                writable: true,
-                enumerable: false,
-            },
+            isQuaternion: { value: true, writable: false },
+            monitor: { value: new DataMonitor(this, this), writable: false },
         });
     }
     
-    get x() {
-        return this[0];
-    }
-    
-    set x(value) {
-        this[0] = value;
-        this._onChangeCallback();
-    }
-    
-    get y() {
-        return this[1];
-    }
+    get x() { return this[0]; }
+    get y() { return this[1]; }
+    get z() { return this[2]; }
+    get w() { return this[3]; }
 
-    set y(value) {
-        this[1] = value;
-        this._onChangeCallback();
-    }
-
-    get z() {
-        return this[2];
-    }
-
-    set z(value) {
-        this[2] = value;
-        this._onChangeCallback();
-    }
-
-    get w() {
-        return this[3];
-    }
-
-    set w(value) {
-        this[3] = value;
-        this._onChangeCallback();
-    }
-    
-    add(q1, q2) {
-        quat.add(q1, q2, this);
-        return this;
-    }
-    
-    rotateY(angle) {
-        quat.rotateY(this, angle, this);
-        this._onChangeCallback();
-        return this;
-    }
-    
-    setFromMatrix(matrix) {
-        quat.fromMat(matrix, this);
-        this._onChangeCallback();
-        return this;
-    }
+    set x(value) { this[0] = value; this.monitor.check(); }
+    set y(value) { this[1] = value; this.monitor.check(); }
+    set z(value) { this[2] = value; this.monitor.check(); }
+    set w(value) { this[3] = value; this.monitor.check(); }
     
     setFromAxisAngle(axis, angle) {
         if (!(axis instanceof Vector3)) {
             console.error('Quaternion: setFromAxisAngle expects a Vector3 as the first argument');
         }
         quat.fromAxisAngle(axis, angle, this);
-        this._onChangeCallback();
-        
         return this;
     }
     
@@ -103,15 +49,11 @@ class Quaternion extends Float32Array {
     
     inverse() {
         quat.inverse(this, this);
-        this._onChangeCallback();
-        
         return this;
     }
     
     setFromEuler(euler, update) {
         quat.fromEuler(euler.x, euler.y, euler.z, euler.order, this);
-        if (update) this._onChangeCallback();
-        return this; 
     }
     
     multiply(q1, q2) {
@@ -121,31 +63,25 @@ class Quaternion extends Float32Array {
     
     premultiply(q) {
         quat.mul(q, this, this);
-        
-        this._onChangeCallback();
     }
     
     invert() {
         quat.inverse(this, this);
-        
-        this._onChangeCallback();
         return this;
     }
 
     
     setFromRotationMatrix(m) {
         quat.fromMat(m, this);
-        this._onChangeCallback();
         return this;
     }
     
     onChange(callback) {
-        this._onChangeCallback = callback;
         return this;
     }
     
     _onChangeCallback() {
-        
+         
     }
 
     set(x, y, z, w) {
@@ -153,14 +89,11 @@ class Quaternion extends Float32Array {
         this[1] = y;
         this[2] = z;
         this[3] = w;
-        
-        this._onChangeCallback();
         return this;
     }
     
     fromArray(array) {
         this.set(...array);
-        this._onChangeCallback();
         return this;
     }
     
@@ -185,7 +118,6 @@ class Quaternion extends Float32Array {
     
     copy(q) {
         quat.copy(q, this);
-        
         return this;
     }
     
@@ -197,6 +129,22 @@ class Quaternion extends Float32Array {
         const euler = Euler.instance.setFromQuaternion(this);
         return euler.print();
     }
+
+    add(q1, q2) {
+        quat.add(q1, q2, this);
+        return this;
+    }
+
+    rotateY(angle) {
+        quat.rotateY(this, angle, this);
+        return this;
+    }
+
+    setFromMatrix(matrix) {
+        quat.fromMat(matrix, this);
+        return this;
+    }
+
 }
 
 export { Quaternion };

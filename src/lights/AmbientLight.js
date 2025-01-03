@@ -7,7 +7,7 @@ class AmbientLight {
         this.color = new Color(color);
         this.intensity = intensity;
         this._data = new Float32Array([
-            ...this.color.data,
+            ...this.color,
             this.intensity,
         ]);
     }

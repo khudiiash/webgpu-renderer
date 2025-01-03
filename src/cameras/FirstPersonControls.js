@@ -89,7 +89,6 @@ class FirstPersonControls {
         this.domElement.addEventListener('mousemove', this.onMouseMove, false);
         window.addEventListener('keydown', this.onKeyDown, false);
         window.addEventListener('keyup', this.onKeyUp, false);
-        console.log('FirstPersonControls');
     }
     
     update(dt) {

@@ -1,4 +1,6 @@
 import { vec3 } from 'wgpu-matrix';
+import { DataMonitor } from '../utils/DataMonitor.js';
+
 
 class Vector3 extends Float32Array {
     static byteSize = 3 * Float32Array.BYTES_PER_ELEMENT;
@@ -19,6 +21,12 @@ class Vector3 extends Float32Array {
             writable: false,
             enumerable: false,
         });
+
+        Object.defineProperty(this, 'monitor', {
+            value: new DataMonitor(this, this),
+            writable: false,
+            enumerable: false,
+        })
     }
     
     get x() {
@@ -27,7 +35,7 @@ class Vector3 extends Float32Array {
     
     set x(value) {
         this[0] = value;
-        this._onChangeCallback();
+        this.monitor.check();
     }
     
     get y() {
@@ -36,7 +44,7 @@ class Vector3 extends Float32Array {
 
     set y(value) {
         this[1] = value;
-        this._onChangeCallback();
+        this.monitor.check();
     }
 
     get z() {
@@ -45,7 +53,7 @@ class Vector3 extends Float32Array {
 
     set z(value) {
         this[2] = value;
-        this._onChangeCallback();
+        this.monitor.check();
     }
     
     print() {
@@ -54,7 +62,6 @@ class Vector3 extends Float32Array {
     
     invert() {
         vec3.negate(this, this);
-        this._onChangeCallback();
         return this;
     }
     
@@ -68,7 +75,6 @@ class Vector3 extends Float32Array {
         } else {
             vec3.min(this, [x, y, z], this);
         }
-        this._onChangeCallback();
         return this;
     }
     
@@ -78,7 +84,7 @@ class Vector3 extends Float32Array {
         } else { 
             vec3.max(this, [x, y, z], this);
         }
-        this._onChangeCallback();
+        
         return this;
     }
     
@@ -90,7 +96,7 @@ class Vector3 extends Float32Array {
         this[0] = array[offset];
         this[1] = array[offset + 1];
         this[2] = array[offset + 2];
-        this._onChangeCallback();
+        
         return this
     }
 
@@ -98,13 +104,12 @@ class Vector3 extends Float32Array {
         this[0] = matrix[12];
         this[1] = matrix[13];
         this[2] = matrix[14];
-        this._onChangeCallback();
+        
         return this;
     }
     
     divScalar(scalar) {
         vec3.scale(this, 1 / scalar, this);
-        this._onChangeCallback();
         return this;
     }
     
@@ -112,7 +117,6 @@ class Vector3 extends Float32Array {
         this[0] = x;
         this[1] = y;
         this[2] = z;
-        this._onChangeCallback();
         return this;
     }
 
@@ -133,13 +137,11 @@ class Vector3 extends Float32Array {
     
     subVectors(a, b) {
         vec3.sub(a, b, this);
-        this._onChangeCallback();
         return this;
     }
     
     copy(v) {
         vec3.copy(v, this);
-        this._onChangeCallback();
         return this;
     }
     
@@ -166,12 +168,10 @@ class Vector3 extends Float32Array {
     
     normalize() {
         vec3.normalize(this, this);
-        this._onChangeCallback();
         return this;
     }
     
     applyMatrix4(m) {
-        
 		const x = this.x, y = this.y, z = this.z;
 		const e = m;
 
@@ -180,10 +180,6 @@ class Vector3 extends Float32Array {
 		this.x = ( e[ 0 ] * x + e[ 4 ] * y + e[ 8 ] * z + e[ 12 ] ) * w;
 		this.y = ( e[ 1 ] * x + e[ 5 ] * y + e[ 9 ] * z + e[ 13 ] ) * w;
 		this.z = ( e[ 2 ] * x + e[ 6 ] * y + e[ 10 ] * z + e[ 14 ] ) * w;
-
-		// return this;
-
-        // vec3.transformMat4(this, this, matrix);
         return this;
     }
     
@@ -194,7 +190,6 @@ class Vector3 extends Float32Array {
     
     multiplyScalar(s) {
         vec3.scale(this, s, this);
-        this._onChangeCallback();
         return this;
     }
     
@@ -205,11 +200,8 @@ class Vector3 extends Float32Array {
         return array;
     }
     
-    
-    
     subVectors(a, b) {
         vec3.sub(a, b, this);
-        this._onChangeCallback();
         return this;
     }
     
@@ -223,14 +215,12 @@ class Vector3 extends Float32Array {
     
     crossVectors(a, b) {
         vec3.cross(a, b, this);
-        this._onChangeCallback();
         return this;
     }
     
     clampLength(min, max) {
         const length = this.length();
         this.multiplyScalar(Math.max(min, Math.min(max, length)) / length);
-        this._onChangeCallback();
         return this;
     }
     
@@ -270,20 +260,9 @@ class Vector3 extends Float32Array {
     
     clear() {
         this.fill(0);
-        this._onChangeCallback();
         return this;
     }
 
-    onChange(callback) {
-        this._onChangeCallback = callback;
-        return this;
-    }
-
-    _onChangeCallback() {
-
-    }
-    
-    
     static subVectors(a, b) {
         return new Vector3().subVectors(a, b);
     }
@@ -295,7 +274,6 @@ class Vector3 extends Float32Array {
     static crossVectors(a, b) {
         return new Vector3().crossVectors(a, b);
     }
-    
 }
 
 export { Vector3 };

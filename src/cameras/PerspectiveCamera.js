@@ -22,10 +22,8 @@ class PerspectiveCamera extends Camera {
   
     updateProjectionMatrix() {
         this.projectionMatrix.perspective(this.fov * DEG2RAD, this.aspect, this.near, this.far);
-        this._data.set(this.projectionMatrix.data, 0);
         this.projectionViewMatrix.multiplyMatrices(this.projectionMatrix, this.viewMatrix);
         this.updateFrustum();
-        this.emit('write', { data: this.projectionMatrix.data, name: 'camera' });
     }
     
 }

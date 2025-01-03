@@ -1,6 +1,8 @@
 import { generateID } from '../math/MathUtils.js';
 import { Object3D } from './Object3D.js';
 import { Vector3 } from '../math/Vector3.js';
+import { UniformData } from '../renderer/new/UniformData.js';
+import { Utils } from '../utils/Utils.js';
 const _v1 = new Vector3();
 const _v2 = new Vector3();
 const _v3 = new Vector3();
@@ -10,14 +12,21 @@ const _v3 = new Vector3();
 class Mesh extends Object3D {
     constructor(geometry, material) {
         super();
-        this.id = generateID();
-        this.geomatID = `${geometry.id}_${material.id}`;
+        this.id = Utils.GUID('mesh');
         this.isMesh = true;
         this.type = 'mesh';
         this.count = 1;
-        this.isCulled = true;
+        this.isCulled = false;
         this.geometry = geometry;
         this.material = material;
+
+        this.uniforms = new UniformData({ 
+            name: 'model', 
+            isGlobal: false, 
+            values: { matrixWorld: this.matrixWorld } 
+        });
+
+        material.meshes.push(this);
     }
     
     

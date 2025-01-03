@@ -1,6 +1,6 @@
 import { DirectionalLight } from '../lights/DirectionalLight';
 import { ShaderLib } from './shaders/ShaderLib';
-import { UniformLib } from './shaders/UniformLib';
+//import { UniformLib } from './shaders/UniformLib';
 import { BindGroups} from './BindGroups';
 import { Pipelines } from './Pipelines';
 import { Textures } from './Textures';
@@ -17,6 +17,12 @@ import { BoxGeometry } from '../geometry/BoxGeometry';
 import { Vector3 } from '../math/Vector3';
 import { Color } from '../math/Color';
 import { CullingSystem } from './CullingSystem';
+import { GPUResourceManager } from './new/GPUResourceManager';
+import { PipelineManager } from './new/PipelineManager';
+import { RenderGraph } from './new/RenderGraph';
+import { TextureLoader } from '../loaders/TextureLoader';
+import { UniformData } from './new/UniformData';
+import { RenderableObject } from './new/RenderableObject';
 
 const _projScreenMatrix = new Matrix4();
      
@@ -48,6 +54,8 @@ class Renderer extends Events {
         }
         this.count = 0;
         this.data = new WeakMap();
+        this.textureLoader = new TextureLoader(this.device);
+        UniformData.device = this.device;
         this.format = navigator.gpu.getPreferredCanvasFormat();
         this.context = this.canvas.getContext('webgpu');
         this.frames = 0;
@@ -58,6 +66,12 @@ class Renderer extends Events {
             format: this.format,
             alphaMode: 'premultiplied',
         });
+
+        this.resources = new GPUResourceManager(this.device);
+        this.piplines = new PipelineManager(this.device);
+        this.renderGraph = new RenderGraph(this.device);
+        this.shadowPass 
+        
         this.shadowNeedsUpdate = true;
         this.width = this.canvas.width;
         this.height = this.canvas.height;
@@ -117,12 +131,12 @@ class Renderer extends Events {
                     storeOp: 'store',
                 }
             ],
-            depthStencilAttachment: {
-                view: this.textures.getView('depth'),
-                depthClearValue: 1.0,
-                depthLoadOp: 'clear',
-                depthStoreOp: 'store',
-            }
+            // depthStencilAttachment: {
+            //     view: this.textures.getView('depth'),
+            //     depthClearValue: 1.0,
+            //     depthLoadOp: 'clear',
+            //     depthStoreOp: 'store',
+            // }
         }; 
     }
     
@@ -177,31 +191,7 @@ class Renderer extends Events {
        
 
     createRenderObject(mesh) {
-        const renderObject = new RenderObject(mesh);
-        const renderBindGroupLayout = this.bindGroups.createRenderBindGroupLayout(renderObject);
-        const shadowBindGroupLayout = this.bindGroups.createShadowBindGroupLayout(renderObject);
-        const renderBindGroup = this.bindGroups.createRenderBindGroup(renderObject, renderBindGroupLayout);
-        const shadowBindGroup = this.bindGroups.createShadowBindGroup(renderObject, shadowBindGroupLayout);
-        const vertex = this.buffers.createVertexBuffer(mesh.geometry.packed);
-        const index = this.buffers.createIndexBuffer(mesh.geometry.indices);
-            
-        renderObject.setVertexBuffer(vertex);
-        renderObject.setIndexBuffer(index);
-
-        const shadowPipeline = this.pipelines.createShadowPipeline(renderObject, shadowBindGroupLayout);
-        const renderPipeline = this.pipelines.createRenderPipeline(renderObject, renderBindGroupLayout);
-        renderObject.setShadowPipeline(shadowPipeline, shadowBindGroupLayout);
-        renderObject.setRenderPipeline(renderPipeline, renderBindGroupLayout);
-        renderObject.setRenderBindGroup(renderBindGroup);
-        renderObject.setShadowBindGroup(shadowBindGroup);
-
-        mesh.material.on('update', () => {
-            renderObject.setRenderBindGroup(this.bindGroups.createRenderBindGroup(renderObject, renderBindGroupLayout));            
-            renderObject.setShadowBindGroup(this.bindGroups.createShadowBindGroup(renderObject, shadowBindGroupLayout));
-            renderObject.setRenderPipeline(this.pipelines.createRenderPipeline(renderObject, renderBindGroupLayout));
-            renderObject.setShadowPipeline(this.pipelines.createShadowPipeline(renderObject, shadowBindGroupLayout));
-        });
-
+        const renderObject = new RenderableObject(mesh);
         this.set(mesh, renderObject);
         return renderObject;
     }
@@ -213,10 +203,12 @@ class Renderer extends Events {
                 this.get(object) : 
                 this.createRenderObject(object);
             
-            pass.setPipeline(renderObject.render.pipeline);
-            pass.setBindGroup(0, renderObject.render.bindGroup);
-            pass.setVertexBuffer(0, renderObject.buffers.vertex);
-            pass.setIndexBuffer(renderObject.buffers.index, object.geometry.indexFormat);
+            pass.setPipeline(renderObject.pipeline);
+            for (let i = 0; i < renderObject.bindGroups.length; i++) {
+                pass.setBindGroup(i, renderObject.bindGroups[i]);
+            }
+            pass.setVertexBuffer(0, renderObject.vertexBuffer);
+            pass.setIndexBuffer(renderObject.indexBuffer, object.geometry.indexFormat);
 
             const instanceCount = object.count;
 
@@ -284,50 +276,48 @@ class Renderer extends Events {
         this.elapsed += dt;
         this._lastTime = performance.now();
 
-        if (!this.buffers.has(scene)) {
-            this.buffers.createUniformBuffer(UniformLib.scene, scene);
-        }
-        if (!this.buffers.has(camera)) {
-            this.buffers.createUniformBuffer(UniformLib.camera, camera);
-        }
+    //     if (!this.buffers.has(scene)) {
+    //         this.buffers.createUniformBuffer(UniformLib.scene, scene);
+    //     }
+    //     if (!this.buffers.has(camera)) {
+    //         this.buffers.createUniformBuffer(UniformLib.camera, camera);
+    //     }
 
-        this.buffers.write('time', new Float32Array([this.elapsed]));
+    //     this.buffers.write('time', new Float32Array([this.elapsed]));
 
-        const encoder = this.device.createCommandEncoder();
+         const encoder = this.device.createCommandEncoder();
         
-        this.cullingSystem.compute(scene, camera, encoder, this.textures.getTexture('depth'));
+    //     this.cullingSystem.compute(scene, camera, encoder, this.textures.getTexture('depth'));
 
         
-        this.renderPassDescriptor.colorAttachments[0].view = this.context
+         this.renderPassDescriptor.colorAttachments[0].view = this.context
             .getCurrentTexture()
             .createView();
-        this.renderPassDescriptor.colorAttachments[0].clearValue = scene.background.data;
 
-        const shadowDepthPass = encoder.beginRenderPass({
-            colorAttachments: [],
-            depthStencilAttachment: {
-                view: this.textures.getView('shadowMap'),
-                depthLoadOp: 'clear',
-                depthClearValue: 1.0,
-                depthStoreOp: 'store',
-            }
-        });
-        if (this.shadowBundle) {
-            shadowDepthPass.executeBundles([this.shadowBundle]);
-        } else {
-            const shadowPassEncoder = this.device.createRenderBundleEncoder({
-                colorFormats: [],
-                depthStencilFormat: 'depth32float',
-            }); 
-            this.drawShadowDepth(scene, shadowPassEncoder, scene.directionalLights);
-            this.shadowBundle = shadowPassEncoder.finish();
-            if (this.frames > 5) {
-                this.shadowNeedsUpdate = false; 
-            }
-        }
-        shadowDepthPass.end();
+    //     const shadowDepthPass = encoder.beginRenderPass({
+    //         colorAttachments: [],
+    //         depthStencilAttachment: {
+    //             view: this.textures.getView('shadowMap'),
+    //             depthLoadOp: 'clear',
+    //             depthClearValue: 1.0,
+    //             depthStoreOp: 'store',
+    //         }
+    //     });
+    //     if (this.shadowBundle) {
+    //         shadowDepthPass.executeBundles([this.shadowBundle]);
+    //     } else {
+    //         const shadowPassEncoder = this.device.createRenderBundleEncoder({
+    //             colorFormats: [],
+    //             depthStencilFormat: 'depth32float',
+    //         }); 
+    //         this.drawShadowDepth(scene, shadowPassEncoder, scene.directionalLights);
+    //         this.shadowBundle = shadowPassEncoder.finish();
+    //         if (this.frames > 5) {
+    //             this.shadowNeedsUpdate = false; 
+    //         }
+    //     }
+    //     shadowDepthPass.end();
 
-        this.count = 0;
         const renderPass = encoder.beginRenderPass(this.renderPassDescriptor);
         this.drawObject(scene, camera, renderPass, encoder);
 

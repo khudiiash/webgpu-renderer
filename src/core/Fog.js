@@ -1,17 +1,9 @@
 import { Color } from '../math/Color';
+import { DataMonitor } from '../utils/DataMonitor';
 
-class Fog {
-    static byteSize = 32;
-    
-    static struct = {
-        color: 'vec4f',
-        density: 'f32',
-        start: 'f32',
-        end: 'f32',
-        fogType: 'f32'
-    }
-
+class Fog extends Float32Array{
     constructor(config) {
+        super(8);
         config = {
             color: 0xffffff,
             type: Fog.LINEAR,
@@ -20,80 +12,48 @@ class Fog {
             end: 100,
             ...config
         };
-        this._color = config.color instanceof Color ? config.color : new Color(config.color);
-        this._start = config.start;
-        this._end = config.end;
-        this._density = config.density;
-        this._type  = config.type;
 
-        this.byteSize = 32;
+        let color = new Color(config.color).onChange(() => {
+            this.set([color.r, color.g, color.b, color.a]);
+            this.monitor.check();
+        });
 
-        this.isFog = true;
+        Object.defineProperties(this, {
+            monitor: { value: new DataMonitor(this, this), writable: false },
+            color: { 
+                set: (newColor) => {
+                    color = newColor;
+                    this.set([color.r, color.g, color.b, color.a]);
+                    color.onChange(() => this.set([color.r, color.g, color.b, color.a]));
+                    this.monitor.check();
+                },
+                get: () => color 
+            },
+            isFog : { value: true, writable: false },
+        });
 
-        this._data = new Float32Array([
-            this._color.r,
-            this._color.g,
-            this._color.b,
-            this._color.a,
-            this._density,
-            this._start,
-            this._end,
-            this._type
+        this.set([
+            config.color.r,
+            config.color.g,
+            config.color.b,
+            config.color.a,
+            config.type,
+            config.start,
+            config.end,
+            config.density,
         ]);
     }
+
+    get type() { return this[4]; }
+    get start() { return this[5]; }
+    get end() { return this[6]; }
+    get density() { return this[7]; }
+
+    set type(value) { this[4] = value; this.monitor.check(); }
+    set start(value) { this[5] = value; this.monitor.check(); }
+    set end(value) { this[6] = value; this.monitor.check(); }
+    set density(value) { this[7] = value; this.monitor.check(); }
     
-    set color(value) {
-        this._color = value;
-        this._data.set(this._color.data, 0);
-    }
-    
-    get color() {
-        return this._color;
-    }
-    
-    set start(value) {
-        this._start = value;
-        this._data[4] = value;
-    }
-    
-    get start() {
-        return this._start;
-    }
-    
-    set end(value) {
-        this._end = value;
-        this._data[5] = value;
-    }
-
-    get end() {
-        return this._end;
-    }
-
-    set density(value) {
-        this._density = value;
-        this._data[6] = value;
-    }
-
-    get density() {
-        return this._density;
-    }
-
-    set type(value) {
-        this._type = value;
-        this._data[7] = value;
-    }
-
-    get type() {
-        return this._type;
-    }
-
-    set data(value) {
-        this._data = value;
-    }
-
-    get data() {
-        return this._data;
-    }
 }
 
 Fog.LINEAR = 0;

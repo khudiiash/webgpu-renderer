@@ -10,6 +10,87 @@ describe('Quaternion', () => {
     onChangeSpy = jest.fn();
   });
 
+describe('Additional Operations', () => {
+    test('add combines quaternions correctly', () => {
+        const q1 = new Quaternion(1, 2, 3, 4);
+        const q2 = new Quaternion(2, 3, 4, 5);
+        const q = new Quaternion().onChange(onChangeSpy);
+        
+        q.add(q1, q2);
+        
+        expect(q.x).toBe(3);
+        expect(q.y).toBe(5);
+        expect(q.z).toBe(7);
+        expect(q.w).toBe(9);
+        expect(onChangeSpy).toHaveBeenCalled();
+    });
+
+    test('set updates values correctly', () => {
+        const q = new Quaternion().onChange(onChangeSpy);
+        q.set(1, 2, 3, 4);
+        
+        expect(q.x).toBe(1);
+        expect(q.y).toBe(2);
+        expect(q.z).toBe(3);
+        expect(q.w).toBe(4);
+        expect(onChangeSpy).toHaveBeenCalled();
+    });
+
+    test('premultiply applies rotation correctly', () => {
+        const q = new Quaternion().onChange(onChangeSpy);
+        const qRot = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI/2);
+        
+        q.premultiply(qRot);
+        
+        expect(onChangeSpy).toHaveBeenCalled();
+    });
+
+    test('invert creates correct inverse rotation', () => {
+        const q = new Quaternion(0, 1, 0, 0).onChange(onChangeSpy);
+        q.invert();
+        
+        expect(q.x).toBeCloseTo(0);
+        expect(q.y).toBeCloseTo(-1);
+        expect(q.z).toBeCloseTo(0);
+        expect(q.w).toBeCloseTo(0);
+        expect(onChangeSpy).toHaveBeenCalled();
+    });
+
+    test('setFromRotationMatrix sets correct rotation', () => {
+        const q = new Quaternion().onChange(onChangeSpy);
+        // Create a simple rotation matrix (90 degrees around Y)
+        const matrix = new Float32Array([
+            0, 0, -1, 0,
+            0, 1, 0, 0,
+            1, 0, 0, 0,
+            0, 0, 0, 1
+        ]);
+        
+        q.setFromRotationMatrix(matrix);
+        
+        expect(q.y).toBeCloseTo(Math.sin(Math.PI/4));
+        expect(q.w).toBeCloseTo(Math.cos(Math.PI/4));
+        expect(onChangeSpy).toHaveBeenCalled();
+    });
+
+    test('setFromMatrix sets correct rotation', () => {
+        const q = new Quaternion().onChange(onChangeSpy);
+        // Create a simple rotation matrix (90 degrees around Y)
+        const matrix = new Float32Array([
+            0, 0, -1, 0,
+            0, 1, 0, 0,
+            1, 0, 0, 0,
+            0, 0, 0, 1
+        ]);
+        
+        q.setFromMatrix(matrix);
+        
+        expect(q.y).toBeCloseTo(Math.sin(Math.PI/4));
+        expect(q.w).toBeCloseTo(Math.cos(Math.PI/4));
+        expect(onChangeSpy).toHaveBeenCalled();
+    });
+});
+
   describe('Constructor and Basic Properties', () => {
     test('constructor creates identity quaternion by default', () => {
       const q = new Quaternion();
@@ -122,6 +203,7 @@ describe('Quaternion', () => {
       const q = new Quaternion(); // Identity quaternion
       const forward = new Vector3();
       q.getForwardVector(forward);
+      
       
       expect(forward.x).toBeCloseTo(0);
       expect(forward.y).toBeCloseTo(0);

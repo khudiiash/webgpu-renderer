@@ -50,7 +50,6 @@ class GLTFLoader {
         this.cache.clear();
         this.instances = instances;
         this.data = await load(url, GLTF);
-        console.log(this.data);
         const parsed = this.parse(this.data, instances);
         return parsed;
     }    

@@ -1,50 +1,29 @@
 import { Matrix4 } from './Matrix4';
 import { clamp, DEG2RAD, RAD2DEG } from './MathUtils';
+import { arraysEqual } from '../utils/arraysEqual';
+import { DataMonitor } from '../utils/DataMonitor';
 
 
 class Euler extends Float32Array {
-
     constructor(x = 0, y = 0, z = 0, order = Euler.DEFAULT_ORDER) {
         super([x, y, z]);
-        this._order = order;
-    }
-    
-    get x() {
-        return this[0];
+
+        Object.defineProperties(this, {
+            isEuler: { value: true, writable: false },
+            monitor: { value: new DataMonitor(this, this), writable: false }, 
+            _order: { value: order, writable: true },
+        })
     }
 
-    set x(value) {
-        this[0] = value;
-        this._onChangeCallback();
-    }
+    get x() { return this[0]; }
+    get y() { return this[1]; }
+    get z() { return this[2]; }
+    get order() { return this._order; }
 
-    get y() {
-        return this[1];
-    }
-
-    set y(value) {
-        this[1] = value;
-        this._onChangeCallback();
-    }
-
-    get z() {
-        return this[2];
-    }
-
-    set z(value) {
-        this[2] = value;
-        this._onChangeCallback();
-    }
-    
-    get order() {
-        return this._order;
-    }
-    
-    set order(value) {
-        this._order = value;
-        this._onChangeCallback();
-    }
-    
+    set x(value) { this[0] = value; this.monitor.check(); }
+    set y(value) { this[1] = value; this.monitor.check(); }
+    set z(value) { this[2] = value; this.monitor.check(); }
+    set order(value) { this._order = value; this.monitor.check(); }
     
     toArray(array = [], offset = 0) {
         array[ offset ] = this[0];
@@ -55,7 +34,6 @@ class Euler extends Float32Array {
     
     setFromQuaternion(q, order = this._order, update) {
         Matrix4.instance.setFromQuaternion(q);
-        if (update) this._onChangeCallback();
         return this.setFromRotationMatrix(Matrix4.instance, order, update);
     }
     
@@ -131,10 +109,9 @@ class Euler extends Float32Array {
             const phi2 = Math.atan2(m21 / Math.cos(theta2), m11 / Math.cos(theta2));
     
             // Choose the first solution
-            // Note: You could implement additional logic here to choose between solutions
-            this.x = psi1;  // X rotation (ψ)
-            this.y = theta1; // Y rotation (θ)
-            this.z = phi1;  // Z rotation (φ)
+            this[0] = psi1;
+            this[1] = theta1;
+            this[2] = phi1;
             
         } else {
             // Gimbal lock case (cos(θ) = 0)
@@ -149,16 +126,16 @@ class Euler extends Float32Array {
                 // θ = π/2 case
                 // ψ = φ + atan2(R12, R13)
                 const psi = phi + Math.atan2(m12, m13);
-                this.x = psi;   // X rotation (ψ)
-                this.y = theta; // Y rotation (θ)
-                this.z = phi;   // Z rotation (φ)
+                this[0] = psi;
+                this[1] = theta;
+                this[2] = phi;
             } else {
                 // θ = -π/2 case
                 // ψ = -φ + atan2(-R12, -R13)
                 const psi = -phi + Math.atan2(-m12, -m13);
-                this.x = psi;   // X rotation (ψ)
-                this.y = theta; // Y rotation (θ)
-                this.z = phi;   // Z rotation (φ)
+                this[0] = psi;
+                this[1] = theta;
+                this[2] = phi;
             }
         }
     
@@ -170,9 +147,9 @@ class Euler extends Float32Array {
 
     // Helper method to normalize angles to [-π, π]
     normalize() {
-        this.x = ((this.x + Math.PI) % (2 * Math.PI)) - Math.PI;
-        this.y = ((this.y + Math.PI) % (2 * Math.PI)) - Math.PI;
-        this.z = ((this.z + Math.PI) % (2 * Math.PI)) - Math.PI;
+        this[0] = ((this.x + Math.PI) % (2 * Math.PI)) - Math.PI;
+        this[1] = ((this.y + Math.PI) % (2 * Math.PI)) - Math.PI;
+        this[2] = ((this.z + Math.PI) % (2 * Math.PI)) - Math.PI;
         return this;
     }
     
@@ -190,14 +167,13 @@ class Euler extends Float32Array {
         this[1] = y;
         this[2] = z;
         this._order = order;
-        this._onChangeCallback();
         return this;
     }
     
     copy(euler) {
-        this.x = euler.x;
-        this.y = euler.y;
-        this.z = euler.z;
+        this[0] = euler.x;
+        this[1] = euler.y;
+        this[2] = euler.z;
         this.order = euler.order;
         return this;
     }

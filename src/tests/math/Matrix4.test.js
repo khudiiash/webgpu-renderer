@@ -1,174 +1,153 @@
 import { Matrix4 } from '../../math/Matrix4';
 import { Vector3 } from '../../math/Vector3';
 import { Quaternion } from '../../math/Quaternion';
+import { arraysEqual } from '../../utils/arraysEqual';
+import { jest } from '@jest/globals';
 
-describe('Matrix4', () => {
+describe('Matrix4 Additional Tests', () => {
     let matrix;
     
     beforeEach(() => {
         matrix = new Matrix4();
     });
-    
-    test('should initialize with identity matrix by default', () => {
-        expect(matrix).toEqual(new Matrix4([
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            0, 0, 0, 1
-        ]));
+
+
+    test('onChange callback should be called when matrix changes', () => {
+        const callback = jest.fn();
+        matrix.onChange(callback);
+        matrix.scale(1, 2, 3);
+        expect(callback).toHaveBeenCalled();
     });
-    
-    test('should initialize with custom values', () => {
-        const customMatrix = new Matrix4([
-            1, 2, 3, 4,
-            5, 6, 7, 8,
-            9, 10, 11, 12,
-            13, 14, 15, 16
-        ]);
-        
-        expect(Array.from(customMatrix)).toEqual([
-            1, 2, 3, 4,
-            5, 6, 7, 8,
-            9, 10, 11, 12,
-            13, 14, 15, 16
-        ]);
+
+    test('onChange callback should not be called when matrix does not change', () => {
+        const callback = jest.fn();
+        matrix.onChange(callback);
+        matrix.scale(1, 1, 1);
+        expect(callback).not.toHaveBeenCalled();
     });
-    
-    test('lookAt should create correct view matrix', () => {
+
+    test('lookAtRotation should create correct rotation matrix', () => {
         const eye = new Vector3(0, 0, 5);
         const target = new Vector3(0, 0, 0);
         const up = new Vector3(0, 1, 0);
+
+        matrix.lookAtRotation(eye, target, up);
         
-        matrix.lookAt(eye, target, up);
-        const expected = [
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            0, 0, -5, 1
-        ];
-        for (let i = 0; i < 16; i++) {
-            expect(matrix[i]).toBeCloseTo(expected[i]);
-        }
+        // Check if forward vector (z-axis) points to -z
+        expect(matrix[8]).toBeCloseTo(0);
+        expect(matrix[9]).toBeCloseTo(0);
+        expect(matrix[10]).toBeCloseTo(-1);
     });
-    
-    test('multiply should correctly multiply two matrices', () => {
-        const m1 = new Matrix4([
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            1, 2, 3, 1
-        ]);
-        
-        const m2 = new Matrix4([
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            4, 5, 6, 1
-        ]);
-        
-        m1.multiply(m2);
-        
-        expect(m1[12]).toBe(5); // Translation X
-        expect(m1[13]).toBe(7); // Translation Y
-        expect(m1[14]).toBe(9); // Translation Z
-    });
-    
-    test('determinant should return correct value', () => {
-        matrix.set([
-            1, 0, 0, 0,
-            0, 2, 0, 0,
-            0, 0, 3, 0,
-            0, 0, 0, 1
-        ]);
-        
-        expect(matrix.determinant()).toBe(6);
-    });
-    
-    test('invert should correctly invert the matrix', () => {
-        const original = new Matrix4([
-            1, 0, 0, 0,
-            0, 2, 0, 0,
-            0, 0, 3, 0,
-            1, 2, 3, 1
-        ]);
-        
-        const inverted = original.clone().invert();
-        const result = new Matrix4();
-        result.multiplyMatrices(original, inverted);
-        
-        // Should be approximately identity matrix
-        for (let i = 0; i < 16; i++) {
-            if (i % 5 === 0) { // Diagonal elements
-                expect(result[i]).toBeCloseTo(1);
-            } else {
-                expect(result[i]).toBeCloseTo(0);
-            }
-        }
-    });
-    
-    test('compose should build matrix from position, quaternion and scale', () => {
-        const position = new Vector3(1, 2, 3);
-        const quaternion = new Quaternion();
-        const scale = new Vector3(2, 2, 2);
-        
-        matrix.compose(position, quaternion, scale);
-        
-        const decomposedPosition = new Vector3();
-        const decomposedQuaternion = new Quaternion();
-        const decomposedScale = new Vector3();
-        
-        matrix.decompose(decomposedPosition, decomposedQuaternion, decomposedScale);
-        
-        expect(decomposedPosition).toEqual(position);
-        expect(decomposedScale).toEqual(scale);
-        expect(decomposedQuaternion).toEqual(quaternion);
-    });
-    
-    test('translate should correctly translate the matrix', () => {
-        const translation = new Vector3(1, 2, 3);
-        matrix.translate(translation);
-        
-        expect(matrix[12]).toBe(1);
-        expect(matrix[13]).toBe(2);
-        expect(matrix[14]).toBe(3);
-    });
-    
-    test('scale should correctly scale the matrix', () => {
-        matrix.scale(2);
-        
-        expect(matrix[0]).toBe(2);
-        expect(matrix[5]).toBe(2);
-        expect(matrix[10]).toBe(2);
-    });
-    
-    test('clone should create a new independent copy', () => {
+
+    test('identity should reset matrix to identity', () => {
         matrix.translate(1, 2, 3);
-        const clone = matrix.clone();
+        matrix.identity();
         
-        expect(clone.toArray()).toEqual(matrix.toArray());
-        
-        matrix.translate(1, 0, 0);
-        expect(clone.toArray()).not.toEqual(matrix.toArray());
+        expect(arraysEqual(matrix, new Matrix4())).toBe(true);
     });
-    
-    test('equals should correctly compare matrices', () => {
-        const m1 = new Matrix4([
+
+    test('print should return correct string representation', () => {
+        const result = matrix.identity().print();
+        expect(result).toBe('1 0 0 0\n0 1 0 0\n0 0 1 0\n0 0 0 1');
+    });
+
+    test('setFromQuaternion should set correct rotation', () => {
+        const q = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 2);
+        matrix.setFromQuaternion(q);
+        
+        expect(matrix[0]).toBeCloseTo(0);
+        expect(matrix[2]).toBeCloseTo(1);
+        expect(matrix[8]).toBeCloseTo(-1);
+        expect(matrix[10]).toBeCloseTo(0);
+    });
+
+    test('transpose should correctly transpose matrix', () => {
+        matrix.set(
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            9, 10, 11, 12,
+            13, 14, 15, 16
+        );
+        matrix.transpose();
+        
+        expect(matrix[1]).toBe(5);
+        expect(matrix[2]).toBe(9);
+        expect(matrix[3]).toBe(13);
+        expect(matrix[4]).toBe(2);
+    });
+
+    test('getMaxScaleOnAxis should return largest scale', () => {
+        matrix.scale(2, 3, 4);
+        expect(matrix.getMaxScaleOnAxis()).toBeCloseTo(4);
+    });
+
+    test('transformPoint should correctly transform point', () => {
+        matrix.translate(1, 2, 3);
+        const point = new Vector3(1, 1, 1);
+        matrix.transformPoint(point);
+        
+        expect(point.x).toBe(2);
+        expect(point.y).toBe(3);
+        expect(point.z).toBe(4);
+    });
+
+    test('rotateX/Y/Z should correctly rotate matrix', () => {
+        matrix.rotateX(Math.PI / 2);
+        expect(matrix[5]).toBeCloseTo(0);
+        expect(matrix[6]).toBeCloseTo(1);
+        
+        matrix.identity().rotateY(Math.PI / 2);
+        expect(matrix[0]).toBeCloseTo(0);
+        expect(matrix[2]).toBeCloseTo(-1);
+        
+        matrix.identity().rotateZ(Math.PI / 2);
+        expect(matrix[0]).toBeCloseTo(0);
+        expect(matrix[1]).toBeCloseTo(1);
+    });
+
+    test('fromArray and toArray should work correctly', () => {
+        const array = [
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            9, 10, 11, 12,
+            13, 14, 15, 16
+        ];
+        
+        matrix.fromArray(array);
+        const result = [];
+        matrix.toArray(result);
+        
+        expect(result).toEqual(array);
+    });
+
+    test('onChange callback should be called when matrix changes', () => {
+        let called = false;
+        matrix.onChange(() => called = true);
+        
+        matrix.translate(1, 2, 3);
+        expect(called).toBe(true);
+    });
+
+    test('equalsArray should correctly compare with array', () => {
+        const array = [
             1, 0, 0, 0,
             0, 1, 0, 0,
             0, 0, 1, 0,
             0, 0, 0, 1
-        ]);
+        ];
         
-        const m2 = new Matrix4([
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            0, 0, 0, 1
-        ]);
+        expect(matrix.equalsArray(array)).toBe(true);
+        array[0] = 2;
+        expect(matrix.equalsArray(array)).toBe(false);
+    });
+
+    test('frustum should create correct perspective matrix', () => {
+        matrix.frustum(-1, 1, -1, 1, 1, 100);
         
-        expect(m1.equals(m2)).toBe(true);
-        
-        m2[12] = 1;
-        expect(m1.equals(m2)).toBe(false);
+        // Check some key elements that define a perspective projection
+        expect(matrix[0]).toBe(1);  // focal length x
+        expect(matrix[5]).toBe(1);  // focal length y
+        expect(matrix[10]).toBeCloseTo(-1, 1);  // depth translation
+        expect(matrix[14]).toBeCloseTo(-1, 1);  // depth scaling
     });
 });

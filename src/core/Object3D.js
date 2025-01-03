@@ -4,6 +4,7 @@ import { Euler } from '../math/Euler.js';
 import { Matrix4 } from '../math/Matrix4.js';
 import { Events } from '../core/Events.js';
 import { generateID } from '../math/MathUtils.js';
+import { UniformData } from '../renderer/new/UniformData.js';
 
 const _target = new Vector3();
 const _position = new Vector3();
@@ -31,34 +32,37 @@ class Object3D extends Events {
         this.matrixAutoUpdate = true;
         this.matrixWorldNeedsUpdate = false;
 
-        this.position = new Vector3();
-        this.rotation = new Euler();
-        this.quaternion = new Quaternion();
-        this.scale = new Vector3(1, 1, 1); 
+        this.position = new Vector3().onChange(() => this.updateMatrixWorld(true, false));
+        this.scale = new Vector3(1, 1, 1).onChange(() => this.updateMatrixWorld(true, false)); 
+
+        let _isUpdatingRotation = false;
+
+        this.rotation = new Euler().onChange(() => {
+            if (!_isUpdatingRotation) {
+                _isUpdatingRotation = true;
+                this.quaternion.setFromEuler(this.rotation, false);
+                _isUpdatingRotation = false;
+                this.updateMatrixWorld(true, false);
+            }
+        });
+
+        this.quaternion = new Quaternion().onChange(() => {
+            if (!_isUpdatingRotation) {
+                _isUpdatingRotation = true;
+                this.rotation.setFromQuaternion(this.quaternion, undefined, false);
+                _isUpdatingRotation = false;
+                this.updateMatrixWorld(true, false);
+            }
+        });
         
-        function onRotationChange() {
-            this.quaternion.setFromEuler(this.rotation, false);
-            this.updateWorldMatrix(false, true);
-        }
-        
-        function onQuaternionChange() {
-            this.rotation.setFromQuaternion(this.quaternion, undefined, false);
-            this.updateWorldMatrix(false, true);
-        }
-        
-        function onPositionChange() {
-            this.updateWorldMatrix(false, true);
-        }
-        
-        this.rotation.onChange(onRotationChange.bind(this));
-        this.quaternion.onChange(onQuaternionChange.bind(this));
-        this.position.onChange(onPositionChange.bind(this));
+
 
         this.up = new Vector3(0, 1, 0);
         this.matrix = new Matrix4();
         this.matrixWorld = new Matrix4();
         this.direction = new Vector3(0, 0, -1);
         this.rotationMatrix = new Matrix4();
+
     }
    
     setParent(parent) {
@@ -84,7 +88,7 @@ class Object3D extends Events {
         }
 
         if (force) {
-            this.write(this.matrixWorld.data, 'model');
+            this.write(this.matrixWorld, 'model');
         }
         
         const children = this.children;
@@ -95,7 +99,7 @@ class Object3D extends Events {
 		}
         
         _m1.extractRotation(this.matrixWorld);
-        this.direction.set(this.matrixWorld.data[8], this.matrixWorld.data[9], this.matrixWorld.data[10]).normalize();
+        this.direction.set(this.matrixWorld[8], this.matrixWorld[9], this.matrixWorld[10]).normalize();
     }
     
     translate(x, y, z) {
@@ -141,9 +145,9 @@ class Object3D extends Events {
         
         _m1.extractRotation(this.matrixWorld);
 
-        this.write(this.matrixWorld.data, 'model');
+        this.write(this.matrixWorld, 'model');
 
-        this.direction.set(this.matrixWorld.data[8], this.matrixWorld.data[9], this.matrixWorld.data[10]).normalize();
+        this.direction.set(this.matrixWorld[8], this.matrixWorld[9], this.matrixWorld[10]).normalize();
         
 	}
     

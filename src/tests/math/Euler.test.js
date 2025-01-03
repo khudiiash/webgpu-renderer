@@ -2,6 +2,7 @@ import { Euler } from '../../math/Euler';
 import { Matrix4 } from '../../math/Matrix4';
 import { jest } from '@jest/globals';
 import { DEG2RAD, RAD2DEG } from '../../math/MathUtils';
+import { Quaternion } from '../../math/Quaternion';
 
 
 describe('Euler', () => {
@@ -186,6 +187,18 @@ describe('Euler', () => {
         
         expect(values).toEqual([1, 2, 3, 'zyx']);
     });
+
+    test('setFromQuaternion should set correct angles', () => {
+        const q = new Quaternion();
+        q.setFromEuler(new Euler(0, Math.PI/2, 0, 'xyz'));
+
+        
+        euler.setFromQuaternion(q, 'xyz');
+        
+        expect(euler.x).toBeCloseTo(0, 3);
+        expect(euler.y).toBeCloseTo(Math.PI/2, 3);
+        expect(euler.z).toBeCloseTo(0, 3);
+    });
     
     test('onChange callback should be triggered for all changes', () => {
         const mockCallback = jest.fn();
@@ -194,8 +207,7 @@ describe('Euler', () => {
         euler.x = 1;
         euler.y = 2;
         euler.z = 3;
-        euler.order = 'zyx';
         
-        expect(mockCallback).toHaveBeenCalledTimes(4);
+        expect(mockCallback).toHaveBeenCalledTimes(3);
     });
 });

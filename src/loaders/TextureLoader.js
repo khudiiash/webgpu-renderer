@@ -112,9 +112,21 @@ const generateMips = (() => {
   })();
 
 class TextureLoader {
-    constructor(renderer) {
-        this.renderer = renderer;
-        this.device = renderer.device;
+    static #instance = null;
+    static getInstance() {
+        return TextureLoader.#instance;
+    }
+    constructor(device) {
+        if (TextureLoader.#instance) {
+          return TextureLoader.#instance;
+        }
+        this.device = device;
+        this.defaultTexture = this.device.createTexture({
+            size: [1, 1],
+            format: 'rgba8unorm',
+            usage: GPUTextureUsage.RENDER_ATTACHMENT 
+        });
+        TextureLoader.#instance = this;
     }
     
     async getBitmap(url) {
@@ -237,9 +249,14 @@ class TextureLoader {
             this.device.queue.submit([commandBuffer]);
         }
     }
+
+    extractName(url) {
+        return url.split('/').pop().split('.')[0];
+    }
     
     createTexture(source, options = {}) {
         const texture = this.device.createTexture({
+            label: this.extractName(options.url),
             format: 'rgba8unorm',
             size: [source.width, source.height],
             mipLevelCount: options.mips ? this.numMipLevels(source.width, source.height) : 1,
@@ -260,4 +277,50 @@ class TextureLoader {
     }
 }
 
-export { TextureLoader };
+
+class Texture {
+  constructor(url, options = {}) {
+    this.loader = TextureLoader.getInstance();
+    this.url = url;
+    this.options = options;
+    this.ready = false;
+    this.onReadyCallbacks = [];
+    this.resource = TextureLoader.defaultTexture;
+    this.sampler = {
+      minFilter: 'linear',
+      magFilter: 'linear',
+      addressModeU: 'repeat',
+      addressModeV: 'repeat',
+      ...options
+    }
+    
+    if (url) {
+      this.load();
+    }
+  }
+
+  async load() {
+    this.resource = await this.loader.load(this.url);
+    this.ready = true;
+    this.onReadyCallbacks.forEach(cb => cb(this));
+    this.onReadyCallbacks.length = 0;
+  }
+
+  createView() {
+    return this.resource?.createView();
+  }
+
+  get samplerType() {
+    return JSON.stringify(this.sampler);
+  }
+
+  onReady(callback) {
+    if (this.ready) {
+      callback(this);
+    } else {
+      this.onReadyCallbacks.push(callback);
+    }
+  }
+}
+
+export { TextureLoader, Texture };

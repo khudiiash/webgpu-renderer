@@ -18,7 +18,7 @@ class Plane {
         const inverseNormalLength = 1.0 / this.normal.length();
         this.normal.multiplyScalar(inverseNormalLength);
         this.constant *= inverseNormalLength;
-        this.data.set(this.normal.data, 0);
+        this.data.set(this.normal, 0);
         return this;
     }
 

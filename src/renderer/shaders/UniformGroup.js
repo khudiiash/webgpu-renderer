@@ -1,5 +1,5 @@
 import { StringUtils } from "../utils/StringUtils";
-import { Utils } from "../utils/Utils";
+import { Utils } from "../../../src/utils";
 import { USE } from "../constants";
 
 /**

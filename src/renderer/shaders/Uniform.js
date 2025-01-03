@@ -1,7 +1,6 @@
 import { Color } from '../../math/Color.js';
 import { Vector3 } from '../../math/Vector3.js';
 import { Matrix4 } from '../../math/Matrix4.js';
-import { Utils } from '../utils/Utils.js';
 import { StringUtils } from '../utils/StringUtils.js';
 import { TYPE_BYTE_SIZE, TYPE_COUNT } from '../constants/index.js';
 

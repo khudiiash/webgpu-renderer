@@ -26,6 +26,11 @@ class ShaderLib {
                    .replace(/\n\s{1,}@location/g, '\n    @location')
                    .replace(/;\r\n/g, ';\n    ');
     }
+
+
+    static processAttributes(attributes) {
+        return attributes.map(attribute => `@location(${attribute.shaderLocation}) ${attribute.name}: ${ShaderLib.getAttributeType(attribute)},`).join('\n   ');
+    }
     
     static composeShadow(mesh) {
         const { geometry, material } = mesh;
@@ -95,8 +100,8 @@ class ShaderLib {
         `;
         
         return {
-            vertexShader,
-            fragmentShader,
+            vertex: vertexShader,
+            fragment: fragmentShader,
         }
     }
     

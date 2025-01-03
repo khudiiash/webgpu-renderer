@@ -3,13 +3,14 @@ import { BoundingBox } from '../math/BoundingBox.js';
 import { BoundingSphere } from '../math/BoundingSphere.js';
 import { generateID } from '../math/MathUtils.js';
 import { Vector3 } from '../math/Vector3.js';
+import { Utils } from '../utils/Utils.js';
 
 const _vector = new Vector3();
 const _box = new BoundingBox();
 
 class Geometry {
     constructor() {
-        this.id = generateID();
+        this.id = Utils.GUID('geometry');
         this.positions = [];
         this.normals = [];
         this.indices = [];
@@ -166,14 +167,16 @@ class Geometry {
         return 
     }
     
-    setFromArrays(indices, positions, normals, uvs, joints, weights) {
-        const vertexCount = positions.length / 3; // Assuming each vertex has 3 components (x, y, z)
-        let vertexSize = 0; // 3 for position, 3 for normal, 2 for UV
+    setFromArrays(indices, positions, normals, uvs, joints, weights, tangents, bitangents) {
+        const vertexCount = positions.length / 3;
+        let vertexSize = 0;
         if (positions) vertexSize += 3;
         if (normals) vertexSize += 3;
         if (uvs) vertexSize += 2;
         if (joints) vertexSize += 4;
         if (weights) vertexSize += 4;
+        if (tangents) vertexSize += 3;
+        if (bitangents) vertexSize += 3;
 
         const size = vertexCount * vertexSize;
         this.positions = positions;
@@ -182,6 +185,8 @@ class Geometry {
         this.indices = indices;
         this.joints = joints;
         this.weights = weights;
+        this.tangents = tangents;
+        this.bitangents = bitangents;
 
         this.packed = new Float32Array(size);
 
@@ -191,6 +196,8 @@ class Geometry {
             const uvi = i * 2; // uv index
             const ji = i * 4; // joint index
             const wi = i * 4; // weight index
+            const ti = i * 3; // tangent index
+            const bi = i * 3; // bitangent index
             const offset = i * vertexSize; // offset in the interleaved array
 
             // Position
@@ -226,6 +233,17 @@ class Geometry {
                 this.packed[offset + 15] = weights[wi + 3];
             }
 
+            if (tangents) {
+                this.packed[offset + 16] = tangents[ti + 0];
+                this.packed[offset + 17] = tangents[ti + 1];
+                this.packed[offset + 18] = tangents[ti + 2];
+            }
+
+            if (bitangents) {
+                this.packed[offset + 19] = bitangents[bi + 0];
+                this.packed[offset + 20] = bitangents[bi + 1];
+                this.packed[offset + 21] = bitangents[bi + 2];
+            }
         }
         
         if (positions) this.setAttribute('position', new Float32BufferAttribute(positions, 3));

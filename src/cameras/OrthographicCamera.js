@@ -20,8 +20,6 @@ class OrthographicCamera extends Camera {
     
     updateProjectionMatrix() {
         this.projectionMatrix.ortho(this.left * this.aspect, this.right * this.aspect, this.bottom, this.top, this.near, this.far);
-        this._data.set(this.projectionMatrix.data);
-        this._onChangeCallback();
     }
 
 }

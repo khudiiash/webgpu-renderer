@@ -1,3 +1,3 @@
-export { autobind } from 'autobind';
-export { f32 } from 'f32';
-export { arraysEqual } from 'arraysEqual';
+export { autobind } from './autobind';
+export { arraysEqual } from './arraysEqual';
+export { Utils } from './Utils';

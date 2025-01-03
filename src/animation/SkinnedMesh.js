@@ -203,7 +203,6 @@ class SkinnedMesh extends Mesh {
 		const skinWeight = this.geometry.attributes.weights;
 
 		for ( let i = 0, l = skinWeight.count; i < l; i ++ ) {
-			console.log(skinWeight)
 
 			vector.setFromBufferAttribute( skinWeight, i );
 
