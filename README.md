@@ -44,6 +44,7 @@
       <a href="#getting-started">Getting Started</a>
     </li>
     <li><a href="#usage">Usage</a></li>
+    <li><a href="#architecture">Proposed Architecture</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
     <li><a href="#contributing">Contributing</a></li>
     <li><a href="#license">License</a></li>
@@ -106,12 +107,162 @@ https://github.com/user-attachments/assets/0cd42e44-60ef-4440-8bd4-def7ede117dc
    ```sh
    yarn run
    ```
+   
+<!-- ARCHITECTURE -->
+## Proposed Architecture
+
+```mermaid
+
+flowchart TB
+linkStyle default interpolate basis
+    %% Main Steps
+    A1["1 Input System"] 
+    A2["2 Resource Manager"]
+    A3["3 Render Graph"]
+    A4["4 Geometry Pass"]
+    A5["5 Shadow Pass"]
+    A6["6 Lighting Pass"]
+    A7["7 Post-Processing Passes"]
+    A8["8 Compute Passes"]
+    A9["9 Debug Tools"]
+
+    %% Connections between main steps
+    A1 --> A2
+    A2 --> A3
+    A3 --> A4
+    A4 --> A5
+    A5 --> A6
+    A6 --> A7
+    A7 --> A8
+    A8 --> A9
+
+    %% Input System Details
+    B1["Camera Controller: Controls the camera movement and viewpoint"]
+    B2["User Input Handler: Handles user interaction (keyboard, mouse, etc.)"]
+    B3["Scene Data Updater: Updates scene elements based on inputs"]
+    A1 --> B1
+    A1 --> B2
+    A1 --> B3
+
+
+    %% Resource Manager Details
+    C1["Pipeline Manager: Manages pipeline states for rendering"]
+    C2["Texture Allocator: Allocates textures used in rendering"]
+    C3["Buffer Manager: Allocates and manages GPU buffers"]
+    C4["Shader Cache: Caches compiled shaders for faster access"]
+    C5["Descriptor Pool: Manages GPU descriptors for resources"]
+    A2 --> C1
+    A2 --> C2
+    A2 --> C3
+    A2 --> C4
+    A2 --> C5
+
+    %% Render Graph Details
+    D1["Render Passes: Defines each render pass for specific tasks"]
+    D2["Dependencies: Manages pass dependencies to ensure correct order"]
+    D3["Pass Scheduler: Schedules the execution of render passes"]
+    D4["Resource Binding: Binds resources to the pipeline during execution"]
+    D5["Command Encoder: Generates GPU commands based on passes"]
+    A3 --> D1
+    A3 --> D2
+    A3 --> D3
+    A3 --> D4
+    A3 --> D5
+
+    %% Geometry Pass Details
+    E1["Scene Rendering: Renders the scene geometry into the G-buffer"]
+    E2["G-Buffer Generation: Generates a G-buffer for lighting and shading"]
+    A4 --> E1
+    A4 --> E2
+
+    %% Shadow Pass Details
+    F1["Depth Map Generation: Generates depth maps for shadows"]
+    F2["Cascade Shadow Maps: Creates multiple shadow cascades for distant shadows"]
+    A5 --> F1
+    A5 --> F2
+
+    %% Lighting Pass Details
+    G1["Deferred Lighting: Performs lighting calculations in deferred shading"]
+    G2["Forward Lighting: Handles lighting for forward rendering"]
+    G3["Clustered Shading: Optimizes lighting calculations using clusters"]
+    A6 --> G1
+    A6 --> G2
+    A6 --> G3
+
+    %% Post-Processing Pass Details
+    H1["Tone Mapping Pass: Applies tone mapping to adjust scene brightness"]
+    H2["Bloom Pass: Simulates light bloom effects"]
+    H3["Ambient Occlusion Pass: Enhances depth perception with ambient occlusion"]
+    H4["Anti-Aliasing Pass: Reduces jagged edges (aliasing) in rendered images"]
+    A7 --> H1
+    A7 --> H2
+    A7 --> H3
+    A7 --> H4
+
+    %% Compute Pass Details
+    I1["Particle Simulation: Simulates particle systems like smoke, fire, etc."]
+    I2["Physics Calculations: Performs calculations for physics-based interactions"]
+    A8 --> I1
+    A8 --> I2
+
+    %% Debug Tools Details
+    J1["Render Graph Visualization: Visualizes the render graph for debugging"]
+    J2["Resource Allocation Debugger: Tracks resource usage and allocation"]
+    J3["Frame Timing Analysis: Analyzes performance bottlenecks per frame"]
+    J4["Real-Time Shader Reloading: Allows shader reloading during runtime"]
+    A9 --> J1
+    A9 --> J2
+    A9 --> J3
+    A9 --> J4
+
+
+    %% Styles
+    classDef input fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef resource fill:#bbf,stroke:#333,stroke-width:2px;
+    classDef geometry fill:#fc6,stroke:#333,stroke-width:2px;
+    classDef shadow fill:#bfb,stroke:#333,stroke-width:2px;
+    classDef lighting fill:#cfc,stroke:#333,stroke-width:2px;
+    classDef postproc fill:#c6f,stroke:#333,stroke-width:2px;
+    classDef compute fill:#6cf,stroke:#333,stroke-width:2px;
+    classDef debug fill:#ccc,stroke:#333,stroke-width:2px;
+
+    %% Apply styles to nodes
+    class A1,B1,B2,B3 input;
+    class A2,C1,C2,C3,C4,C5 resource;
+    class A4,E1,E2 geometry;
+    class A5,F1,F2 shadow;
+    class A6,G1,G2,G3 lighting;
+    class A7,H1,H2,H3,H4 postproc;
+    class A8,I1,I2 compute;
+    class A9,J1,J2,J3,J4 debug;
+
+
+```
+
+1. Input System: Handles user input and updates the scene based on the user's interactions.
+
+2. Resource Manager: Manages GPU resources such as textures, buffers, and shaders to ensure efficient usage.
+
+3. Render Graph: Coordinates different rendering passes and manages resource dependencies to optimize performance.
+
+4. Geometry Pass: Renders the scene’s geometry and generates the G-buffer for deferred rendering.
+
+5. Shadow Pass: Calculates the shadow maps to provide realistic lighting effects in the scene.
+
+6. Lighting Pass: Applies various lighting techniques to the scene, including deferred and forward lighting.
+
+7. Post-Processing Passes: Applies final visual effects such as tone mapping, bloom, and anti-aliasing.
+
+8. Compute Passes: Runs compute shaders for simulations such as particle effects and physics calculations.
+
+9. Debug Tools: Provides visualization and debugging tools for monitoring and optimizing the renderer.
 
 <!-- ROADMAP -->
 ## Roadmap
 
 - [x] Add Readme
-- [ ] Add License
+- [x] Add License
+- [ ] V2
 - [ ] Global Illumination
 
 See the [open issues](https://github.com/khudiiash/webgpu-renderer/issues) for a full list of proposed features (and known issues).
