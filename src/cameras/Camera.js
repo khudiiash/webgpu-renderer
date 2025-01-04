@@ -33,6 +33,8 @@ class Camera extends Object3D {
 			values: {
 				projection: this.projectionMatrix,
 				view: this.viewMatrix,
+				position: this.position,
+				direction: this.direction,
 			}
 		});
 

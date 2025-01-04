@@ -4,15 +4,14 @@ import { Vector3 } from '../math/Vector3.js';
 import { OrthographicCamera } from '../cameras/OrthographicCamera.js';
 
 class Light extends Object3D {
-    constructor({ color = '#ffffff', intensity = 1 } = {}) {
+    constructor(options = {}) {
         super();
-        this.isLight = true;
-        this.bufferOffset = 0;
-        this.type = 'Light';
-        this.target = new Vector3();
-        this._color = color.isColor ? color : new Color(color);
-        this._intensity = intensity;
-        this._castShadow = false;
+        Object.defineProperties(this, {
+            isLight: { value: true, writable: false },
+            color: { value: new Color(options.color || 0xFFFFFF) },
+            intensity: { value: options.intensity || 1 },
+            shadow: { value: null, writable: true },
+        });
     }
     
     /**
@@ -35,11 +34,7 @@ class Light extends Object3D {
     }
     
     get color() {
-        return this._color;
-    }
-    
-    setColor(color) {
-        this.color.set(color);
+       return this._color;
     }
     
     lookAt(x, y, z) {

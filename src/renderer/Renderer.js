@@ -131,12 +131,12 @@ class Renderer extends Events {
                     storeOp: 'store',
                 }
             ],
-            // depthStencilAttachment: {
-            //     view: this.textures.getView('depth'),
-            //     depthClearValue: 1.0,
-            //     depthLoadOp: 'clear',
-            //     depthStoreOp: 'store',
-            // }
+            depthStencilAttachment: {
+                view: this.textures.getView('depth'),
+                depthClearValue: 1.0,
+                depthLoadOp: 'clear',
+                depthStoreOp: 'store',
+            }
         }; 
     }
     
@@ -293,6 +293,7 @@ class Renderer extends Events {
          this.renderPassDescriptor.colorAttachments[0].view = this.context
             .getCurrentTexture()
             .createView();
+        this.renderPassDescriptor.colorAttachments[0].clearValue = scene.backgroundColor;
 
     //     const shadowDepthPass = encoder.beginRenderPass({
     //         colorAttachments: [],
@@ -325,6 +326,8 @@ class Renderer extends Events {
 
         this.device.queue.submit([encoder.finish()]);
         this.frames++;
+        //console.table(this.resources.getResourceStats());
+
     }
 }
 

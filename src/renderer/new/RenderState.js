@@ -1,4 +1,20 @@
+/**
+ * @typedef {Object} RenderStateOptions
+ * @property {string} [topology='triangle-list'] - The primitive topology type ('triangle-list', 'triangle-strip', etc.)
+ * @property {string} [cullMode='back'] - Face culling mode ('back', 'front', or 'none')
+ * @property {string} [frontFace='ccw'] - Front face winding order ('ccw' or 'cw')
+ * @property {boolean} [depthTest=true] - Enable/disable depth testing
+ * @property {boolean} [depthWrite=true] - Enable/disable depth writing
+ * @property {string} [depthCompare='less'] - Depth comparison function ('less', 'greater', etc.)
+ * @property {boolean} [stencilTest=false] - Enable/disable stencil testing
+ * @property {string} [blending='normal'] - Blend mode ('normal', 'additive', 'multiply')
+ * @property {boolean} [transparent=false] - Enable/disable transparency and alpha-to-coverage
+ */
 class RenderState {
+    
+    /**
+     * @param {RenderStateOptions} [options]
+     */
     constructor(options = {}) {
         // Primitive state options
         this.topology = options.topology || 'triangle-list';
@@ -77,7 +93,7 @@ class RenderState {
         return {
             depthWriteEnabled: this.depthWrite,
             depthCompare: this.depthCompare,
-            format: 'depth24plus',
+            format: 'depth32float',
             stencilEnabled: this.stencilTest,
         };
     }

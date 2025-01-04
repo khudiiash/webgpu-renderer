@@ -318,8 +318,11 @@ class PipelineManager {
             },
             fragment: fragmentModule ? {
                 module: fragmentModule,
-                targets: [{ format: navigator.gpu.getPreferredCanvasFormat() } ] 
-            } : undefined
+                targets: [{ format: navigator.gpu.getPreferredCanvasFormat() } ],
+                blend: material.renderState.getBlendState()
+            } : undefined,
+            primitive: material.renderState?.getPrimitive() || {},
+            depthStencil: material.renderState?.getDepthStencil() || undefined
         };
 
         const pipeline = this.device.createRenderPipeline(pipelineDescriptor);

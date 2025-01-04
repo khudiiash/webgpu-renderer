@@ -1,8 +1,25 @@
 class ShaderFormatter {
+    static #instance;
     constructor() {
+        if (ShaderFormatter.#instance) {
+            return ShaderFormatter.#instance;
+        } 
         this.config = {
             indentSize: 4,
         };
+        
+        ShaderFormatter.#instance = this;
+    }
+
+    static getInstance() {
+        if (!ShaderFormatter.#instance) {
+            ShaderFormatter.#instance = new ShaderFormatter();
+        }
+        return ShaderFormatter.#instance;
+    }
+
+    static format(code) {
+        return ShaderFormatter.getInstance().format(code);
     }
 
     format(code) {

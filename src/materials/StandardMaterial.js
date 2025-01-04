@@ -15,15 +15,14 @@ class StandardMaterial extends Material {
         this.meshes = [];
 
         this.renderState = new RenderState({
-			cullMode: options.cullMode || 'back',
-			frontFace: options.frontFace || 'ccw',
-			blend: options.blend || false,
-			depthTest: options.depthTest || true,
-			depthWrite: options.depthWrite || true,
-			depthCompare: options.depthCompare || 'less',
-			stencilTest: options.stencilTest || false,
-			stencilFront: {},
-			stencilBack: {},
+            cullMode: options.cullMode || 'back',
+            depthTest: options.depthTest || true,
+            depthWrite: options.depthWrite || true,
+            blending: options.blending || 'normal',
+            transparent: options.transparent || false,
+            depthCompare: options.depthCompare || 'less',
+            topology: options.topology || 'triangle-list',
+            frontFace: options.frontFace || 'ccw',
 		}); 
 
         this.uniforms = new UniformData({
@@ -48,6 +47,7 @@ class StandardMaterial extends Material {
 
         this.shader = Shader.create(ShaderLibrary.STANDARD, {
             USE_DIFFUSE_MAP: true,
+            USE_LIGHTING: true,
             USE_GAMMA: true,
         });
     }

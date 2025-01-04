@@ -251,7 +251,7 @@ class TextureLoader {
     }
 
     extractName(url) {
-        return url.split('/').pop().split('.')[0];
+        return url ? url.split('/').pop().split('.')[0] : 'texture_' + Math.random().toString(36).substring(2, 9);
     }
     
     createTexture(source, options = {}) {
@@ -299,15 +299,30 @@ class Texture {
     }
   }
 
-  async load() {
+  async load(url) {
+    if (url) {
+      this.url = url;
+    }
     this.resource = await this.loader.load(this.url);
     this.ready = true;
     this.onReadyCallbacks.forEach(cb => cb(this));
-    this.onReadyCallbacks.length = 0;
+    return this;
   }
 
   createView() {
     return this.resource?.createView();
+  }
+
+  /** @param {GPUTexture} resource */
+  setResource(resource) {
+    if (!resource || !(resource instanceof GPUTexture)) {
+      console.error('Invalid resource provided');
+      return;
+    }
+    this.resource = resource;
+    this.ready = true;
+    this.onReadyCallbacks.forEach(cb => cb(this));
+    console.log('Texture resource set', resource, this.onReadyCallbacks);
   }
 
   get samplerType() {
@@ -315,10 +330,13 @@ class Texture {
   }
 
   onReady(callback) {
+    console.log('on ready');
     if (this.ready) {
       callback(this);
     } else {
-      this.onReadyCallbacks.push(callback);
+      if (!this.onReadyCallbacks.includes(callback)) {
+        this.onReadyCallbacks.push(callback);
+      }
     }
   }
 }

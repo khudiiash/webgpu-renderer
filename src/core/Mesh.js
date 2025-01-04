@@ -126,6 +126,4 @@ class Mesh extends Object3D {
     }
 }
 
-Mesh.geomats = new Map();
-
 export { Mesh };

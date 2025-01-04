@@ -352,10 +352,26 @@ class GPUResourceManager {
             size: data.byteLength,
             usage: usage
         });
+        const uniformData = UniformData.getByID(id);
+        if (uniformData) {
+            uniformData.onChange(() => {
+                this.device.queue.writeBuffer(buffer, 0, uniformData.data);
+            })
+        }
         this.device.queue.writeBuffer(buffer, 0, data);
         this.buffers.set(id, buffer);
+        this.bufferDescriptors.set(id, { size: data.byteLength, usage });
         this.references.set(id, { refCount: 1, lastUsedFrame: this.currentFrame });
         return buffer;
+    }
+    formatSize = (size) => {
+        if (size === 0) return 0;
+        const isB = size < 1024;
+        const isKB = size < 1024 * 1024;
+        const isMB = size < 1024 * 1024 * 1024;
+        if (isB) return size + ' B';
+        if (isKB) return (size / 1024).toFixed(2) + ' KB';
+        if (isMB) return (size / 1024 / 1024).toFixed(2) + ' MB';
     }
     /**
      *  @returns {{
@@ -377,10 +393,11 @@ class GPUResourceManager {
             totalMemory += desc.size;
         }
 
+
         return {
             textures: this.textures.size,
             buffers: this.buffers.size,
-            totalMemory
+            totalMemory: this.formatSize(totalMemory)
         }
     }
 

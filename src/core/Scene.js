@@ -5,8 +5,8 @@ import { UniformLib } from '../renderer/shaders/UniformLib.js';
 import { clamp } from '../math/MathUtils.js';
 import { Wind } from './Wind.js';
 import { AmbientLight } from '../lights/AmbientLight.js';
-import { ProxyArray } from '../utils/ProxyArray.js';
 import { UniformData } from '../renderer/new/UniformData.js';
+import { UniformDataArray } from '../utils/UniformDataArray.js';
 
 class Scene extends Object3D {
     constructor(config = {}) {
@@ -18,32 +18,32 @@ class Scene extends Object3D {
         this.cameras = [];
         this.meshes = [];
         const backgroundColor = new Color(config.backgroundColor || '#000000');
-        const ambientColor = new Color(config.ambientColor || '#ffffff');
+        const ambientColor = new Color(config.ambientColor || '#000000');
 
-        const directionalLights = new ProxyArray(new Array(4), (target) => {
-            this.uniforms.directionalLights = target;
-            this.uniforms.directionalLightsNum = target.length;
-            this.uniforms.directionalLightMatrices = target.map((light) => light.shadow.projectionViewMatrix);
+        const directionalLights = new UniformDataArray(8, 8).onChange(() => {
+            this.uniforms.directionalLightsNum = directionalLights.size;
+        });
+        const pointLights = new UniformDataArray(8, 8).onChange(() => {
+            this.uniforms.pointLightsNum = pointLights.size;
         });
 
-        const pointLights = new ProxyArray(new Array(10), (target) => {
-            this.uniforms.pointLights = target;
-            this.uniforms.pointLightsNum = target.length;
-        });
-
-        const fog = new Fog({ color: backgroundColor, start: 1, end: 50, density: 0.01, type: Fog.LINEAR });
+        const fog = new Fog({ color: backgroundColor, start: 10, end: 50, density: 0.01, type: Fog.LINEAR });
         
         this.uniforms = new UniformData({
             name: 'scene',
             isGlobal: true,
             values: {
-                directionalLights,
-                directionalLightsNum: 0,
-                pointLights,
-                pointLightsNum: 0,
-                ambientColor: ambientColor,
-                backgroundColor: backgroundColor,
-                fog,
+                fog, // 16 + 16 
+                ambientColor: ambientColor, // 16 
+                backgroundColor: backgroundColor, // 16
+
+                time: 0, // 4
+                frame: 0, // 4
+                directionalLightsNum: 0, // 4
+                pointLightsNum: 0, // 4 
+
+                directionalLights, // 8 * 32
+                pointLights, // 8 * 32
             }
         })
     }
@@ -56,10 +56,10 @@ class Scene extends Object3D {
         }
         if (object.isLight) {
             if (object.isDirectionalLight) {
-                this.directionalLights.push(object);
+                this.directionalLights.add(object.uniforms)
             }
             if (object.isPointLight) {
-                this.pointLights.push(object);
+                this.pointLights.push(object.uniforms);
             }
         }
         if (object.isCamera) {
@@ -86,11 +86,15 @@ class Scene extends Object3D {
     get ambientColor() { return this.uniforms.ambientColor; }
     get backgroundColor() { return this.uniforms.backgroundColor; }
     get directionalLights() { return this.uniforms.directionalLights; }
+    get time() { return this.uniforms.time; }
+    get frame() { return this.uniforms.frame; }
 
     set fog(value) { this.uniforms.fog = value; }
     set ambientColor(value) { this.uniforms.ambientColor = value; }
     set backgroundColor(value) { this.uniforms.backgroundColor = value; }
     set directionalLights(value) { this.uniforms.directionalLights = value; }
+    set time(value) { this.uniforms.time = value; }
+    set frame(value) { this.uniforms.frame = value; }
 }
 
 export { Scene };

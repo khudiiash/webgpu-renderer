@@ -13,6 +13,7 @@ import { SkinnedMesh } from '../animation/SkinnedMesh.js';
 import { AnimationClip, VectorKeyframeTrack, QuaternionKeyframeTrack, KeyframeTrack } from '../animation/AnimationClip.js';
 import { Bone } from '../animation/Bone.js';
 import { Matrix4 } from '../math/Matrix4.js';
+import { StandardMaterial } from '../materials/StandardMaterial.js';
 
 
 
@@ -78,7 +79,7 @@ class GLTFLoader {
       }
     
      createMaterial(mesh, gltf, buffers) {
-         let material = new MeshPhongMaterial({ color: '#ffffff' });
+         let material = new StandardMaterial();
          try {
             const primitive = mesh.primitives[0];
             if (primitive.material !== undefined) {
@@ -90,14 +91,14 @@ class GLTFLoader {
                       const textureToImageMap = gltf.textures[pbrMetallicRoughness.baseColorTexture.index];
                       const image = gltf.images[textureToImageMap.source];
                       if (!image) {
-                            return new MeshPhongMaterial({ color: '#ffffff' });
+                            return material;
                       }
                       const bufferView = gltf.bufferViews[image.bufferView];
                       const buffer = buffers[bufferView.buffer];
                       const slice = buffer.arrayBuffer.slice(buffer.byteOffset + bufferView.byteOffset, buffer.byteOffset + bufferView.byteOffset + bufferView.byteLength);
                       const blob = new Blob([slice], { type: image.mimeType });
                       this.textureLoader.loadFromBlob(blob).then((texture) => {
-                            material.diffuseMap = texture;
+                            material.uniforms.diffuse_map.setResource(texture);
                       })
                   }
             }

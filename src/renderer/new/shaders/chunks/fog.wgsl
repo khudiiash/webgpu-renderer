@@ -3,8 +3,8 @@
     let fogStart = scene.fog.start;
     let fogEnd = scene.fog.end;
     let fogDensity = scene.fog.density;
-    let fogType = 0;
-    let fogDistance = input.vPositionW.z;
+    let fogType = scene.fog.fogType;
+    let fogDistance = length(input.vPositionW - camera.position);
 
     var fogFactor = 1.0;
 
@@ -16,6 +16,5 @@
         fogFactor = 1.0 - exp2(-fogDensity * fogDensity * fogDensity * fogDistance * fogDistance * fogDistance);
     }
 
-
-    color = mix(color, vec4f(fogColor, 1), fogFactor);
+    color = mix(color, fogColor, fogFactor);
 }}

@@ -2,5 +2,8 @@
 @group(2) @binding(2) var color_sampler: sampler;
 
 @fragment {{
-    color = textureSample(diffuse_map, color_sampler, input.vUv); 
+    let diffuseSampled = textureSample(diffuse_map, color_sampler, input.vUv); 
+    if (textureDimensions(diffuse_map).x > 1) {
+        color *= diffuseSampled;
+    }
 }}

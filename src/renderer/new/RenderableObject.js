@@ -103,7 +103,6 @@ class RenderableObject {
                 }
 
                 uniformData.onRebuild(this.rebuildBindGroups);
-                uniformData.onChange(this.updateBuffer);
             }
 
             bindGroups[i] = this.resourceManager.createBindGroup(config);

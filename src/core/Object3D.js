@@ -5,6 +5,7 @@ import { Matrix4 } from '../math/Matrix4.js';
 import { Events } from '../core/Events.js';
 import { generateID } from '../math/MathUtils.js';
 import { UniformData } from '../renderer/new/UniformData.js';
+import { Utils } from '../utils';
 
 const _target = new Vector3();
 const _position = new Vector3();
@@ -23,7 +24,7 @@ class Object3D extends Events {
         this.childrenMap = {};
         this.static = false;
         this.parent = null;
-        this.id = generateID();
+        this.id = Utils.GUID('object');
         this.name = 'Object';
         this.type = 'Object3D';
         this.isObject3D = true;
@@ -87,10 +88,6 @@ class Object3D extends Events {
             force = true;
         }
 
-        if (force) {
-            this.write(this.matrixWorld, 'model');
-        }
-        
         const children = this.children;
 
 		for ( let i = 0, l = children.length; i < l; i ++ ) {
@@ -268,13 +265,13 @@ class Object3D extends Events {
     
     getWorldDirection() {
         this.updateWorldMatrix( true, false );
-		const e = this.matrixWorld.data;
+		const e = this.matrixWorld;
         return new Vector3( e[ 8 ], e[ 9 ], e[ 10 ] ).normalize();
     }
     
     getWorldRight() {
         this.updateWorldMatrix( true, false );
-        const e = this.matrixWorld.data;
+        const e = this.matrixWorld;
         return new Vector3( e[ 0 ], e[ 1 ], e[ 2 ] ).normalize();
     }
 

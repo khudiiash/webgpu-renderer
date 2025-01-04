@@ -40,7 +40,6 @@ class FirstPersonControls {
             this.lat += movementY * this.lookSpeed;
         };
         this.onKeyDown = (event) => {
-            console.log(event.keyCode);
             switch (event.keyCode) {
                 case 87:
                     this.moveState.forward = 1;

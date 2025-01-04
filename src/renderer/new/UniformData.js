@@ -43,14 +43,23 @@ export class UniformData {
     UniformData.#byName.set(name, data);
   }
 
+  /**
+   * 
+   * @param {{ 
+   *    name: string,
+   *    isGlobal: boolean,
+   *    values: Record<string, Float32Array | Texture>
+   * }} config 
+   */
   constructor(config) {
     const { name, isGlobal, values, group } = config;
     const id = Utils.GUID('data');
 
     if (isGlobal && !UniformData.hasName(name)) {
-      UniformData.setByID(id, this);
       UniformData.setByName(name, this);
     }
+
+    UniformData.setByID(id, this);
 
     this.name = name;
     this.isGlobal = isGlobal;
@@ -60,7 +69,7 @@ export class UniformData {
     this.data = null;
     this.dirty = true;
     this.changeCallbacks = [];
-    this.rebuildCallback = null;
+    this.rebuildCallbacks = [];
 
     if (values) {
       this.setProperties(values);
@@ -79,6 +88,7 @@ export class UniformData {
     for (const [name, value] of Object.entries(values)) {
       if (value instanceof Texture) {
         newTextures.set(name, value);
+        this[name] = value;
         continue;
       }
 
@@ -120,8 +130,10 @@ export class UniformData {
       this._setupProperty(name, value);
     }
 
-    if (needsRebuild && this.rebuildCallback) {
-      this.rebuildCallback(this.id);
+    if (needsRebuild && this.rebuildCallbacks) {
+      this.rebuildCallbacks.forEach((cb) => {
+        cb(this.id);
+      });
     }
   }
 
@@ -174,32 +186,47 @@ export class UniformData {
     return 1;
   }
 
+  _handleTexture(name, value) {
+    if (!(value instanceof Texture)) return;
+
+    if (value.ready) {
+      this.textures.set(name, value);
+    } else {
+      value.onReady(() => {
+        this.textures.set(name, value);
+        this.dirty = true;
+        if (this.rebuildCallbacks) {
+          this.rebuildCallbacks.forEach((cb) => {
+            cb(this.id);
+          });
+        }
+      })
+    }
+
+    if (this[name] === undefined) {
+      Object.defineProperty(this, name, {
+        get: () => value,
+        set: (newValue) => {
+          this.textures.set(name, newValue);
+          this.dirty = true;
+          if (this.rebuildCallbacks) {
+            this.rebuildCallbacks.forEach((cb) => {
+              cb(this.id);
+            });
+          }
+        },
+        enumerable: true
+      });
+    }
+  }
+
   _setupProperty(name, value) {
     const layout = this.layout[name];
 
+    this._handleTexture(name, value);
+
     if (!layout) {
       // Texture property
-      if (this[name] === undefined) {
-        Object.defineProperty(this, name, {
-          get: () => this.textures.get(name)?.texture || null,
-          set: (value) => {
-            if (value instanceof Texture) {
-              if (value.ready) {
-                this.textures.set(name, value);
-              } else {
-                value.onReady(() => {
-                  this.textures.set(name, value);
-                  this.dirty = true;
-                  if (this.rebuildCallback) {
-                    this.rebuildCallback(this.id);
-                  }
-                })
-              }
-            }
-          },
-          enumerable: true
-        });
-      }
     } else {
       // Uniform data property
       const { offset, size } = layout;
@@ -209,6 +236,10 @@ export class UniformData {
         value.onChange((newValue) => {
           this[name] = newValue;
         })
+      }
+
+      if (value instanceof Texture) {
+        this._handleTexture(name, value);
       }
 
       if (this[name] === undefined) {
@@ -362,7 +393,25 @@ export class UniformData {
   }
 
   onRebuild(callback) {
-    if (this.rebuildCallback) return;
-    this.rebuildCallback = callback;
+    if (!callback) {
+      throw new Error('Callback is undefined');
+    }
+    if (this.rebuildCallbacks.indexOf(callback) === -1) {
+      this.rebuildCallbacks.push(callback);
+    } 
+  }
+
+  offChange(callback) {
+    const index = this.changeCallbacks.indexOf(callback);
+    if (index !== -1) {
+      this.changeCallbacks.splice(index, 1);
+    }
+  }
+
+  offRebuild(callback) {
+    const index = this.rebuildCallbacks.indexOf(callback);
+    if (index !== -1) {
+      this.rebuildCallbacks.splice(index, 1);
+    }
   }
 }
