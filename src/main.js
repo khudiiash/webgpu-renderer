@@ -70,7 +70,7 @@ class App {
 
         const materials = [
             new StandardMaterial({  diffuse_map: new Texture('assets/building1.jpeg')}),
-            new StandardMaterial({  diffuse_map: new Texture('assets/building2.jpeg')}),
+            new StandardMaterial({  diffuse_map: new Texture('assets/building2.jpg')}),
             new StandardMaterial({  diffuse_map: new Texture('assets/building3.jpg')}),
         ];
         const geometry = new BoxGeometry(1, 1, 1);
@@ -84,6 +84,7 @@ class App {
         this.scene.fog.start = 30;
         this.scene.fog.end = 100;
         this.scene.ambientColor = new Color('#111111');
+        this.cubes = [];
 
         for (let i = 0; i < 1000; i++) {
             const cube = new Mesh(geometry, materials[Math.floor(Math.random() * materials.length)]);
@@ -91,6 +92,7 @@ class App {
             cube.position.set(randomFloat(-50, 50), 0, randomFloat(-50, 50));
             cube.scale.y = cube.position.distanceTo(new Vector3(0, 0, 0)) * 0.5;
             cube.position.y = cube.scale.y * 0.5;
+            this.cubes.push(cube);
             this.scene.add(cube);
         }
         this.scene.add(floor);
@@ -122,9 +124,16 @@ class App {
         const cameraY = (Math.sin(this.elapsed * cameraSpeed) + 2) * 5 + cameraHeight;
 
         //this.camera.setPosition(Math.cos(this.elapsed * cameraSpeed) * cameraDistance, cameraHeight, Math.sin(this.elapsed * cameraSpeed) * cameraDistance);
-        //this.cube.rotation.y += dt;
+        for (let i = 0; i < this.cubes.length; i++) {
+            const cube = this.cubes[i];
+            if (!cube.iScaleY) cube.iScaleY = cube.scale.y;
+            if (!cube.randomFactor) cube.randomFactor = randomFloat(1, 10);
+            const scaler = Math.abs(Math.sin(this.elapsed / cube.randomFactor));
+            cube.scale.y = cube.iScaleY * scaler;
+            cube.position.y = cube.scale.y * 0.5;
+        }
         this.cow.rotation.y += dt;
-        this.light.rotation.y += dt;
+        //this.light.rotation.y += dt;
         this.stats.update(); 
         this.controls?.update(dt);
         this.renderer.render(this.scene, this.camera);
