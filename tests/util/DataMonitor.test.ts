@@ -25,7 +25,7 @@ describe('DataMonitor', () => {
                 return this
             }
         })
-        dataMonitor = new DataMonitor(parentInstance, bufferData)
+        dataMonitor = new DataMonitor(parentInstance, bufferData);
     })
 
     it('should initialize with empty callbacks', () => {

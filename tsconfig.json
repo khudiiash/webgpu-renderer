@@ -24,8 +24,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@utils/*": ["src/util/*"],
-      "@math/*": ["src/math/*"],
+      "@util/*": ["src/util/*"],
+      "@math/*": ["src/core/math/*"],
       "@core/*": ["src/core/*"],
     }
 

@@ -1,5 +1,5 @@
 import { BufferData } from "./BufferData";
-import { Utils } from "./Utils";
+import { arraysEqual } from "@/util";
 
 class DataMonitor {
 
@@ -52,12 +52,12 @@ class DataMonitor {
     constructor(parent: any, data: BufferData) {
         this.callbacks = [];
         this.data = data;
-        this.lastData = new Float32Array(data);
+        this.lastData = new Float32Array([...data]);
         DataMonitor.extendWithDataMonitor(this, parent);
     }
 
     check() {
-        if (!Utils.arraysEqual(this.lastData, this.data)) {
+        if (!arraysEqual(this.lastData, this.data)) {
             this.dispatch();
             this.lastData.set(this.data);
         }
