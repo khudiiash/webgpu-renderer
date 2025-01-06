@@ -74,22 +74,6 @@ export class Quaternion extends BufferData {
                this.z * q.z + this.w * q.w;
     }
 
-    fromArray(array: number[], offset: number = 0): this {
-        this.x = array[offset];
-        this.y = array[offset + 1];
-        this.z = array[offset + 2];
-        this.w = array[offset + 3];
-        return this;
-    }
-
-    toArray(array: number[], offset: number = 0): number[] {
-        array[offset] = this.x;
-        array[offset + 1] = this.y;
-        array[offset + 2] = this.z;
-        array[offset + 3] = this.w;
-        return array;
-    }
-
     add(q: Quaternion): this {
         this.x += q.x;
         this.y += q.y;
@@ -116,20 +100,77 @@ export class Quaternion extends BufferData {
     }
 
     setFromEuler(euler: Euler): this {
-        const x = euler.x, y = euler.y, z = euler.z;
-        const c1 = Math.cos(x / 2);
-        const c2 = Math.cos(y / 2);
-        const c3 = Math.cos(z / 2);
-        const s1 = Math.sin(x / 2);
-        const s2 = Math.sin(y / 2);
-        const s3 = Math.sin(z / 2);
+        const { x, y, z, order } = euler;
 
-        this.x = s1 * c2 * c3 + c1 * s2 * s3;
-        this.y = c1 * s2 * c3 - s1 * c2 * s3;
-        this.z = c1 * c2 * s3 + s1 * s2 * c3;
-        this.w = c1 * c2 * c3 - s1 * s2 * s3;
-        
-        return this;
+		// http://www.mathworks.com/matlabcentral/fileexchange/
+		// 	20696-function-to-convert-between-dcm-euler-angles-quaternions-and-euler-vectors/
+		//	content/SpinCalc.m
+
+		const cos = Math.cos;
+		const sin = Math.sin;
+
+		const c1 = cos( x / 2 );
+		const c2 = cos( y / 2 );
+		const c3 = cos( z / 2 );
+
+		const s1 = sin( x / 2 );
+		const s2 = sin( y / 2 );
+		const s3 = sin( z / 2 );
+
+		switch ( order ) {
+			case Euler.XYZ:
+				this[0] = s1 * c2 * c3 + c1 * s2 * s3;
+				this[1] = c1 * s2 * c3 - s1 * c2 * s3;
+				this[2] = c1 * c2 * s3 + s1 * s2 * c3;
+				this[3] = c1 * c2 * c3 - s1 * s2 * s3;
+				break;
+
+			case Euler.YXZ:
+				this[0] = s1 * c2 * c3 + c1 * s2 * s3;
+				this[1] = c1 * s2 * c3 - s1 * c2 * s3;
+				this[2] = c1 * c2 * s3 - s1 * s2 * c3;
+				this[3] = c1 * c2 * c3 + s1 * s2 * s3;
+				break;
+
+			case Euler.ZXY:
+				this[0] = s1 * c2 * c3 - c1 * s2 * s3;
+				this[1] = c1 * s2 * c3 + s1 * c2 * s3;
+				this[2] = c1 * c2 * s3 + s1 * s2 * c3;
+				this[3] = c1 * c2 * c3 - s1 * s2 * s3;
+				break;
+
+			case Euler.ZYX:
+				this[0] = s1 * c2 * c3 - c1 * s2 * s3;
+				this[1] = c1 * s2 * c3 + s1 * c2 * s3;
+				this[2] = c1 * c2 * s3 - s1 * s2 * c3;
+				this[3] = c1 * c2 * c3 + s1 * s2 * s3;
+				break;
+
+			case Euler.YZX:
+				this[0] = s1 * c2 * c3 + c1 * s2 * s3;
+				this[1] = c1 * s2 * c3 + s1 * c2 * s3;
+				this[2] = c1 * c2 * s3 - s1 * s2 * c3;
+				this[3] = c1 * c2 * c3 - s1 * s2 * s3;
+				break;
+
+			case Euler.XZY:
+				this[0] = s1 * c2 * c3 - c1 * s2 * s3;
+				this[1] = c1 * s2 * c3 - s1 * c2 * s3;
+				this[2] = c1 * c2 * s3 + s1 * s2 * c3;
+				this[3] = c1 * c2 * c3 + s1 * s2 * s3;
+				break;
+
+			default:
+				console.warn( 'Quaternion.setFromEuler(): unknown Euler order: ' + order );
+
+		}
+        // console.warn({
+        //     type: 'quat from euler',
+        //     input: x + ', ' + y + ', ' + z,
+        //     output: this[0] + ', ' + this[1] + ', ' + this[2] + ', ' + this[3]
+        // })
+
+		return this;
     }
 
     setFromAxisAngle(axis: Vector3, angle: number): this {

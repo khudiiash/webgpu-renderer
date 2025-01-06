@@ -1,4 +1,4 @@
-export * from '../core/data/BufferData';
-export * from '../core/data/DataMonitor';
+export * from '../data/BufferData';
+export * from '../data/DataMonitor';
 export * from './GeneralUtils';
 export * from './MathUtils';

@@ -1,3 +1,4 @@
+import { Euler } from "@/math";
 import { BufferData } from "./BufferData";
 import { arraysEqual } from "@/util";
 
@@ -46,7 +47,7 @@ class DataMonitor {
     }
 
     private callbacks: Function[];
-    private data: BufferData;
+    private data: Float32Array;
     private lastData: Float32Array;
 
     constructor(parent: any, data: BufferData) {
@@ -57,9 +58,11 @@ class DataMonitor {
     }
 
     check() {
-        if (!arraysEqual(this.lastData, this.data)) {
+        if (!this.callbacks.length) return;
+        const shouldDispatch = !arraysEqual(this.lastData, this.data);
+        this.lastData.set(this.data);
+        if (shouldDispatch) {
             this.dispatch();
-            this.lastData.set(this.data);
         }
     }
 

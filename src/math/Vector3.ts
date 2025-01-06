@@ -1,4 +1,4 @@
-import { BufferData } from "@/core/data/BufferData";
+import { BufferData } from "@/data/BufferData";
 import { Matrix4 } from "./Matrix4";
 
 export class Vector3 extends BufferData {

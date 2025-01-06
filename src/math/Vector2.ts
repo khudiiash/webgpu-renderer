@@ -1,4 +1,4 @@
-import { BufferData } from "@/core/data/BufferData";
+import { BufferData } from "@/data/BufferData";
 
 export class Vector2 extends BufferData {
     [index: number]: number;

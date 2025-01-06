@@ -1,4 +1,6 @@
 import { EngineSettings } from './settings';
+import { Object3D, Scene } from './core';
+import { Euler, Quaternion, Vector3 } from './math';
 
 export class Engine {
 
@@ -13,6 +15,6 @@ export class Engine {
     }
 
     async init() {
-     
+        const scene = new Scene();
     }
 }

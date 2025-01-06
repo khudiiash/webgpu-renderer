@@ -1,5 +1,5 @@
-import { BufferData } from "@/core/data/BufferData";
-import { Vector3, Quaternion } from "@/core/math/index";
+import { BufferData } from "@/data/BufferData";
+import { Vector3, Quaternion } from "@/math/index";
 import { Euler } from "./Euler";
 
 export class Matrix4 extends BufferData {
@@ -41,44 +41,35 @@ export class Matrix4 extends BufferData {
     compose(translation: Vector3, rotation: Quaternion, scale: Vector3): this {
         const te = this;
 
-        let sx = _v1.set([ te[ 0 ], te[ 1 ], te[ 2 ] ]).magnitude();
-        const sy = _v1.set([ te[ 4 ], te[ 5 ], te[ 6 ] ]).magnitude();
-        const sz = _v1.set([ te[ 8 ], te[ 9 ], te[ 10 ] ]).magnitude();
+		const x = rotation.x, y = rotation.y, z = rotation.z, w = rotation.w;
+		const x2 = x + x,	y2 = y + y, z2 = z + z;
+		const xx = x * x2, xy = x * y2, xz = x * z2;
+		const yy = y * y2, yz = y * z2, zz = z * z2;
+		const wx = w * x2, wy = w * y2, wz = w * z2;
 
-        // if determine is negative, we need to invert one scale
-        const det = this.determinant();
-        if ( det < 0 ) sx = - sx;
+		const sx = scale.x, sy = scale.y, sz = scale.z;
 
-        translation.x = te[ 12 ];
-        translation.y = te[ 13 ];
-        translation.z = te[ 14 ];
+		te[ 0 ] = ( 1 - ( yy + zz ) ) * sx;
+		te[ 1 ] = ( xy + wz ) * sx;
+		te[ 2 ] = ( xz - wy ) * sx;
+		te[ 3 ] = 0;
 
-        // scale the rotation part
-        _m1.copy( this );
+		te[ 4 ] = ( xy - wz ) * sy;
+		te[ 5 ] = ( 1 - ( xx + zz ) ) * sy;
+		te[ 6 ] = ( yz + wx ) * sy;
+		te[ 7 ] = 0;
 
-        const invSX = 1 / sx;
-        const invSY = 1 / sy;
-        const invSZ = 1 / sz;
+		te[ 8 ] = ( xz + wy ) * sz;
+		te[ 9 ] = ( yz - wx ) * sz;
+		te[ 10 ] = ( 1 - ( xx + yy ) ) * sz;
+		te[ 11 ] = 0;
 
-        _m1[ 0 ] *= invSX;
-        _m1[ 1 ] *= invSX;
-        _m1[ 2 ] *= invSX;
+		te[ 12 ] = translation.x;
+		te[ 13 ] = translation.y;
+		te[ 14 ] = translation.z;
+		te[ 15 ] = 1;
 
-        _m1[ 4 ] *= invSY;
-        _m1[ 5 ] *= invSY;
-        _m1[ 6 ] *= invSY;
-
-        _m1[ 8 ] *= invSZ;
-        _m1[ 9 ] *= invSZ;
-        _m1[ 10 ] *= invSZ;
-
-        rotation.setFromRotationMatrix( _m1 );
-
-        scale.x = sx;
-        scale.y = sy;
-        scale.z = sz;
-
-        return this;
+		return this;
     }
     decompose(translation: Vector3, rotation: Quaternion, scale: Vector3): this {
         const te = this;
@@ -413,15 +404,19 @@ export class Matrix4 extends BufferData {
         ]);
     }
 
+    setRotationFromQuaternion(q: Quaternion): this {
+        return this.compose(_zero, q, _one);
+    }
+
     setRotationFromEuler(euler: Euler): this {
         const te = this;
 
-		const { x, y, z, order } = euler;
-        const a = Math.cos(x), b = Math.sin(x);
-        const c = Math.cos(y), d = Math.sin(y);
-        const e = Math.cos(z), f = Math.sin(z);
+		const x = euler.x, y = euler.y, z = euler.z;
+		const a = Math.cos( x ), b = Math.sin( x );
+		const c = Math.cos( y ), d = Math.sin( y );
+		const e = Math.cos( z ), f = Math.sin( z );
 
-		if (order === 'xyz') {
+		if ( euler.order === Euler.XYZ ) {
 
 			const ae = a * e, af = a * f, be = b * e, bf = b * f;
 
@@ -437,7 +432,8 @@ export class Matrix4 extends BufferData {
 			te[ 6 ] = be + af * d;
 			te[ 10 ] = a * c;
 
-		} else if (order === 'yxz') {
+		} else if ( euler.order === Euler.YXZ ) {
+
 			const ce = c * e, cf = c * f, de = d * e, df = d * f;
 
 			te[ 0 ] = ce + df * b;
@@ -452,7 +448,8 @@ export class Matrix4 extends BufferData {
 			te[ 6 ] = df + ce * b;
 			te[ 10 ] = a * c;
 
-		} else if (order === 'zxy') {
+		} else if ( euler.order === Euler.ZXY ) {
+
 			const ce = c * e, cf = c * f, de = d * e, df = d * f;
 
 			te[ 0 ] = ce - df * b;
@@ -467,7 +464,8 @@ export class Matrix4 extends BufferData {
 			te[ 6 ] = b;
 			te[ 10 ] = a * c;
 
-		} else if (order === 'zyx') {
+		} else if ( euler.order === Euler.ZYX ) {
+
 			const ae = a * e, af = a * f, be = b * e, bf = b * f;
 
 			te[ 0 ] = c * e;
@@ -482,7 +480,8 @@ export class Matrix4 extends BufferData {
 			te[ 6 ] = b * c;
 			te[ 10 ] = a * c;
 
-		} else if (order === 'yzx') {
+		} else if ( euler.order === Euler.YZX ) {
+
 			const ac = a * c, ad = a * d, bc = b * c, bd = b * d;
 
 			te[ 0 ] = c * e;
@@ -497,7 +496,8 @@ export class Matrix4 extends BufferData {
 			te[ 6 ] = ad * f + bc;
 			te[ 10 ] = ac - bd * f;
 
-		} else if (order === 'xzy') {
+		} else if ( euler.order === Euler.XZY ) {
+
 			const ac = a * c, ad = a * d, bc = b * c, bd = b * d;
 
 			te[ 0 ] = c * e;
@@ -511,6 +511,7 @@ export class Matrix4 extends BufferData {
 			te[ 2 ] = bc * f - ad;
 			te[ 6 ] = b * e;
 			te[ 10 ] = bd * f + ac;
+
 		}
 
 		// bottom row
@@ -525,20 +526,6 @@ export class Matrix4 extends BufferData {
 		te[ 15 ] = 1;
 
 		return this;
-    }
-    setFromQuaternion(q: Quaternion): this {
-        const x = q.x, y = q.y, z = q.z, w = q.w;
-        const x2 = x + x, y2 = y + y, z2 = z + z;
-        const xx = x * x2, xy = x * y2, xz = x * z2;
-        const yy = y * y2, yz = y * z2, zz = z * z2;
-        const wx = w * x2, wy = w * y2, wz = w * z2;
-
-        return this.set([
-            1 - (yy + zz), xy - wz, xz + wy, 0,
-            xy + wz, 1 - (xx + zz), yz - wx, 0,
-            xz - wy, yz + wx, 1 - (xx + yy), 0,
-            0, 0, 0, 1
-        ]);
     }
 
     setIdentity(): this {
@@ -624,6 +611,8 @@ export class Matrix4 extends BufferData {
         ]);
     }
 }
+const _zero = new Vector3();
+const _one = new Vector3(1, 1, 1);
 const _m1 = new Matrix4();
 const _v1 = new Vector3();
 const _v2 = new Vector3();

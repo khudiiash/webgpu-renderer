@@ -25,7 +25,7 @@
     "paths": {
       "@/*": ["src/*"],
       "@util/*": ["src/util/*"],
-      "@math/*": ["src/core/math/*"],
+      "@math/*": ["src/math/*"],
       "@core/*": ["src/core/*"],
     }
 

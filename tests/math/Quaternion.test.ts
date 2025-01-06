@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { Quaternion, Vector3 } from '../../src/math';
+import { Euler, Quaternion, Vector3 } from '../../src/math';
 
 describe('Quaternion', () => {
     it('should construct with default values', () => {
@@ -41,7 +41,7 @@ describe('Quaternion', () => {
     })
 
     it('should convert from euler angles', () => {
-        const euler = new Vector3(Math.PI/4, 0, 0)
+        const euler = new Euler(Math.PI/4, 0, 0)
         const q = new Quaternion().setFromEuler(euler)
         expect(q.x).toBeCloseTo(Math.sin(Math.PI/8))
         expect(q.y).toBeCloseTo(0)
