@@ -1,4 +1,4 @@
-import { BufferData } from "../data/BufferData";
+import { BufferData } from "../../data/BufferData";
 
 export function arraysEqual(a: BufferData | Float32Array | ArrayLike<number>, b: BufferData | Float32Array | ArrayLike<number>, precision: number = 1e-6): boolean {
     if (a === b) return true;
@@ -7,6 +7,17 @@ export function arraysEqual(a: BufferData | Float32Array | ArrayLike<number>, b:
 
     for (let i = 0; i < a.length; ++i) {
         if (Math.abs(a[i] - b[i]) > precision) return false;
+    }
+    return true;
+}
+
+export function objectsEqual(a: { [key: string]: any }, b: { [key: string]: any }): boolean {
+    if (a === b) return true;
+    if (a == null || b == null) return false;
+    if (Object.keys(a).length !== Object.keys(b).length) return false;
+
+    for (let key in a) {
+        if (a[key] !== b[key]) return false;
     }
     return true;
 }

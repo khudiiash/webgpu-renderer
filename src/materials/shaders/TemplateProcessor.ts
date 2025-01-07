@@ -76,7 +76,7 @@ export class TemplateProcessor {
             
             const content = template.slice(contentStart, contentEnd - 1);
             
-            if (defines.get(feature) === true) {
+            if (defines[feature] === true) {
                 result += content;
             }
             

@@ -1,10 +1,8 @@
-import { Euler } from "@/math";
-import { BufferData } from "./BufferData";
 import { arraysEqual } from "@/util";
 
 class DataMonitor {
 
-    static extendWithDataMonitor(monitor: DataMonitor, instance: BufferData & { [key: string]: Function }) {
+    static extendWithDataMonitor(monitor: DataMonitor, instance: Float32Array & { [key: string]: Function }) {
         const proto = Object.getPrototypeOf(instance);
         
         for (const prop of Object.getOwnPropertyNames(proto)) {
@@ -50,7 +48,7 @@ class DataMonitor {
     private data: Float32Array;
     private lastData: Float32Array;
 
-    constructor(parent: any, data: BufferData) {
+    constructor(parent: any, data: Float32Array) {
         this.callbacks = [];
         this.data = data;
         this.lastData = new Float32Array([...data]);

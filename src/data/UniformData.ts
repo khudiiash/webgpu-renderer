@@ -3,7 +3,7 @@ import { BufferData } from '@/data';
 import { Texture } from './Texture';
 
 
-export type UniformDataType = BufferData | Texture;
+export type UniformDataType = BufferData | Texture | number;
 
 export type UniformDataValues = Record<string, UniformDataType>;
 
@@ -216,7 +216,7 @@ export class UniformData {
       }
     }
   
-    _setupProperty(name: string, value: BufferData | Texture) {
+    _setupProperty(name: string, value: UniformDataType) {
       const layout = this.layout[name];
   
       if (value instanceof Texture) {
@@ -225,7 +225,7 @@ export class UniformData {
   
       if (value instanceof Texture) {
         // Texture property
-      } else {
+      } else if (value instanceof BufferData) {
         // Uniform data property
         const { offset } = layout;
         let currentValue = value;
@@ -241,7 +241,7 @@ export class UniformData {
         }
   
         if (this.values[name] === undefined) {
-          Object.defineProperty(this, name, {
+          Object.defineProperty(this.values, name, {
             get: () => currentValue,
             set: (value) => {
               currentValue = value;
@@ -254,6 +254,20 @@ export class UniformData {
               }
               for (const cb of this.changeCallbacks) {
                 cb(this.id, name, value);
+              }
+            },
+            enumerable: true
+          });
+        }
+      } else if (typeof value === 'number') {
+        // Single float property
+        if (this.values[name] === undefined) {
+          Object.defineProperty(this.values, name, {
+            get: () => this.data[layout.offset],
+            set: (newValue) => {
+              this.data[layout.offset] = newValue;
+              for (const cb of this.changeCallbacks) {
+                cb(this.id, name, newValue);
               }
             },
             enumerable: true

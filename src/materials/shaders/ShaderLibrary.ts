@@ -1,5 +1,5 @@
 import { ShaderChunk } from './ShaderChunk.js';
-import { chunks } from './chunks';
+import * as chunks from './chunks/index.js';
 
 export type ShaderVarying = {
     name: string;
@@ -19,7 +19,9 @@ export type ShaderBuiltin = {
     type: string;
 }
 
-export type ShaderDefines = Map<string, boolean>; 
+export type ShaderDefines = {
+    [key: string]: boolean
+};
 
 export type ShaderConfig = {
     name: string;

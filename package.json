@@ -14,5 +14,9 @@
     "vite": "^6.0.5",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "@loaders.gl/core": "^4.3.3",
+    "@loaders.gl/gltf": "^4.3.3"
   }
 }

@@ -216,7 +216,7 @@ export class ResourceManager {
             }
             if (resource.texture) {
                 if (resource.texture instanceof Texture) {
-                    this.textures.set(resource.texture.id, resource.texture.resource);
+                    this.textures.set(resource.texture.id, resource.texture.texture);
                     const view = resource.texture.createView();
                     entry.resource = view ?? this.defaultTexture.createView();
                 } 

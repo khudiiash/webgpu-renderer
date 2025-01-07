@@ -22,7 +22,7 @@ export class Matrix4 extends BufferData {
     ]);
 
 
-    constructor(values: number[]) {
+    constructor(values: number[] = [ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 ]) {
         super(values);
     }
 

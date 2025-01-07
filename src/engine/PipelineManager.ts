@@ -92,7 +92,7 @@ type ShaderConfig = {
     });
   }
   
-  export class PipelineManager {
+export class PipelineManager {
     private static instance: PipelineManager | null = null;
     private device!: GPUDevice;
     private shaderModule!: Map<string, GPUShaderModule>;

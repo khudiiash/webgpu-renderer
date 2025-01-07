@@ -20,7 +20,7 @@ class Shader {
         this.name = name;
         this.formatter = new ShaderFormatter();
         this.processor = new TemplateProcessor();
-        this.defines = new Map();
+        this.defines = {};
         this.attributes = new Map();
         this.varyings = new Map();
         this.builtins = new Map();
