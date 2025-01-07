@@ -2,7 +2,7 @@ import { Renderer } from '@/renderer';
 import { EngineSettings, EngineDefaultSettings, EngineSettingsConfig } from '../settings';
 import { ShaderLibrary } from '../materials/shaders';
 import { GLTFLoader, TextureLoader } from '../util/loader';
-import { BoxGeometry } from '@/core/geometry/BoxGeometry';
+import { BoxGeometry } from '@/geometry/BoxGeometry';
 import { StandardMaterial } from '@/materials/StandardMaterial';
 import { Mesh } from '@/core/Mesh';
 import { Scene } from '@/core';

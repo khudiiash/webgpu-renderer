@@ -2,7 +2,8 @@ import { GLTFLoader as GLTF } from '@loaders.gl/gltf';
 import {load, parse} from '@loaders.gl/core';
 
 
-import { Mesh, Geometry } from '@/core';
+import { Mesh } from '@/core';
+import { Geometry } from '@/geometry';
 //import { InstancedMesh } from '../core/InstancedMesh.js';
 import { TextureLoader } from '.';
 import { Object3D } from '../../core/Object3D.js';
