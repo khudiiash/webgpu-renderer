@@ -164,11 +164,11 @@ export class Quaternion extends BufferData {
 				console.warn( 'Quaternion.setFromEuler(): unknown Euler order: ' + order );
 
 		}
-        // console.warn({
-        //     type: 'quat from euler',
-        //     input: x + ', ' + y + ', ' + z,
-        //     output: this[0] + ', ' + this[1] + ', ' + this[2] + ', ' + this[3]
-        // })
+        console.warn({
+            type: 'quat from euler',
+            input: x + ', ' + y + ', ' + z,
+            output: this[0] + ', ' + this[1] + ', ' + this[2] + ', ' + this[3]
+        })
 
 		return this;
     }

@@ -1,18 +1,18 @@
 import { describe, it, expect } from 'vitest'
-import { arraysEqual, id } from '../../src/util'
+import { arraysEqual, uuid } from '../../src/util'
 import { Euler, Quaternion } from '../../src/math'
 
 describe('Utils', () => {
     describe('ID', () => {
         it('should generate unique IDs', () => {
-            const id1 = id();
-            const id2 = id();
+            const id1 = uuid();
+            const id2 = uuid();
             expect(id1).not.toBe(id2)
         })
 
         it('should include provided key in generated ID', () => {
             const key = 'test'
-            const _id = id(key);
+            const _id = uuid(key);
             expect(_id.startsWith(key + '_')).toBe(true)
         })
     })

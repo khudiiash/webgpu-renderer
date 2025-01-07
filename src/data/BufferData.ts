@@ -32,7 +32,7 @@ export class BufferData extends Float32Array {
     }
 
     clone(): this {
-        return new (this.constructor as any)(this) as this;
+        return new (this.constructor as any)(...this) as this;
     }
 
     equals(data: BufferData, precision: number = 1e-6): boolean {

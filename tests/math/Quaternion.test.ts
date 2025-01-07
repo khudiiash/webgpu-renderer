@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { Euler, Quaternion, Vector3 } from '../../src/math';
+import { BufferData } from '../../src/util';
 
 describe('Quaternion', () => {
     it('should construct with default values', () => {
@@ -66,15 +67,15 @@ describe('Quaternion', () => {
     })
 
     it('should handle conversion to/from array', () => {
-        const q = new Quaternion(1, 2, 3, 4)
+        const q = new Quaternion(1, 2, 3, 4) as unknown as BufferData;
         const arr = q.toArray()
         expect(arr).toEqual([1, 2, 3, 4])
         
-        const q2 = new Quaternion()
+        const q2 = new Quaternion() as unknown as BufferData;
         q2.fromArray([5, 6, 7, 8])
-        expect(q2.x).toBe(5)
-        expect(q2.y).toBe(6)
-        expect(q2.z).toBe(7)
-        expect(q2.w).toBe(8)
+        expect(q2[0]).toBe(5)
+        expect(q2[1]).toBe(6)
+        expect(q2[2]).toBe(7)
+        expect(q2[3]).toBe(8)
     })
 })

@@ -16,5 +16,8 @@ export class Engine {
 
     async init() {
         const scene = new Scene();
+        const vec= new Vector3(1,1,1);
+        const cloned = vec.clone();
+        console.log(cloned);
     }
 }

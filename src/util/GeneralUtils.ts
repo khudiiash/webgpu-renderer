@@ -15,7 +15,7 @@ export function cleanFloat(value: number): number {
     return Math.round(value * 1e6) / 1e6;
 }
 
-export function id(key: string = ''): string {
+export function uuid(key: string = ''): string {
     return key + '_' + Math.random().toString(36).substring(2, 9);
 }
 
@@ -26,5 +26,12 @@ export function num(...args: any[]): boolean {
         }
     }
     return true;
-    
+}
+
+export function autobind(context: any) {
+    Object.getOwnPropertyNames(Object.getPrototypeOf(context))
+        .filter(key => key !== 'constructor' && typeof context[key] === 'function')
+        .forEach(key => {
+            context[key] = context[key].bind(context);
+        });
 }

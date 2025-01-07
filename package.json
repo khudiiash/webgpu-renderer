@@ -1,6 +1,5 @@
 {
   "name": "webgpu-renderer",
-  "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
@@ -10,6 +9,7 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@webgpu/types": "^0.1.52",
     "typescript": "~5.6.2",
     "vite": "^6.0.5",
     "vite-tsconfig-paths": "^5.1.4",

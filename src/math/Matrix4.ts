@@ -7,7 +7,12 @@ export class Matrix4 extends BufferData {
     [index: number]: number;
     readonly isMatrix4: boolean = true;
 
-    static INSTANCE = new Matrix4();
+    static INSTANCE = new Matrix4([
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+    ]);
 
     static IDENTITY = new Matrix4([
         1, 0, 0, 0,
@@ -17,12 +22,7 @@ export class Matrix4 extends BufferData {
     ]);
 
 
-    constructor(values = [
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1
-    ]) {
+    constructor(values: number[]) {
         super(values);
     }
 

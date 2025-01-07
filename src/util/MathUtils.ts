@@ -1,40 +1,40 @@
 let _seed = 1234567;
-const DEG2RAD = Math.PI / 180;
-const RAD2DEG = 180 / Math.PI;
+export const DEG2RAD = Math.PI / 180;
+export const RAD2DEG = 180 / Math.PI;
 
-function rand(min: number, max: number): number {
+export function rand(min: number, max: number): number {
     return Math.random() * (max - min) + min;
 }
 
-function randInt(min: number, max: number): number {
+export function randInt(min: number, max: number): number {
     return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
-function clamp(value: number, min: number, max: number): number {
+export function clamp(value: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, value));
 }
 
-function lerp(start: number, end: number, t: number): number {
+export function lerp(start: number, end: number, t: number): number {
     return start + t * (end - start);
 }
 
-function inverseLerp(start: number, end: number, value: number): number {
+export function inverseLerp(start: number, end: number, value: number): number {
     return (value - start) / (end - start);
 }
 
-function map(value: number, start1: number, end1: number, start2: number, end2: number): number {
+export function map(value: number, start1: number, end1: number, start2: number, end2: number): number {
     return lerp(start2, end2, inverseLerp(start1, end1, value));
 }
 
-function smoothStep(start: number, end: number, t: number): number {
+export function smoothStep(start: number, end: number, t: number): number {
     return lerp(start, end, t * t * (3 - 2 * t));
 }
 
-function smootherStep(start: number, end: number, t: number): number {
+export function smootherStep(start: number, end: number, t: number): number {
     return lerp(start, end, t * t * t * (t * (t * 6 - 15) + 10));
 }
 
-function seedRandom(s?: number): number {
+export function seedRandom(s?: number): number {
     if (s !== undefined) _seed = s;
     let t = _seed += 0x6D2B79F5;
 
@@ -44,7 +44,7 @@ function seedRandom(s?: number): number {
     return ((t ^ t >>> 14) >>> 0) / 4294967296;
 }
 
-function normalize(value: number, array: Float32Array | Uint32Array | Uint16Array | Uint8Array | Int32Array | Int16Array | Int8Array): number {
+export function normalize(value: number, array: Float32Array | Uint32Array | Uint16Array | Uint8Array | Int32Array | Int16Array | Int8Array): number {
     switch (array.constructor) {
         case Float32Array:
             return value;
@@ -72,7 +72,7 @@ function normalize(value: number, array: Float32Array | Uint32Array | Uint16Arra
     }
 }
 
-function denormalize(value: number, array: Float32Array | Uint32Array | Uint16Array | Uint8Array | Int32Array | Int16Array | Int8Array): number {
+export function denormalize(value: number, array: Float32Array | Uint32Array | Uint16Array | Uint8Array | Int32Array | Int16Array | Int8Array): number {
     switch (array.constructor) {
         case Float32Array:
             return value;
@@ -100,38 +100,18 @@ function denormalize(value: number, array: Float32Array | Uint32Array | Uint16Ar
     }
 }
 
-function fract(value: number): number {
+export function fract(value: number): number {
     return value - Math.floor(value);
 }
 
-function mod(value: number, n: number): number {
+export function mod(value: number, n: number): number {
     return ((value % n) + n) % n;
 }
 
-function modMinMax(value: number, min: number, max: number): number {
+export function modMinMax(value: number, min: number, max: number): number {
     return mod(value - min, max - min) + min;
 }
 
-function isPowerOf2(value: number): boolean {
+export function isPowerOf2(value: number): boolean {
     return (value & (value - 1)) === 0 && value !== 0;
 }
-
-export {
-    DEG2RAD,
-    RAD2DEG,
-    rand,
-    randInt,
-    clamp,
-    lerp,
-    inverseLerp,
-    map,
-    smoothStep,
-    smootherStep,
-    seedRandom,
-    normalize,
-    denormalize,
-    fract,
-    mod,
-    modMinMax,
-    isPowerOf2
-};

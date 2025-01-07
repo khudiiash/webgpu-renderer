@@ -1,5 +1,5 @@
 import { Euler, Vector3, Quaternion, Matrix4 } from "@/math";
-import { id, num } from "@/util";
+import { uuid, num } from "@/util";
 
 export class Object3D {
     public position: Vector3;
@@ -30,7 +30,7 @@ export class Object3D {
             this.rotation.setFromQuaternion(this.quaternion);
             this.updateMatrix();
         }); 
-        this.id = id('object');
+        this.id = uuid('object');
         this.matrix = new Matrix4();
         this.matrixWorld = new Matrix4();
         this.children = [];
