@@ -2,11 +2,8 @@ import { uuid } from '@/util';
 import { BufferData } from '@/data';
 import { Texture } from './Texture';
 
-
 export type UniformDataType = BufferData | Texture | number;
-
 export type UniformDataValues = Record<string, UniformDataType>;
-
 export type UniformDataLayout = Record<string, { offset: number, size: number }>;
 
 export type UniformDataConfig = {
@@ -15,9 +12,10 @@ export type UniformDataConfig = {
     values: Record<string, UniformDataType>;
 }
 
+export type UniformChangeCallback = (id: string, name: string, value: any) => void;
+export type UniformRebuildCallback = (id: string) => void;
 
 export class UniformData {
-
     static #byID = new Map();
     static #byName = new Map();
   
@@ -28,7 +26,6 @@ export class UniformData {
       }
       return UniformData.#byID.get(id);
     }
-  
   
     static getByName(name: string): UniformData | null {
       if (!UniformData.#byName.has(name)) {
@@ -46,7 +43,6 @@ export class UniformData {
       return UniformData.#byID.has(id);
     }
   
-  
     static setByID(id: string, data: UniformData): void {
       UniformData.#byID.set(id, data);
     }
@@ -56,18 +52,18 @@ export class UniformData {
     }
 
 
-    public name: string;
-    public isGlobal: boolean;
-    public id: string;
-    public textures: Map<string, Texture>;
-    public data!: Float32Array;
-    public values: UniformDataValues;
-
+    public readonly name: string;
+    public readonly isGlobal: boolean;
+    public readonly id: string;
+    private parent: any;
+    
     private layout: UniformDataLayout;
-    private changeCallbacks: Function[];
-    private rebuildCallbacks: Function[];
+    private changeCallbacks: UniformChangeCallback[];
+    private rebuildCallbacks: UniformRebuildCallback[];
+    public data!: Float32Array;
+    public textures: Map<string, Texture>;
   
-    constructor(config: UniformDataConfig) {
+    constructor(parent: any, config: UniformDataConfig) {
       const { name, isGlobal, values } = config;
       const id = uuid('uniform_data');
   
@@ -77,11 +73,11 @@ export class UniformData {
   
       UniformData.setByID(id, this);
   
+      this.parent = parent;
       this.name = name;
       this.isGlobal = isGlobal;
       this.id = id;
       this.layout = {};
-      this.values = {};
       this.textures = new Map();
       this.changeCallbacks = [];
       this.rebuildCallbacks = [];
@@ -91,15 +87,15 @@ export class UniformData {
       }
     }
   
-    setProperties(values: { [s: string]: UniformDataType; }) {
+    private setProperties(values: { [s: string]: UniformDataType; }) {
       const newLayout = {} as UniformDataLayout;
       const newTextures = new Map();
       let totalSize = 0;
   
+      // First pass: calculate layout
       for (const [name, value] of Object.entries(values)) {
         if (value instanceof Texture) {
           newTextures.set(name, value);
-          this.values[name] = value;
           continue;
         }
   
@@ -116,7 +112,7 @@ export class UniformData {
       const needsRebuild = !this.data || this.data.length !== totalSize;
       const newData = needsRebuild ? new Float32Array(totalSize) : this.data;
   
-      // Second pass: migrate existing data and set up new properties
+      // Migrate existing data
       if (needsRebuild && this.data) {
         for (const [name, oldLayout] of Object.entries(this.layout)) {
           const newPos = newLayout[name];
@@ -135,46 +131,83 @@ export class UniformData {
       this.textures = newTextures;
       this.data = newData;
   
-      // Set up accessors for all properties
+      // Set up getters and setters for all properties on parent
       for (const [name, value] of Object.entries(values)) {
-        this._setupProperty(name, value);
+        this._defineProperty(name, value);
       }
   
-      if (needsRebuild && this.rebuildCallbacks) {
-        this.rebuildCallbacks.forEach((cb) => {
-          cb(this.id);
+      if (needsRebuild) {
+        this.rebuildCallbacks.forEach((cb) => cb(this.id));
+      }
+    }
+  
+    private _defineProperty(name: string, value: UniformDataType) {
+      const layout = this.layout[name];
+  
+      if (value instanceof Texture) {
+        this._handleTexture(name, value);
+        Object.defineProperty(this.parent, name, {
+          get: () => this.textures.get(name),
+          set: (newValue: Texture) => {
+            this._handleTexture(name, newValue);
+            this.rebuildCallbacks.forEach(cb => cb(this.id));
+          },
+          enumerable: true,
+          configurable: true
+        });
+      } else if (value instanceof BufferData) {
+        const { offset } = layout;
+
+        value.onChange(() => {
+          this.data.set(value as BufferData, offset);
+          this.changeCallbacks.forEach(cb => cb(this.id, name, value));
+        })
+
+        Object.defineProperty(this.parent, name, {
+          get: () => value,
+          set: (newValue: BufferData) => {
+            if (newValue !== value) {
+              this.data.set(newValue, offset);
+
+              newValue.onChange(() => {
+                this.data.set(newValue, offset);
+                this.changeCallbacks.forEach(cb => cb(this.id, name, newValue));
+              });
+
+              this.changeCallbacks.forEach(cb => cb(this.id, name, newValue));
+              value = newValue;
+            }
+          },
+          enumerable: true,
+          configurable: true
+        });
+      } else if (typeof value === 'number') {
+        Object.defineProperty(this.parent, name, {
+          get: () => this.data[layout.offset],
+          set: (newValue: number) => {
+            this.data[layout.offset] = newValue;
+            this.changeCallbacks.forEach(cb => cb(this.id, name, newValue));
+          },
+          enumerable: true,
+          configurable: true
         });
       }
     }
   
+    private _handleTexture(name: string, texture: Texture) {
+      if (!(texture instanceof Texture)) return;
   
-    add(name: string, value: UniformDataType) {
-        this.values[name] = value;
-        this.setProperties(this.values);
-    }
-  
-    remove(name: string | number) {
-      delete this.values[name];
-      this.setProperties(this.values);
-    }
-  
-    get(name: string | number) {
-      return this.values[name];
-    }
-  
-    set(name: string, value: Texture | BufferData) {
-      if (!this.values[name]) {
-        this.add(name, value);
+      if (texture.loaded) {
+        this.textures.set(name, texture);
       } else {
-        this.values[name] = value;
+        texture.onLoaded(() => {
+          this.textures.set(name, texture);
+          this.rebuildCallbacks.forEach(cb => cb(this.id));
+        });
       }
     }
   
-    has(name: string) {
-      return this.values[name] !== undefined;
-    }
-  
-    _getValueSize(value: UniformDataType): number {
+    private _getValueSize(value: UniformDataType): number {
       if (value instanceof Float32Array) {
         return value.byteLength / Float32Array.BYTES_PER_ELEMENT;
       }
@@ -183,101 +216,38 @@ export class UniformData {
       }
       return 1;
     }
-  
-    _handleTexture(name: string, texture: Texture) {
-      if (!(texture instanceof Texture)) return;
-  
-      if (texture.loaded) {
-        this.textures.set(name, texture);
-      } else {
-        texture.onLoaded(() => {
-          this.textures.set(name, texture);
-          if (this.rebuildCallbacks) {
-            this.rebuildCallbacks.forEach((cb) => {
-              cb(this.id);
-            });
-          }
-        })
-      }
-  
-      if (this.values[name] === undefined) {
-        Object.defineProperty(this.values, name, {
-          get: () => this.values[name],
-          set: (newValue) => {
-            this.textures.set(name, newValue);
-            if (this.rebuildCallbacks) {
-              this.rebuildCallbacks.forEach((cb) => {
-                cb(this.id);
-              });
-            }
-          },
-          enumerable: true
-        });
-      }
+
+    add(name: string, value: UniformDataType) {
+      this._defineProperty(name, value);
+      this.setProperties({ ...this.getProperties(), [name]: value });
     }
   
-    _setupProperty(name: string, value: UniformDataType) {
-      const layout = this.layout[name];
-  
-      if (value instanceof Texture) {
-        this._handleTexture(name, value);
+    remove(name: string) {
+      const props = this.getProperties();
+      delete props[name];
+      delete this.parent[name];
+      this.setProperties(props);
+    }
+
+    getProperties(): Record<string, UniformDataType> {
+      const props: Record<string, UniformDataType> = {};
+      for (const [name, layout] of Object.entries(this.layout)) {
+        props[name] = this.parent[name];
       }
-  
-      if (value instanceof Texture) {
-        // Texture property
-      } else if (value instanceof BufferData) {
-        // Uniform data property
-        const { offset } = layout;
-        let currentValue = value;
-  
-        if (value?.onChange) {
-          value.onChange((newValue: Texture | BufferData) => {
-            this.values[name] = newValue;
-          })
-        }
-  
-        if (value instanceof Texture) {
-          this._handleTexture(name, value);
-        }
-  
-        if (this.values[name] === undefined) {
-          Object.defineProperty(this.values, name, {
-            get: () => currentValue,
-            set: (value) => {
-              currentValue = value;
-              if (value instanceof Float32Array) {
-                this.data.set(value, offset);
-              } else if (value?.constructor?.name === 'Color') {
-                this.data.set(value.data, offset);
-              } else {
-                this.data[offset] = value;
-              }
-              for (const cb of this.changeCallbacks) {
-                cb(this.id, name, value);
-              }
-            },
-            enumerable: true
-          });
-        }
-      } else if (typeof value === 'number') {
-        // Single float property
-        if (this.values[name] === undefined) {
-          Object.defineProperty(this.values, name, {
-            get: () => this.data[layout.offset],
-            set: (newValue) => {
-              this.data[layout.offset] = newValue;
-              for (const cb of this.changeCallbacks) {
-                cb(this.id, name, newValue);
-              }
-            },
-            enumerable: true
-          });
-        }
+      for (const [name, texture] of this.textures) {
+        props[name] = texture;
       }
-  
-      this.values[name] = value;
+      return props;
+    }
+
+    getData() {
+      return this.data;
     }
   
+    getTextures() {
+      return this.textures;
+    }
+
     getBindGroupLayoutDescriptor(): GPUBindGroupLayoutDescriptor {
       const entries = [];
   
@@ -293,7 +263,6 @@ export class UniformData {
       const samplerBindings = new Map();
   
       for (const [name, texture] of this.textures) {
-        // Texture binding
         entries.push({
           label: name,
           binding: entries.length,
@@ -301,7 +270,6 @@ export class UniformData {
           texture: {}
         });
   
-        // Add sampler binding if we haven't seen this type
         const samplerType = texture.samplerType;
         if (!samplerBindings.has(samplerType)) {
           samplerBindings.set(samplerType, entries.length);
@@ -318,7 +286,6 @@ export class UniformData {
     }
   
     getBindings() {
-      
       const items = [];
   
       if (this.data?.length > 0) {
@@ -341,7 +308,6 @@ export class UniformData {
       const samplerBindings = new Map();
   
       for (const [name, texture] of this.textures) {
-        // Texture view
         items.push({
           name,
           binding: items.length,
@@ -352,7 +318,6 @@ export class UniformData {
   
         const samplerType = texture.samplerType;
   
-        // Reuse sampler for same type
         if (!samplerBindings.has(samplerType)) {
           samplerBindings.set(samplerType, items.length);
           items.push({
@@ -379,28 +344,19 @@ export class UniformData {
       };
     }
   
-    getData() {
-      return this.data;
-    }
-  
-    getTextures() {
-      return this.textures;
-    }
-  
-    onChange(callback: Function) {
-      if (!callback) {
-        throw new Error('Callback is undefined');
-      }
-      if (this.changeCallbacks.indexOf(callback) === -1) {
+    onChange(callback: UniformChangeCallback) {
+      if (!callback) throw new Error('Callback is undefined');
+      
+      if (!this.changeCallbacks.includes(callback)) {
         this.changeCallbacks.push(callback);
+      } else {
+        console.warn('Callback already exists', callback);
       } 
     }
   
-    onRebuild(callback: Function) {
-      if (!callback) {
-        throw new Error('Callback is undefined');
-      }
-      if (this.rebuildCallbacks.indexOf(callback) === -1) {
+    onRebuild(callback: UniformRebuildCallback) {
+      if (!callback) throw new Error('Callback is undefined');
+      if (!this.rebuildCallbacks.includes(callback)) {
         this.rebuildCallbacks.push(callback);
       } 
     }
@@ -418,4 +374,4 @@ export class UniformData {
         this.rebuildCallbacks.splice(index, 1);
       }
     }
-  }
+}

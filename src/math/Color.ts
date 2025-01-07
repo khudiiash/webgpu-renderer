@@ -1,7 +1,7 @@
 import { BufferData, cleanFloat } from '@/util';
 
 class Color extends BufferData {
-    constructor(r: string | number | Color = 0xffffff, g: number = 0, b: number = 0, a: number = 1) {
+    constructor(r: string | number | Color = 0xffffff, g: number | undefined = undefined, b: number | undefined = undefined, a: number | undefined = undefined) {
         if (r instanceof Color) {
             return r.clone();
         }
@@ -21,7 +21,7 @@ class Color extends BufferData {
             return this;
         }
 
-        this.set([r, g, b, a ?? 1]);
+        this.set([r, g ?? 0, b ?? 0, a ?? 1]);
     }
     
     get r() { return this[0]; }
@@ -33,8 +33,6 @@ class Color extends BufferData {
     set g(value) { this[1] = value; this.monitor.check(); }
     set b(value) { this[2] = value; this.monitor.check(); }
     set a(value) { this[3] = value; this.monitor.check(); }
-    
-
     
     private __fromHexString(string: string) {
         if (string[0] !== '#') {

@@ -6,6 +6,8 @@ import { BoxGeometry } from '@/geometry/BoxGeometry';
 import { StandardMaterial } from '@/materials/StandardMaterial';
 import { Mesh } from '@/core/Mesh';
 import { Scene } from '@/core';
+import { UniformData } from '@/data';
+import { Color } from '@/math';
 
 export class Engine {
     private settings: EngineSettings
@@ -37,15 +39,15 @@ export class Engine {
         ShaderLibrary.init();
         TextureLoader.init(Engine.device);
         GLTFLoader.init(Engine.device);
-
         const scene = new Scene();
 
-        const geometry = new BoxGeometry(1, 1, 1);
-        const material = new StandardMaterial();
-        const mesh = new Mesh(geometry, material);
-        scene.add(mesh);
-        console.log(scene);
-    
+        scene.uniforms.onChange((id, name, value) => {
+            console.log(name, value);
+        });
+
+        scene.ambientColor.r = 0.44;
+        scene.ambientColor = new Color('#ff0000');
+        console.log(scene.ambientColor);
 
         return this;
     }

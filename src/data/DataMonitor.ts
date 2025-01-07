@@ -22,24 +22,37 @@ class DataMonitor {
             }
         }
 
-        Object.defineProperties(instance, {
-            onChange: {
-                value: function(callback: Function) {
-                    monitor.add(callback);
-                    return instance;
-                },
-                writable: false
-            },
-            
-            offChange: {
-                value: function(callback: Function) {
-                    monitor.remove(callback);
-                    return instance;
-                },
-                writable: false
+        if (instance.onChange) {
+            const original = instance.onChange;
+            instance.onChange = function(callback: Function) {
+                monitor.add(callback);
+                return original.call(instance, callback);
             }
+            instance.offChange = function(callback: Function) {
+                monitor.remove(callback);
+                return original.call(instance, callback);
+            }
+        } else {
+            Object.defineProperties(instance, {
+                onChange: {
+                    value: function(callback: Function) {
+                        monitor.add(callback);
+                        return instance;
+                    },
+                    writable: false
+                },
+                
+                offChange: {
+                    value: function(callback: Function) {
+                        monitor.remove(callback);
+                        return instance;
+                    },
+                    writable: false
+                }
 
-        })
+            })
+
+        }
 
         return instance;
     }
