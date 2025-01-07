@@ -1,8 +1,6 @@
 import { Float32BufferAttribute } from './BufferAttribute';
-import { BoundingBox } from '../../math/BoundingBox.js';
-import { BoundingSphere } from '../../math/BoundingSphere.js';
+import { Vector3, BoundingBox, BoundingSphere } from '@/math';
 import { uuid } from '@/util/helpers/GeneralUtils.js';
-import { Vector3 } from '../../math/Vector3.js';
 
 const _tempVec3 = new Vector3();
 

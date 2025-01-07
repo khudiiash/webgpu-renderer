@@ -95,4 +95,19 @@ export class Object3D {
             this.scale.set([x, y, z]);
         }
     }
+
+    copy(source: Object3D) {
+        this.position.copy(source.position);
+        this.rotation.copy(source.rotation);
+        this.scale.copy(source.scale);
+        this.quaternion.copy(source.quaternion);
+        this.matrix.copy(source.matrix);
+        this.matrixWorld.copy(source.matrixWorld);
+        this.children = source.children.map(child => child.clone());
+        return this;
+    }
+
+    clone(): Object3D {
+        return new Object3D().copy(this);
+    }
 }

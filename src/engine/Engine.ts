@@ -44,6 +44,7 @@ export class Engine {
         const material = new StandardMaterial();
         const mesh = new Mesh(geometry, material);
         scene.add(mesh);
+        console.log(scene);
     
 
         return this;

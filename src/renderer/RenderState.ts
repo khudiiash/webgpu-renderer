@@ -1,3 +1,5 @@
+import { ObjectMonitor } from "@/data/ObjectMonitor";
+
 export interface RenderStateOptions {
     topology?: 'triangle-list' | 'triangle-strip';
     cullMode?: 'back' | 'front' | 'none';
@@ -11,26 +13,30 @@ export interface RenderStateOptions {
 }
 
 export class RenderState {
-    topology: 'triangle-list' | 'triangle-strip';
-    cullMode: 'back' | 'front' | 'none';
-    frontFace: 'ccw' | 'cw';
-    depthTest: boolean;
-    depthWrite: boolean;
-    depthCompare: 'less' | 'greater' | 'equal' | 'not-equal' | 'always' | 'never';
-    stencilTest: boolean;
-    blending: 'normal' | 'additive' | 'multiply';
-    transparent: boolean;
+    topology: 'triangle-list' | 'triangle-strip' = 'triangle-list';
+    cullMode: 'back' | 'front' | 'none' = 'back';
+    frontFace: 'ccw' | 'cw' = 'ccw';
+    depthTest: boolean = true;
+    depthWrite: boolean = true;
+    depthCompare: 'less' | 'greater' | 'equal' | 'not-equal' | 'always' | 'never' = 'less';
+    stencilTest: boolean = false;
+    blending: 'normal' | 'additive' | 'multiply' = 'normal';
+    transparent: boolean = false;
+
+    private callbacks: ((state: RenderState) => {})[] = [];
 
     constructor(options: RenderStateOptions = {}) {
-        this.topology = options.topology || 'triangle-list';
-        this.cullMode = options.cullMode || 'back';
-        this.frontFace = options.frontFace || 'ccw';
-        this.depthTest = options.depthTest ?? true;
-        this.depthWrite = options.depthWrite ?? true;
-        this.depthCompare = options.depthCompare || 'less';
-        this.stencilTest = options.stencilTest || false;
-        this.blending = options.blending || 'normal';
-        this.transparent = options.transparent || false;
+        new ObjectMonitor({
+            topology: options.topology || 'triangle-list',
+            cullMode: options.cullMode || 'back',
+            frontFace: options.frontFace || 'ccw',
+            depthTest: options.depthTest ?? true,
+            depthWrite: options.depthWrite ?? true,
+            depthCompare: options.depthCompare || 'less',
+            stencilTest: options.stencilTest || false,
+            blending: options.blending || 'normal',
+            transparent: options.transparent || false,
+        }, this).onChange(() => this.dispatch());
     }
 
     getFragmentTarget() {
@@ -115,4 +121,25 @@ export class RenderState {
             stripIndexFormat: this.topology === 'triangle-strip' ? 'uint32' : undefined,
         };
     }
+
+    dispatch() {
+        for (const callback of this.callbacks) {
+            callback(this);
+        }
+    }
+
+    onChange(callback: () => this) {
+        if (callback && !this.callbacks.includes(callback)) {
+            this.callbacks.push(callback);
+        }
+    }
+
+    offChange(callback: () => this) {
+        const index = this.callbacks.indexOf(callback);
+        if (index >= 0) {
+            this.callbacks.splice(index, 1);
+        }
+    }
+
+
 }

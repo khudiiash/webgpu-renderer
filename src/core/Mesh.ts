@@ -1,5 +1,7 @@
 import { UniformData } from '@/data';
-import { Object3D, Geometry, Material } from '.'
+import { Object3D } from '.'
+import { Geometry } from '@/geometry';
+import { Material } from '@/materials';
 import { uuid } from '@/util';
 
 class Mesh extends Object3D {
@@ -32,6 +34,13 @@ class Mesh extends Object3D {
 
     setGeometry(geometry: Geometry) {
         this.geometry = geometry;
+    }
+
+    copy(source: Mesh) {
+        super.copy(source);
+        this.geometry = source.geometry;
+        this.material = source.material;
+        return this;
     }
 }
 

@@ -1,3 +1,5 @@
+export * from './BoundingBox';
+export * from './BoundingSphere';
 export * from './Quaternion';
 export * from './Euler';
 export * from './Vector2';
