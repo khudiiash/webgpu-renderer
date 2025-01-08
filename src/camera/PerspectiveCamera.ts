@@ -31,6 +31,7 @@ export class PerspectiveCamera extends Camera {
   
     updateProjectionMatrix() {
         this.projectionMatrix.setPerspective(this.fov * DEG2RAD, this.aspect, this.near, this.far);
+        console.log(this.projectionMatrix);
         this.projectionViewMatrix.multiplyMatrices(this.projectionMatrix, this.viewMatrix);
         this.updateFrustum();
     }

@@ -2,6 +2,7 @@ import { Object3D } from '@/core';
 import { Frustum, Matrix4, Vector3 } from '@/math';
 import { UniformData, UniformDataConfig } from '@/data';
 import { uuid } from '@/util';
+console.log(Matrix4)
 
 const _projScreenMatrix = new Matrix4();
 const _vector = new Vector3();
@@ -74,7 +75,7 @@ class Camera extends Object3D {
         if (x instanceof Vector3) {
             this.target.add(_vector.copy(x).sub(this.position));
         } else {
-            const diff = _vector.set(x - this.position.x, y - this.position.y, z - this.position.z);
+            const diff = _vector.set([x - this.position.x, y - this.position.y, z - this.position.z]);
             this.target.add(diff);
         }
         super.setPosition(x, y, z);
@@ -90,8 +91,8 @@ class Camera extends Object3D {
         // Implemented in subclasses
     }
 
-    updateWorldMatrix(updateParents: boolean = false, updateChildren: boolean = true) {
-        super.updateWorldMatrix(updateParents, updateChildren);
+    updateWorldMatrix(fromParent: boolean = false) {
+        super.updateMatrixWorld(fromParent);
         this.updateViewMatrix();
     }
 

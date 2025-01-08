@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { arraysEqual, uuid } from '../../src/util'
-import { Euler, Quaternion } from '../../src/math'
+import { arraysEqual, uuid } from '@/util'
+import { Euler, Quaternion } from '@/math';
 
 describe('Utils', () => {
     describe('ID', () => {

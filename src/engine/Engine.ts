@@ -1,7 +1,7 @@
-import { Renderer, Renderable } from '@/renderer';
+import { Renderer } from '@/renderer';
 import { EngineSettings, EngineDefaultSettings, EngineSettingsConfig } from '../settings';
 import { ShaderLibrary, StandardMaterial } from '@/materials';
-import { GLTFLoader, TextureLoader } from '@/util/loader';
+import { TextureLoader } from '@/util/loader';
 import { BoxGeometry } from '@/geometry';
 import { Mesh, Scene } from '@/core';
 import { PipelineManager } from './PipelineManager';
@@ -59,7 +59,7 @@ export class Engine {
         this.device = renderer.device;
         ShaderLibrary.init();
         TextureLoader.init(Engine.device);
-        GLTFLoader.init(Engine.device);
+        //GLTFLoader.init(Engine.device);
         PipelineManager.init(Engine.device);
         ResourceManager.init(Engine.device);
 

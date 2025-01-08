@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest'
-import { Euler, Quaternion, Vector3 } from '../../src/math';
-import { BufferData } from '../../src/util';
+import { describe, it, expect } from 'vitest';
+import { BufferData } from '@/data';
+import { Quaternion, Euler } from '@/math';
+
 
 describe('Quaternion', () => {
     it('should construct with default values', () => {

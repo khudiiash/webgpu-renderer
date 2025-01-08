@@ -1,5 +1,5 @@
 import { BufferData } from "@/util";
-import { Matrix4, Vector3, Euler } from ".";
+import { Matrix4, Vector3, Euler } from "@/math";
 
 
 export class Quaternion extends BufferData {

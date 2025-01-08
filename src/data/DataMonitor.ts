@@ -30,7 +30,7 @@ class DataMonitor {
             }
             instance.offChange = function(callback: Function) {
                 monitor.remove(callback);
-                return original.call(instance, callback);
+                return instance;
             }
         } else {
             Object.defineProperties(instance, {

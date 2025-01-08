@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { Vector3 } from '../../src/math/Vector3';
+import { Vector3 } from '@/math';
 
 describe('Vector3', () => {
     test('constructor initializes with default values', () => {

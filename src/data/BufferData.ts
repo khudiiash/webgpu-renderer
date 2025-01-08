@@ -5,7 +5,6 @@ export type ChangeCallback = (instance: any, data: BufferData) => void;
 
 export class BufferData extends Float32Array {
     [index: number]: number;
-    monitor: DataMonitor;
 
     onChange(callback: ChangeCallback): this { return this; }
     offChange(callback: ChangeCallback): this { return this; }

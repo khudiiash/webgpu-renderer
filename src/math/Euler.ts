@@ -1,4 +1,4 @@
-import { Matrix4, Quaternion, Vector3 } from '.';
+import { Matrix4, Quaternion, Vector3 } from '@/math';
 import { BufferData, RAD2DEG, clamp } from '@/util';
 
 export type EulerOrder = 'XYZ' | 'YZX' | 'ZXY' | 'XZY' | 'YXZ' | 'ZYX';

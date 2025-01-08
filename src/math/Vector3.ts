@@ -45,7 +45,7 @@ export class Vector3 extends BufferData {
         return this;
     }
 
-    addVectors(a: Vector3, b: Vector3): this {
+    addVectors(a: Vector3, b: Vector3): Vector3 {
         this[0] = a[0] + b[0];
         this[1] = a[1] + b[1];
         this[2] = a[2] + b[2];
@@ -56,6 +56,13 @@ export class Vector3 extends BufferData {
         this[0] -= v[0];
         this[1] -= v[1];
         this[2] -= v[2];
+        return this;
+    }
+
+    subVectors(a: Vector3, b: Vector3): Vector3 {
+        this[0] = a[0] - b[0];
+        this[1] = a[1] - b[1];
+        this[2] = a[2] - b[2];
         return this;
     }
 
@@ -70,6 +77,13 @@ export class Vector3 extends BufferData {
         this[0] *= v[0];
         this[1] *= v[1];
         this[2] *= v[2];
+        return this;
+    }
+
+    multiplyVectors(a: Vector3, b: Vector3): this {
+        this[0] = a[0] * b[0];
+        this[1] = a[1] * b[1];
+        this[2] = a[2] * b[2];
         return this;
     }
 

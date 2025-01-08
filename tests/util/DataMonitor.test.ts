@@ -1,6 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { DataMonitor } from '../../src/util/DataMonitor'
-import { BufferData } from '../../src/util/BufferData'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { BufferData, DataMonitor } from '@/data';
 
 describe('DataMonitor', () => {
     let dataMonitor: DataMonitor
@@ -12,16 +11,16 @@ describe('DataMonitor', () => {
     }
 
     beforeEach(() => {
-        bufferData = new Float32Array([0, 0, 0]) as BufferData
-        parentInstance = Object.assign(bufferData, {
+        bufferData = new Float32Array([0, 0, 0]) as BufferData;
+        parentInstance = Object.assign(bufferData as any, {
             testMethod() { 
-                this[0] = 1
+                (this as any)[0] = 1
                 return this
             },
-            onChange(callback: Function) {
+            onChange() {
                 return this
             },
-            offChange(callback: Function) {
+            offChange() {
                 return this
             }
         })

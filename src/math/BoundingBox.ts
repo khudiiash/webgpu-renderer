@@ -1,4 +1,4 @@
-import { BufferAttribute } from '@/core/geometry/BufferAttribute';
+import { BufferAttribute } from '@/geometry/BufferAttribute';
 import { Vector3 } from './Vector3';
 
 export class BoundingBox {
