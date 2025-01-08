@@ -1,10 +1,12 @@
-import { BufferData } from "@/util";
-import { Matrix4, Vector3, Euler } from "@/math";
+import { BufferData } from "@/data/BufferData";
+import { Vector3 } from "./Vector3";
+import { Matrix4 } from "./Matrix4";
+import { Euler } from "./Euler";
 
 
 export class Quaternion extends BufferData {
     [index: number]: number;
-    static INSTANCE = new Quaternion();
+    static instance = new Quaternion();
 
     readonly length: number = 4;
     readonly isQuaternion: boolean = true;

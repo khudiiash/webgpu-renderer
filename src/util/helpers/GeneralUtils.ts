@@ -1,4 +1,4 @@
-import { BufferData } from "../../data/BufferData";
+import { BufferData } from "@/data/BufferData";
 
 export function arraysEqual(a: BufferData | Float32Array | ArrayLike<number>, b: BufferData | Float32Array | ArrayLike<number>, precision: number = 1e-6): boolean {
     if (a === b) return true;

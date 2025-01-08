@@ -1,5 +1,8 @@
 import { Object3D } from '@/core';
-import { Frustum, Matrix4, Vector3 } from '@/math';
+import { Frustum } from '@/math/Frustum';
+import { Matrix4 } from '@/math/Matrix4';
+import { Vector3 } from '@/math/Vector3';
+
 import { UniformData, UniformDataConfig } from '@/data';
 import { uuid } from '@/util';
 console.log(Matrix4)

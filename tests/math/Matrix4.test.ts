@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'vitest';
-import { Matrix4, Vector3, Quaternion, Euler } from '@/math';
+//import { Matrix4, Vector3, Quaternion, Euler } from '@/math';
+import { Matrix4 } from '@/math/Matrix4';
+import { Vector3 } from '@/math/Vector3';
+import { Quaternion } from '@/math/Quaternion';
+import { Euler } from '@/math/Euler';
 
 describe('Matrix4', () => {
     test('constructor initializes with identity matrix by default', () => {

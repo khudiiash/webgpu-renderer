@@ -9,7 +9,6 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@types/node": "^22.10.5",
     "@webgpu/types": "^0.1.52",
     "jest": "^29.7.0",
     "typescript": "~5.6.2",

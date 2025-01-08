@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { BufferData } from '@/data';
-import { Quaternion, Euler } from '@/math';
+import { BufferData } from '@/data/BufferData';
+import { Quaternion } from '@/math/Quaternion';
+import { Euler } from '@/math/Euler';
 
 
 describe('Quaternion', () => {

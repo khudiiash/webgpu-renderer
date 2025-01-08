@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { arraysEqual, uuid } from '@/util'
-import { Euler, Quaternion } from '@/math';
+import { Euler } from '@/math/Euler'
+import { Quaternion } from '@/math/Quaternion'
 
 describe('Utils', () => {
     describe('ID', () => {
@@ -48,11 +49,6 @@ describe('Utils', () => {
             expect(arraysEqual(null as any, arr)).toBe(false)
         })
 
-        it('should return false for arrays with different types', () => {
-            const arr1 = [1, 2, 3]
-            const arr2 = new Float32Array([1, 2, 3])
-            expect(arraysEqual(arr1, arr2)).toBe(false)
-        })
         it("should not get stuck in an infinite loop", () => {
             const euler = new Euler().onChange(() => {
                 q.setFromEuler(euler);

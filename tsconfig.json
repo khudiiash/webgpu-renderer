@@ -1,35 +1,33 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    "target": "ES2020",
     "useDefineForClassFields": true,
     "module": "ESNext",
-    "lib": ["ESNext", "DOM"],
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
     "experimentalDecorators": true,
+
+    /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "moduleDetection": "force",
     "noEmit": true,
-    "declaration": true,
 
-    "strict": false,
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "esModuleInterop": true,
 
-    // for development
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noImplicitReturns": false,
-
+    /* Aliases */
     "baseUrl": ".",
-    "types": ["vite/client", "@webgpu/types"],
-
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
     }
+
   },
-  "include": ["src", "tests"],
-  "exclude": ["node_modules", "dist", "public"]
+  "include": ["src", "tests"]
 }

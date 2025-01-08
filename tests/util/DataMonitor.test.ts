@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { BufferData, DataMonitor } from '@/data';
+import { BufferData } from '@/data/BufferData';
+import { DataMonitor } from '@/data/DataMonitor';
 
 describe('DataMonitor', () => {
     let dataMonitor: DataMonitor

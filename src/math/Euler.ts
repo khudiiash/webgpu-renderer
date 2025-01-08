@@ -1,9 +1,11 @@
-import { Matrix4, Quaternion, Vector3 } from '@/math';
-import { BufferData, RAD2DEG, clamp } from '@/util';
+import { Matrix4 } from './Matrix4';
+import { Quaternion } from './Quaternion';
+import { Vector3 } from './Vector3';
+import { BufferData } from '@/data/BufferData';
+import { clamp, RAD2DEG } from '@/util/math/MathUtils';
 
 export type EulerOrder = 'XYZ' | 'YZX' | 'ZXY' | 'XZY' | 'YXZ' | 'ZYX';
 
-let quat = new Quaternion();
 export class Euler extends BufferData {
 
     static XYZ: EulerOrder = 'XYZ';
@@ -16,7 +18,7 @@ export class Euler extends BufferData {
     private static ORDERS: EulerOrder[] = [Euler.XYZ, Euler.YZX, Euler.ZXY, Euler.XZY, Euler.YXZ, Euler.ZYX];
     static DEFAULT_ORDER: EulerOrder = Euler.XYZ;
 
-    static INSTANCE = new Euler();
+    static instance = new Euler();
 
     constructor(x = 0, y = 0, z = 0, order = Euler.DEFAULT_ORDER) {
         super([x, y, z, Euler.ORDERS.indexOf(order)]);
@@ -39,8 +41,8 @@ export class Euler extends BufferData {
     }
     
     setFromQuaternion(q: Quaternion, order = this.order): this {
-        quat.copy(q);
-        const m = Matrix4.INSTANCE;
+        Quaternion.instance.copy(q);
+        const m = Matrix4.instance;
         m.setRotationFromQuaternion(q);
         this.setFromRotationMatrix(m, order);
         return this;
@@ -166,14 +168,9 @@ export class Euler extends BufferData {
 				console.warn( 'Euler: .setFromRotationMatrix() unknown order: ' + order );
 
 		}
-        // console.warn({
-        //     type: 'euler from quat',
-        //     input: quat.x + ', ' + quat.y + ', ' + quat.z + ', ' + quat.w,
-        //     output: this[0] + ', ' + this[1] + ', ' + this[2] + ', ' + this[3]
-        // })
 
 
-		//this[4] = this.__getOrderNum(order);
+		this[4] = this.__getOrderNum(order);
 		return this;
     }
 
@@ -190,8 +187,8 @@ export class Euler extends BufferData {
     }
     
     reorder(order: EulerOrder) {
-        Quaternion.INSTANCE.setFromEuler(this);
-        return this.setFromQuaternion(Quaternion.INSTANCE, order);
+        Quaternion.instance.setFromEuler(this);
+        return this.setFromQuaternion(Quaternion.instance, order);
     }
     
 }

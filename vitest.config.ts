@@ -5,9 +5,8 @@ export default mergeConfig(viteConfig, defineConfig({
   test: {
     globals: true, 
     deps: {
-        moduleDirectories: ['node_modules', 'src'],
+      moduleDirectories: ['node_modules', 'src'],
     },
-    environment: 'node',
     alias: { '@': '/src' },
   },
 }))
