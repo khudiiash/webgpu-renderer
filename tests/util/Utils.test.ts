@@ -50,11 +50,13 @@ describe('Utils', () => {
         })
 
         it("should not get stuck in an infinite loop", () => {
-            const euler = new Euler().onChange(() => {
-                q.setFromEuler(euler);
+            let quat = new Quaternion();
+            let euler = new Euler();
+            euler.onChange(() => {
+                quat.setFromEuler(euler);
             });
-            const q = new Quaternion().onChange(() => {
-                euler.setFromQuaternion(q);
+            quat.onChange(() => {
+                euler.setFromQuaternion(quat);
             });
 
             euler.set([1, 2, 3]);
