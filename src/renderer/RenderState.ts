@@ -52,56 +52,65 @@ export class RenderState {
             return undefined;
         }
 
+
         const blendModes = {
             additive: {
-                color: {
-                    srcFactor: 'src-alpha',
-                    dstFactor: 'one',
-                    operation: 'add'
-                },
-                alpha: {
-                    srcFactor: 'one',
-                    dstFactor: 'one',
-                    operation: 'add'
-                }
+            color: {
+                srcFactor: 'src-alpha' as GPUBlendFactor,
+                dstFactor: 'one' as GPUBlendFactor,
+                operation: 'add' as GPUBlendOperation
+            },
+            alpha: {
+                srcFactor: 'one' as GPUBlendFactor,
+                dstFactor: 'one' as GPUBlendFactor,
+                operation: 'add' as GPUBlendOperation
+            }
             },
             multiply: {
-                color: {
-                    srcFactor: 'dst',
-                    dstFactor: 'one-minus-src-alpha',
-                    operation: 'add'
-                },
-                alpha: {
-                    srcFactor: 'one',
-                    dstFactor: 'one-minus-src-alpha',
-                    operation: 'add'
-                }
+            color: {
+                srcFactor: 'dst' as GPUBlendFactor,
+                dstFactor: 'one-minus-src-alpha' as GPUBlendFactor,
+                operation: 'add' as GPUBlendOperation
+            },
+            alpha: {
+                srcFactor: 'one' as GPUBlendFactor,
+                dstFactor: 'one-minus-src-alpha' as GPUBlendFactor,
+                operation: 'add' as GPUBlendOperation
+            }
             },
             normal: {
-                color: {
-                    srcFactor: 'src-alpha',
-                    dstFactor: 'one-minus-src-alpha',
-                    operation: 'add'
-                },
-                alpha: {
-                    srcFactor: 'one',
-                    dstFactor: 'one-minus-src-alpha',
-                    operation: 'add'
-                }
+            color: {
+                srcFactor: 'src-alpha' as GPUBlendFactor,
+                dstFactor: 'one-minus-src-alpha' as GPUBlendFactor,
+                operation: 'add' as GPUBlendOperation
+            },
+            alpha: {
+                srcFactor: 'one' as GPUBlendFactor,
+                dstFactor: 'one-minus-src-alpha' as GPUBlendFactor,
+                operation: 'add' as GPUBlendOperation
+            }
             }
         };
 
         return blendModes[this.blending] || blendModes.normal;
     }
 
-    getDepthStencil() {
+    getPrimitive(): GPUPrimitiveState {
+        return {
+            topology: this.topology,
+            cullMode: this.cullMode,
+            frontFace: this.frontFace,
+            stripIndexFormat: this.topology === 'triangle-strip' ? 'uint32' as GPUIndexFormat : undefined,
+        };
+    }
+    
+    getDepthStencil(): GPUDepthStencilState | undefined {
         if (!this.depthTest) return undefined;
-
+    
         return {
             depthWriteEnabled: this.depthWrite,
             depthCompare: this.depthCompare,
-            format: 'depth32float',
-            stencilEnabled: this.stencilTest,
+            format: 'depth32float' as GPUTextureFormat,
         };
     }
 
@@ -113,14 +122,7 @@ export class RenderState {
         };
     }
 
-    getPrimitive() {
-        return {
-            topology: this.topology,
-            cullMode: this.cullMode,
-            frontFace: this.frontFace,
-            stripIndexFormat: this.topology === 'triangle-strip' ? 'uint32' : undefined,
-        };
-    }
+
 
     dispatch() {
         for (const callback of this.callbacks) {

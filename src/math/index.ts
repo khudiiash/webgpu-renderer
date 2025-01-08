@@ -9,3 +9,5 @@ export * from './Matrix3';
 export * from './Matrix4';
 export * from './Color';
 export * from './Fog';
+export * from './Plane';
+export * from './Frustum';

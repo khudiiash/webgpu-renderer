@@ -1,3 +1,6 @@
+import { Material } from "@/materials";
+import { RenderState } from "@/renderer/RenderState";
+
 type ShaderConfig = {
     code: string;
     entryPoint: string;
@@ -93,13 +96,28 @@ type ShaderConfig = {
   }
   
 export class PipelineManager {
-    private static instance: PipelineManager | null = null;
+    static #instance: PipelineManager;
+
     private device!: GPUDevice;
     private shaderModule!: Map<string, GPUShaderModule>;
     private pipelineCache!: Map<string, GPURenderPipeline>;
     private bindGroupLayoutCache!: Map<string, GPUBindGroupLayout>;
     private pipelineLayoutCache!: Map<string, GPUPipelineLayout>;
     private static layouts: Layouts;
+
+    static init(device: GPUDevice) {
+        if (PipelineManager.#instance) {
+            throw new Error('PipelineManager has already been initialized');
+        }
+        PipelineManager.#instance = new PipelineManager(device);
+    }
+
+    static getInstance(): PipelineManager {
+        if (!PipelineManager.#instance) {
+            throw new Error('PipelineManager has not been initialized');
+        }
+        return PipelineManager.#instance;
+    }
   
     static readonly LAYOUT_GROUPS = {
       GLOBAL: 0,
@@ -108,24 +126,18 @@ export class PipelineManager {
     } as const;
   
     constructor(device: GPUDevice) {
-      if (PipelineManager.instance) {
-        return PipelineManager.instance;
+      if (PipelineManager.#instance) {
+        return PipelineManager.#instance;
       }
       this.device = device;
       this.shaderModule = new Map();
       this.pipelineCache = new Map();
       this.bindGroupLayoutCache = new Map();
       this.pipelineLayoutCache = new Map();
-      PipelineManager.instance = this;
+      PipelineManager.#instance = this;
       PipelineManager.createDefaultLayouts(device);
     }
   
-    static getInstance(): PipelineManager {
-      if (!PipelineManager.instance) {
-        throw new Error('PipelineManager has not been initialized');
-      }
-      return PipelineManager.instance;
-    }
   
     static getDefaultBindGroupLayout(group: number): GPUBindGroupLayout {
       const { GLOBAL, MODEL, MATERIAL } = PipelineManager.LAYOUT_GROUPS;
@@ -266,18 +278,7 @@ export class PipelineManager {
     }
   
     createRenderPipeline(params: {
-      material: {
-        shader: {
-          name: string;
-          vertexSource: string;
-          fragmentSource?: string;
-        };
-        renderState: {
-          getBlendState: () => GPUBlendState;
-          getPrimitive: () => Partial<GPUPrimitiveState>;
-          getDepthStencil: () => GPUDepthStencilState | undefined;
-        };
-      };
+      material: Material;
       layout?: GPUPipelineLayout;
       vertexBuffers?: GPUVertexBufferLayout[];
     }): GPURenderPipeline {
@@ -367,7 +368,7 @@ export class PipelineManager {
           shader: {
             name: desc.name,
             vertexSource: desc.vertex.code,
-            fragmentSource: desc.fragment?.code
+            fragmentSource: desc.fragment?.code,
           },
           renderState: {
             getBlendState: () => desc.colorTargets![0].blend!,

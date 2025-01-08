@@ -80,6 +80,7 @@ class Shader {
         if (options.attributes) {
             for (let i = 0; i < options.attributes.length; i++) {
                 const attribute = options.attributes[i];
+                attribute.location = i;
                 shader.addAttribute(attribute);
             }
         }
@@ -87,6 +88,7 @@ class Shader {
         if (options.varyings) {
             for (let i = 0; i < options.varyings.length; i++) {
                 const varying = options.varyings[i];
+                varying.location = i;
                 shader.addVarying(varying);
             }
         }
@@ -131,7 +133,6 @@ class Shader {
                 )
             );
         }
-
 
         return shader;
     }

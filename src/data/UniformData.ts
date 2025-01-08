@@ -21,7 +21,6 @@ export class UniformData {
   
     static getByID(id: string): UniformData | null {
       if (!UniformData.#byID.has(id)) {
-        console.warn(`UniformData not found: ${id}`);
         return null;
       }
       return UniformData.#byID.get(id);
@@ -29,7 +28,6 @@ export class UniformData {
   
     static getByName(name: string): UniformData | null {
       if (!UniformData.#byName.has(name)) {
-        console.warn(`UniformData not found: ${name}`);
         return null;
       }
       return UniformData.#byName.get(name);
@@ -238,6 +236,16 @@ export class UniformData {
         props[name] = texture;
       }
       return props;
+    }
+
+    set(name: string, value: UniformDataType) {
+      const props = this.getProperties();
+      props[name] = value;
+      this.setProperties(props);
+    }
+
+    get(name: string): UniformDataType {
+      return this.parent[name];
     }
 
     getData() {

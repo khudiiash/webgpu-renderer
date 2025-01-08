@@ -19,7 +19,7 @@ class Mesh extends Object3D {
         this.material = material;
         material.meshes.push(this);
 
-        this.uniforms = new UniformData({
+        this.uniforms = new UniformData(this, {
             name: 'model',
             isGlobal: false,
             values: {

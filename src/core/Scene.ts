@@ -73,9 +73,14 @@ class Scene extends Object3D {
         });
     }
 
-    public add(object: any): void {
-        if (!object?.isObject3D) return;
+    public add(object: Object3D): void {
+        if (!(object instanceof Object3D)) {
+            console.error('Scene.add: object not an instance of Object3D.', object);
+            return;
+        }
+
         super.add(object);
+
         if (object.isMesh) {
             this.meshes.push(object);
         }

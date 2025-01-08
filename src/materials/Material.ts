@@ -2,6 +2,7 @@ import { Mesh } from "@/core/Mesh";
 import { autobind, BufferData, uuid } from "@/util";
 import { Shader } from "@/materials/shaders"
 import { Texture, UniformData } from "@/data";
+import { RenderState } from "@/renderer/RenderState";
 
 export type MaterialOptions = {
     name?: string;
@@ -13,10 +14,12 @@ export class Material {
     public shader!: Shader;
     public meshes: Mesh[] = [];
     public uniforms!: UniformData;
+    public renderState: RenderState;
 
     constructor(options: MaterialOptions = {}) {
         autobind(this);
         this.name = options.name ?? this.name;
+        this.renderState = new RenderState();
     }
   
     setParameter(name: string, value: BufferData | Texture) {

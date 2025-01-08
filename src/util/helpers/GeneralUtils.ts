@@ -6,6 +6,10 @@ export function arraysEqual(a: BufferData | Float32Array | ArrayLike<number>, b:
     if (a.length !== b.length) return false;
 
     for (let i = 0; i < a.length; ++i) {
+        if (!Number.isFinite(a[i]) || !Number.isFinite(b[i])) {
+            console.error('Non-finite number in array', a[i], b[i]);
+            return false;
+        }
         if (Math.abs(a[i] - b[i]) > precision) return false;
     }
     return true;

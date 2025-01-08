@@ -44,7 +44,7 @@ class StandardMaterial extends Material {
             frontFace: options.frontFace || 'ccw',
 		}); 
 
-        this.uniforms = new UniformData({
+        this.uniforms = new UniformData(this, {
             name: 'material',
             isGlobal: false,
             values: {

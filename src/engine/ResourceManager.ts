@@ -1,6 +1,7 @@
 import { Texture } from "@/data";
 import { BufferData } from "@/util";
 import { UniformData } from "@/data";
+import { Engine } from ".";
 
 type TextureDescription = {
     label?: string;
@@ -79,6 +80,15 @@ export class ResourceManager {
     private currentFrame!: number;
     defaultTexture!: GPUTexture;
     defaultSampler!: GPUSampler;
+    textureViews!: Map<string, GPUTextureView>;
+
+    static init(device: GPUDevice) {
+        if (ResourceManager.#instance) {
+            console.error('ResourceManager already initialized');
+        } else {
+            ResourceManager.#instance = new ResourceManager(device);
+        }
+    }
 
     static getInstance() {
         return ResourceManager.#instance;
@@ -93,13 +103,33 @@ export class ResourceManager {
         this.bufferDescriptors = new Map();
         this.textures = new Map();
         this.textureDescriptors = new Map();
+        this.textureViews = new Map();
         this.samplers = new Map();
         this.bindGroups = new Map();
         this.references = new Map();
         this.currentFrame = 0;
         this.createDefaultTexture();
         this.createDefaultSampler();
-        ResourceManager.#instance = this;
+        this.createDepthTexture('depth', Engine.settings.width, Engine.settings.height);
+    }
+
+    getTexture(name: string): GPUTexture | undefined {
+        return this.textures.get(name);
+    }
+
+    getTextureView(name: string): GPUTextureView | undefined {
+        return this.textureViews.get(name);
+    }
+
+    createDepthTexture(name: string, width: number, height: number) {
+        const texture = this.device.createTexture({
+            size: [width, height, 1],
+            format: 'depth32float',
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+        });
+
+        this.textures.set(name, texture);
+        this.textureViews.set(name, texture.createView());
     }
 
     /**

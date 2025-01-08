@@ -10,8 +10,8 @@ export class Geometry {
     id: string = uuid('geometry');
     attributes: Record<string, Float32BufferAttribute>;
     index: Uint32Array | Uint16Array | Uint8Array | null;
-    boundingBox: BoundingBox | null;
-    boundingSphere: BoundingSphere | null;
+    boundingBox!: BoundingBox;
+    boundingSphere!: BoundingSphere;
     isIndexed: boolean;
     indexFormat?: GPUIndexFormat;
     packed!: Float32Array | null;
@@ -29,8 +29,6 @@ export class Geometry {
             position: new Float32BufferAttribute([], 3),
         }
         this.index = null;
-        this.boundingBox = null;
-        this.boundingSphere = null;
         this.isIndexed = false;
     }
 
@@ -138,7 +136,7 @@ export class Geometry {
             offset += attr.itemSize * attr.data.BYTES_PER_ELEMENT;
         }
         layout.dataStride = offset;
-        return layout as GPUVertexState;
+        return layout as GPUVertexBufferLayout;
     }
 
     computeBoundingBox() {
