@@ -1,4 +1,7 @@
-import { BufferData, UniformData, DataMonitor } from "@/data";
+//import { BufferData, UniformData, DataMonitor } from "@/data";
+import { BufferData } from "./BufferData";
+import { DataMonitor } from "./DataMonitor";
+import { UniformData } from "./UniformData";
 
 export class UniformDataArray extends BufferData {
     itemSize: number;

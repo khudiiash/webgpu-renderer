@@ -5,7 +5,7 @@ import { Vector3 } from '@/math/Vector3';
 
 import { UniformData, UniformDataConfig } from '@/data/UniformData';
 import { uuid } from '@/util/general';
-import { Renderer } from '@/renderer';
+import { Renderer } from '@/renderer/Renderer';
 
 
 export class Camera extends Object3D {
@@ -109,4 +109,3 @@ export class Camera extends Object3D {
 }
 const _projScreenMatrix = new Matrix4();
 const _vector = new Vector3();
-const _lookAtTarget = new Vector3();

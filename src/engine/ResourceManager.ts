@@ -110,7 +110,6 @@ export class ResourceManager {
         this.currentFrame = 0;
         this.createDefaultTexture();
         this.createDefaultSampler();
-        this.createDepthTexture('depth', Engine.settings.width, Engine.settings.height);
     }
 
     getTexture(name: string): GPUTexture | undefined {

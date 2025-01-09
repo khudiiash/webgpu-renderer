@@ -1,4 +1,4 @@
-import { arraysEqual, num } from "@/util";
+import { arraysEqual, num } from "@/util/general";
 
 class DataMonitor {
 

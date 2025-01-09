@@ -1,5 +1,5 @@
 import { Texture } from './Texture';
-import { TextureLoader } from '@/util/loaders';
+import { TextureLoader } from '@/util/loaders/TextureLoader';
 import { Engine } from '@/engine/Engine';
 
 export class Texture2D extends Texture {

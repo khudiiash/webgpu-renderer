@@ -1,7 +1,9 @@
 import { Mesh } from "@/core/Mesh";
-import { autobind, BufferData, uuid } from "@/util";
+import { autobind, uuid } from "@/util/general";
+import { BufferData } from "@/data/BufferData";
 import { Shader } from "@/materials/shaders"
-import { Texture, UniformData } from "@/data";
+import { UniformData } from "@/data/UniformData";
+import { Texture } from "@/data/Texture";
 import { RenderState } from "@/renderer/RenderState";
 
 export type MaterialOptions = {

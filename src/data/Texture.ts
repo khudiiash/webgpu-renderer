@@ -1,4 +1,4 @@
-import { uuid } from "@/util";
+import { uuid } from "@/util/general";
 import { ObjectMonitor } from "./ObjectMonitor";
 
 export class Texture {

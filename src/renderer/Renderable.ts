@@ -1,9 +1,10 @@
-import { ResourceManager, PipelineManager } from '../engine';
-import { UniformData } from '@/data';
-import { autobind, uuid } from '@/util';
-import { Mesh } from '@/core';
-import { Material } from '@/materials';
-import { Geometry } from '@/geometry';
+import { ResourceManager } from '@/engine/ResourceManager';
+import { PipelineManager } from '@/engine/PipelineManager';
+import { UniformData } from '@/data/UniformData';
+import { autobind, uuid } from '@/util/general';
+import { Mesh } from '@/core/Mesh';
+import { Material } from '@/materials/Material';
+import { Geometry } from '@/geometry/Geometry';
 
 export type BindGroupConfig = {
     name: string;
@@ -173,6 +174,7 @@ export class Renderable {
     
     render(pass: GPURenderPassEncoder) {
         pass.setPipeline(this.pipeline);
+
         for (let i = 0; i < this.bindGroups.length; i++) {
             pass.setBindGroup(i, this.bindGroups[i]);
         }
@@ -181,9 +183,9 @@ export class Renderable {
         
         if (this.isIndexed && this.indexBuffer) {
             pass.setIndexBuffer(this.indexBuffer, this.geometry.indexFormat as GPUIndexFormat);
-            pass.drawIndexed(this.geometry.indices.length, 1, 0, 0, 0);
+            pass.drawIndexed(this.geometry.indices.length, 1);
         } else {
-            pass.draw((this.geometry.packed as Float32Array).length / 8, 1, 0, 0);
+            pass.draw(this.geometry.positions.length / 3, 1);
         }
     }
     

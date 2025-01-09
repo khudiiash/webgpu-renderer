@@ -1,4 +1,4 @@
-class ShaderChunk {
+export class ShaderChunk {
     public name: string;
     public defines: string;
     public code: string;
@@ -22,5 +22,3 @@ class ShaderChunk {
         }
     }
 }
-
-export { ShaderChunk };

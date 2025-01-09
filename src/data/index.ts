@@ -1,4 +1,4 @@
-export { BufferData } from './BufferData';
+export * from './BufferData';
 export * from './DataMonitor';
 export * from './Texture';
 export * from './Texture2D';

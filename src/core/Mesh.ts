@@ -1,8 +1,8 @@
-import { UniformData } from '@/data';
-import { Object3D } from '.'
-import { Geometry } from '@/geometry';
-import { Material } from '@/materials';
-import { uuid } from '@/util';
+import { UniformData } from '@/data/UniformData';
+import { Object3D } from './Object3D'
+import { Geometry } from '@/geometry/Geometry';
+import { Material } from '@/materials/Material';
+import { uuid } from '@/util/general';
 
 class Mesh extends Object3D {
     public geometry: Geometry;

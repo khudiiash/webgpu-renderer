@@ -1,15 +1,18 @@
-import { Mesh, Object3D, Scene } from "@/core";
-import { Renderable } from ".";
-import { Camera } from "@/camera";
-import { ResourceManager } from "@/engine";
+import { Mesh } from "@/core/Mesh";
+import { Object3D } from "@/core/Object3D";
+import { Scene } from "@/core/Scene";
+import { Renderable } from "./Renderable";
+import { Camera } from "@/camera/Camera";
+import { ResourceManager } from "@/engine/ResourceManager";
 import { EventCallback, EventEmitter } from "@/core/EventEmitter";
+import { Color } from "@/math/Color";
 
 interface RenderPassDescriptor extends GPURenderPassDescriptor {
     colorAttachments: GPURenderPassColorAttachment[];
     depthStencilAttachment?: GPURenderPassDepthStencilAttachment;
 }
 
-export class Renderer extends EventEmitter{
+export class Renderer extends EventEmitter {
     public device!: GPUDevice;
     public context!: GPUCanvasContext;
     public format!: GPUTextureFormat;
@@ -97,6 +100,7 @@ export class Renderer extends EventEmitter{
 
     setResources(resources: ResourceManager) {
         this.resources = resources;
+        this.resources.createDepthTexture('depth', this.width, this.height);
     }
 
     draw(object: Object3D, camera: Camera, pass: GPURenderPassEncoder) {
@@ -134,6 +138,10 @@ export class Renderer extends EventEmitter{
         this.renderPassDescriptor.colorAttachments[0].view = textureView;
     }
 
+    updateClearValue(color: Color) {
+        this.renderPassDescriptor.colorAttachments[0].clearValue = color;
+    }
+
 
     public render(scene: Scene, camera: Camera) {
         const commandEncoder = this.device.createCommandEncoder();
@@ -144,6 +152,7 @@ export class Renderer extends EventEmitter{
         }
 
         this.updateTextureView(textureView);
+        this.updateClearValue(scene.backgroundColor);
 
         const pass = commandEncoder.beginRenderPass(this.renderPassDescriptor);
         this.draw(scene, camera, pass);

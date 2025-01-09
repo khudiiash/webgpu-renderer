@@ -1,5 +1,5 @@
-import { Vector3 } from '@/math/Vector3.js';
-import { Vector2 } from '@/math/Vector2.js';
+import { Vector3 } from '@/math/Vector3';
+import { Vector2 } from '@/math/Vector2';
 
 const _vector = new Vector3();
 const _vector2 = new Vector2();

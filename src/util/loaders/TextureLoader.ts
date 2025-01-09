@@ -1,4 +1,4 @@
-import { TextureMipGenerator } from '.';
+import { TextureMipGenerator } from './TextureMipGenerator';
 
 export class TextureLoader {
     private mipGenerator!: TextureMipGenerator;

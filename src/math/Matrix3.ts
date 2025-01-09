@@ -1,4 +1,4 @@
-import { BufferData } from '@/data';
+import { BufferData } from '@/data/BufferData';
 
 export class Matrix3 extends BufferData {
     constructor(values?: number[]) {

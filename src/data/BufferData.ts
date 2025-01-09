@@ -1,4 +1,4 @@
-import { arraysEqual } from '../util';
+import { arraysEqual } from '@/util/general';
 import { DataMonitor } from './DataMonitor';
 
 export type ChangeCallback = (instance: any, data: BufferData) => void;

@@ -1,11 +1,11 @@
-import { ShaderDefines, ShaderLibrary } from "@/materials/shaders";
+import { ShaderLibrary, ShaderDefines } from './shaders/ShaderLibrary';
 import { Material } from "./Material";
 import { Color } from "../math/Color";
-import { Shader } from "@/materials/shaders";
+import { Shader } from "@/materials/shaders/Shader";
 import { Texture } from "@/data/Texture";
 import { UniformData } from "@/data/UniformData";
 import { RenderState, RenderStateOptions } from "@/renderer/RenderState";
-import { Texture2D } from "@/data";
+import { Texture2D } from "@/data/Texture2D";
 
 interface StandardMaterialOptions {
     ambient?: string | number;
@@ -27,6 +27,18 @@ class StandardMaterial extends Material {
     renderState: RenderState;
     uniforms: UniformData;
     shader: Shader;
+    ambient!: Color;
+    diffuse!: Color;
+    specular!: Color;
+    emissive!: Color;
+    sheen!: Color;
+    opacity!: number;
+    metalness!: number;
+    roughness!: number;
+    emissiveFactor!: number;
+    specularFactor!: number;
+    alphaTest!: number;
+    diffuse_map!: Texture;
 
     constructor(options: RenderStateOptions & StandardMaterialOptions = {}) {
         super();

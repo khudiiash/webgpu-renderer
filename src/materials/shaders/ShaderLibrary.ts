@@ -1,5 +1,5 @@
 import { ShaderChunk } from './ShaderChunk.js';
-import * as chunks from './chunks/index.js';
+import * as chunks from './chunks/index';
 
 export type ShaderVarying = {
     name: string;

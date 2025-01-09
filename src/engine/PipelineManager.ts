@@ -1,5 +1,4 @@
-import { Material } from "@/materials";
-import { RenderState } from "@/renderer/RenderState";
+import { Material } from "@/materials/Material";
 
 type ShaderConfig = {
     code: string;
@@ -296,6 +295,7 @@ export class PipelineManager {
         : undefined;
   
       const pipelineDescriptor: GPURenderPipelineDescriptor = {
+        label: shader.name,
         layout: layout || 'auto',
         vertex: {
           module: vertexModule,
@@ -318,65 +318,6 @@ export class PipelineManager {
       this.pipelineCache.set(hash, pipeline);
   
       return pipeline;
-    }
-  
-    createDefaultPipeline(params: {
-      vertexShader: string;
-      fragmentShader: string;
-      colorFormat?: GPUTextureFormat;
-      depthFormat?: GPUTextureFormat;
-    }): GPURenderPipeline {
-      const desc: PipelineDescriptor = {
-        name: 'default',
-        vertex: {
-          code: params.vertexShader,
-          entryPoint: 'main'
-        },
-        fragment: {
-          code: params.fragmentShader,
-          entryPoint: 'main'
-        },
-        primitive: {
-          topology: 'triangle-list',
-          cullMode: 'back',
-          frontFace: 'ccw'
-        },
-        depthStencil: params.depthFormat ? {
-          format: params.depthFormat,
-          depthWriteEnabled: true,
-          depthCompare: 'less'
-        } : undefined,
-        colorTargets: [{
-          format: params.colorFormat || 'bgra8unorm',
-          blend: {
-            color: {
-              srcFactor: 'src-alpha',
-              dstFactor: 'one-minus-src-alpha',
-              operation: 'add'
-            },
-            alpha: {
-              srcFactor: 'one',
-              dstFactor: 'one-minus-src-alpha',
-              operation: 'add'
-            }
-          }
-        }]
-      };
-  
-      return this.createRenderPipeline({
-        material: {
-          shader: {
-            name: desc.name,
-            vertexSource: desc.vertex.code,
-            fragmentSource: desc.fragment?.code,
-          },
-          renderState: {
-            getBlendState: () => desc.colorTargets![0].blend!,
-            getPrimitive: () => desc.primitive!,
-            getDepthStencil: () => desc.depthStencil as GPUDepthStencilState
-          }
-        }
-      });
     }
   
     createComputePipeline(desc: {

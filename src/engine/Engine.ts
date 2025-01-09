@@ -1,12 +1,15 @@
-import { Renderer } from '@/renderer';
-import { EngineSettings, EngineDefaultSettings, EngineSettingsConfig } from '../settings';
-import { ShaderLibrary, StandardMaterial } from '@/materials';
-import { TextureLoader } from '@/util/loaders';
-import { BoxGeometry } from '@/geometry';
-import { Mesh, Scene } from '@/core';
+import { Renderer } from '@/renderer/Renderer';
+import { EngineSettings, EngineDefaultSettings, EngineSettingsConfig } from '../settings/EngineSettings';
+import { ShaderLibrary } from '@/materials/shaders/ShaderLibrary';
+import { StandardMaterial } from '@/materials/StandardMaterial';
+import { TextureLoader } from '@/util/loaders/TextureLoader';
+import { BoxGeometry } from '@/geometry/BoxGeometry';
+//import { Mesh, Scene } from '@/core';
+import { Mesh } from '@/core/Mesh';
+import { Scene } from '@/core/Scene';
 import { PipelineManager } from './PipelineManager';
 import { ResourceManager } from './ResourceManager';
-import { PerspectiveCamera } from '@/camera';
+import { PerspectiveCamera } from '@/camera/PerspectiveCamera';
 import { EventCallback, EventEmitter } from '@/core/EventEmitter';
 
 export class Engine extends EventEmitter {
@@ -85,6 +88,7 @@ export class Engine extends EventEmitter {
         const mesh = new Mesh(new BoxGeometry(1, 1, 1), new StandardMaterial({ diffuse: '#ff0000' }));
         scene.add(mesh);
         scene.add(camera);
+        scene.backgroundColor.setHex(0x112233);
         camera.position.z = 5;
 
         let last = performance.now();
@@ -95,7 +99,6 @@ export class Engine extends EventEmitter {
             const delta = (now - last) / 1000;
             last = now;
             elapsed += delta;
-            mesh.position.y = Math.sin(elapsed)
             renderer.render(scene, camera);
             requestAnimationFrame(loop);
         }

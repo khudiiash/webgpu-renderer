@@ -1,5 +1,5 @@
 import { BufferData } from "@/data/BufferData";
-import { Matrix4 } from ".";
+import { Matrix4 } from "./Matrix4";
 
 export class Vector4 extends BufferData {
     [index: number]: number;
