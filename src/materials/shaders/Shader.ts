@@ -118,6 +118,9 @@ class Shader {
                     defines,
                     bindings)
                 );
+            if (!shader.verify(shader.vertexSource)) {
+                console.error('Vertex shader failed to compile');
+            }
         }
 
         if (options.fragmentTemplate) {
@@ -138,9 +141,16 @@ class Shader {
                     bindings,
                 )
             );
+            if (!shader.verify(shader.fragmentSource)) {
+                console.error('Fragment shader failed to compile');
+            }
         }
 
         return shader;
+    }
+
+    verify(source: string) {
+        return !/undefined|\[Object/.test(source);
     }
 }
 
