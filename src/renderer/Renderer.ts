@@ -100,7 +100,7 @@ export class Renderer extends EventEmitter {
 
     setResources(resources: ResourceManager) {
         this.resources = resources;
-        this.resources.createDepthTexture('depth', this.width, this.height);
+        this.resources.createDepthTexture('depth', this.canvas.width, this.canvas.height);
     }
 
     draw(object: Object3D, camera: Camera, pass: GPURenderPassEncoder) {
