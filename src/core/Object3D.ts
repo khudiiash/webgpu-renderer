@@ -3,8 +3,9 @@ import { Vector3 } from "@/math/Vector3";
 import { Quaternion } from "@/math/Quaternion";
 import { Matrix4 } from "@/math/Matrix4";
 import { uuid, num } from "@/util/general";
+import { EventEmitter } from "./EventEmitter";
 
-export class Object3D {
+export class Object3D extends EventEmitter {
     public position: Vector3;
     public rotation: Euler;
     public scale: Vector3;
@@ -19,6 +20,7 @@ export class Object3D {
     private matrixUpdateInProgress: boolean = false;
 
     constructor() {
+        super();
         this.position = new Vector3().onChange(() => {
             this.updateMatrix();
         });

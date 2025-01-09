@@ -5,6 +5,7 @@ import { Vector3 } from '@/math/Vector3';
 
 import { UniformData, UniformDataConfig } from '@/data/UniformData';
 import { uuid } from '@/util/general';
+import { Renderer } from '@/renderer';
 
 
 export class Camera extends Object3D {
@@ -25,8 +26,8 @@ export class Camera extends Object3D {
     constructor() {
         super();
         this.name = 'Camera';
-        this.target = new Vector3(0, 0, 0);
-        this.up = Vector3.UP;
+        this.target = Vector3.zero;
+        this.up = Vector3.up;
         this.id = uuid('camera');
 
         this.matrixWorldInverse = new Matrix4();
@@ -50,6 +51,8 @@ export class Camera extends Object3D {
         this.uniforms = new UniformData(this, uniformConfig);
 
         this.aspect = 1; // Default aspect ratio
+
+        Renderer.on('resize', this._onResize, this);
     }
 
     updateFrustum() {
@@ -81,6 +84,11 @@ export class Camera extends Object3D {
         super.setPosition(x, y, z);
     }
 
+    lookAt(target: Vector3): void {
+        this.target.copy(target);
+        this.updateViewMatrix();
+    }
+    
     updateViewMatrix() {
         this.viewMatrix.lookAt(this.position, this.target, this.up);
         this.matrixWorldInverse.copy(this.viewMatrix).invert();
@@ -99,6 +107,6 @@ export class Camera extends Object3D {
     //     return new this.constructor().copy(this);
     // }
 }
-
 const _projScreenMatrix = new Matrix4();
 const _vector = new Vector3();
+const _lookAtTarget = new Vector3();

@@ -7,9 +7,9 @@ import { Mesh, Scene } from '@/core';
 import { PipelineManager } from './PipelineManager';
 import { ResourceManager } from './ResourceManager';
 import { PerspectiveCamera } from '@/camera';
-import { Vector3 } from '@/math';
+import { EventCallback, EventEmitter } from '@/core/EventEmitter';
 
-export class Engine {
+export class Engine extends EventEmitter {
     static #instance: Engine;
 
     public settings: EngineSettings = { ...EngineDefaultSettings };
@@ -26,11 +26,24 @@ export class Engine {
         return Engine.#instance
     }
 
+    static on(event: string, listener: EventCallback, context?: any) {
+        Engine.#instance?.on(event, listener, context);
+    }
+
+    static off(event: string, listener: EventCallback) {
+        Engine.#instance?.off(event, listener);
+    }
+
+    static fire(event: string, data: any) {
+        Engine.#instance?.fire(event, data);
+    }
+
 
     constructor(settings: EngineSettingsConfig = {}) {
         if (Engine.#instance) {
             return Engine.#instance;
         }
+        super();
         Engine.#instance = this;
         this.settings = { ...EngineDefaultSettings, ...settings };
         if (this.settings.fullscreen) {
@@ -64,6 +77,7 @@ export class Engine {
         PipelineManager.init(Engine.device);
         ResourceManager.init(Engine.device);
 
+
         renderer.setResources(ResourceManager.getInstance());
 
         const scene = new Scene();
@@ -72,10 +86,10 @@ export class Engine {
         scene.add(mesh);
         scene.add(camera);
         camera.position.z = 5;
-        camera.position.y = 2;
 
         let last = performance.now();
         let elapsed = 0;
+
         const loop = () => {
             const now = performance.now();
             const delta = (now - last) / 1000;

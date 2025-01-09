@@ -2,23 +2,50 @@ import { Mesh, Object3D, Scene } from "@/core";
 import { Renderable } from ".";
 import { Camera } from "@/camera";
 import { ResourceManager } from "@/engine";
+import { EventCallback, EventEmitter } from "@/core/EventEmitter";
 
 interface RenderPassDescriptor extends GPURenderPassDescriptor {
     colorAttachments: GPURenderPassColorAttachment[];
     depthStencilAttachment?: GPURenderPassDepthStencilAttachment;
 }
 
-export class Renderer {
+export class Renderer extends EventEmitter{
     public device!: GPUDevice;
     public context!: GPUCanvasContext;
     public format!: GPUTextureFormat;
     public canvas: HTMLCanvasElement;
     private renderables: WeakMap<Object3D, Renderable> = new WeakMap();
     private renderPassDescriptor!: RenderPassDescriptor;
+    public width: number = 0;
+    public height: number = 0;
+    public aspect: number = 0;
     resources!: ResourceManager;
 
+    static #instance: Renderer;
+
+    static on(event: string, listener: EventCallback, context?: any) {
+        Renderer.#instance?.on(event, listener, context);
+    }
+
+    static off(event: string, listener: EventCallback) {
+        Renderer.#instance?.off(event, listener);
+    }
+
+    static fire(event: string, data: any) {
+        Renderer.#instance?.fire(event, data);
+    }
+
+    static getInstance(): Renderer | null {
+        if (!Renderer.#instance) {
+            return null;
+        }
+        return Renderer.#instance;
+    }
+
     constructor(canvas: HTMLCanvasElement) {
+        super();
         this.canvas = canvas;
+        Renderer.#instance = this;
     }
 
     public async init(): Promise<Renderer> {
@@ -40,7 +67,32 @@ export class Renderer {
             device: this.device,
             format: this.format,
         });
+
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const { inlineSize, blockSize } = entry.contentBoxSize[0];
+                const target = entry.target as HTMLCanvasElement;
+                target.width = inlineSize * Math.min(window.devicePixelRatio, 2);
+                target.height = blockSize * Math.min(window.devicePixelRatio, 2);
+                target.width = Math.max(1, Math.min(target.width, this.device.limits.maxTextureDimension2D));
+                target.height = Math.max(1, Math.min(target.height, this.device.limits.maxTextureDimension2D));
+                this.width = target.width;
+                this.height = target.height;
+                this.aspect = this.width / this.height;
+                this.fire('resize', { width: this.width, height: this.height, aspect: this.aspect });
+            }
+            this.onResize();
+        });
+        
+        observer.observe(this.canvas);
         return this;
+    }
+
+    onResize() {
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
+        this.resources.createDepthTexture('depth', this.width, this.height);
+        this.initRenderPassDescriptor();
     }
 
     setResources(resources: ResourceManager) {
@@ -86,6 +138,7 @@ export class Renderer {
     public render(scene: Scene, camera: Camera) {
         const commandEncoder = this.device.createCommandEncoder();
         const textureView = this.context.getCurrentTexture().createView();
+
         if (!this.renderPassDescriptor) {
             this.initRenderPassDescriptor();
         }

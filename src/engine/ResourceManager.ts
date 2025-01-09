@@ -1,7 +1,7 @@
-import { Texture } from "@/data";
-import { BufferData } from "@/util";
-import { UniformData } from "@/data";
-import { Engine } from ".";
+import { Texture } from "@/data/Texture";
+import { BufferData } from "@/data/BufferData";
+import { UniformData } from "@/data/UniformData";
+import { Engine } from "./Engine";
 
 type TextureDescription = {
     label?: string;
