@@ -1,6 +1,6 @@
-import { Vector3 }  from '../math/Vector3';
+import { Vector3 }  from '@/math/Vector3';
 import { Camera } from './Camera';
-import { DEG2RAD } from '@/util';
+import { DEG2RAD } from '@/util/math';
 
 export class PerspectiveCamera extends Camera {
     protected isPerspectiveCamera: boolean = true;

@@ -2,7 +2,7 @@ import { Matrix4 } from './Matrix4';
 import { Quaternion } from './Quaternion';
 import { Vector3 } from './Vector3';
 import { BufferData } from '@/data/BufferData';
-import { clamp, RAD2DEG } from '@/util/math/MathUtils';
+import { clamp, RAD2DEG } from '@/util/math';
 
 export type EulerOrder = 'XYZ' | 'YZX' | 'ZXY' | 'XZY' | 'YXZ' | 'ZYX';
 

@@ -1,15 +1,13 @@
-import { Object3D } from '@/core';
+import { Object3D } from '@/core/Object3D';
 import { Frustum } from '@/math/Frustum';
 import { Matrix4 } from '@/math/Matrix4';
 import { Vector3 } from '@/math/Vector3';
 
-import { UniformData, UniformDataConfig } from '@/data';
-import { uuid } from '@/util';
+import { UniformData, UniformDataConfig } from '@/data/UniformData';
+import { uuid } from '@/util/general';
 
-const _projScreenMatrix = new Matrix4();
-const _vector = new Vector3();
 
-class Camera extends Object3D {
+export class Camera extends Object3D {
     protected isCamera: boolean = true;
     protected type: string = 'camera';
     public target: Vector3;
@@ -86,7 +84,6 @@ class Camera extends Object3D {
     updateViewMatrix() {
         this.viewMatrix.lookAt(this.position, this.target, this.up);
         this.matrixWorldInverse.copy(this.viewMatrix).invert();
-        console.log(this.viewMatrix);
     }
 
     updateProjectionMatrix() {
@@ -98,9 +95,10 @@ class Camera extends Object3D {
         this.updateViewMatrix();
     }
 
-    clone() {
-        return new this.constructor().copy(this);
-    }
+    // clone() {
+    //     return new this.constructor().copy(this);
+    // }
 }
 
-export { Camera };
+const _projScreenMatrix = new Matrix4();
+const _vector = new Vector3();

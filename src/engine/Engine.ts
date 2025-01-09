@@ -1,7 +1,7 @@
 import { Renderer } from '@/renderer';
 import { EngineSettings, EngineDefaultSettings, EngineSettingsConfig } from '../settings';
 import { ShaderLibrary, StandardMaterial } from '@/materials';
-import { TextureLoader } from '@/util/loader';
+import { TextureLoader } from '@/util/loaders';
 import { BoxGeometry } from '@/geometry';
 import { Mesh, Scene } from '@/core';
 import { PipelineManager } from './PipelineManager';
@@ -68,7 +68,7 @@ export class Engine {
 
         const scene = new Scene();
         const camera = new PerspectiveCamera(45, this.settings.width / this.settings.height, 0.1, 1000);
-        const mesh = new Mesh(new BoxGeometry(1, 1, 1), new StandardMaterial());
+        const mesh = new Mesh(new BoxGeometry(10, 1, 10), new StandardMaterial());
         scene.add(mesh);
         scene.add(camera);
         camera.position.z = 5;

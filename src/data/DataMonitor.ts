@@ -28,7 +28,7 @@ class DataMonitor {
                 monitor.add(callback);
                 return original.call(instance, callback);
             }
-            instance.offChange = function(callback: Function) {
+            instance.offChange = function(callback?: Function) {
                 monitor.remove(callback);
                 return instance;
             }
@@ -86,7 +86,11 @@ class DataMonitor {
         }
     }
 
-    remove(callback: Function) {
+    remove(callback?: Function) {
+        if (callback === undefined) {
+            this.callbacks = [];
+            return;
+        }
         const index = this.callbacks.indexOf(callback);
         if (index !== -1) {
             this.callbacks.splice(index, 1);

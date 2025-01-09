@@ -8,7 +8,7 @@ export class BufferData extends Float32Array {
     monitor!: DataMonitor;
 
     onChange(callback: ChangeCallback): this { return this; }
-    offChange(callback: ChangeCallback): this { return this; }
+    offChange(callback?: ChangeCallback): this { return this; }
 
     constructor(arg: ArrayLike<number> | ArrayBuffer | number) {
         if (typeof arg === 'number') {

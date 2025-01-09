@@ -1,4 +1,5 @@
-import { BufferData, cleanFloat } from '@/util';
+import { BufferData } from '@/data/BufferData';
+import { cleanFloat } from '@/util/general';
 
 class Color extends BufferData {
     constructor(r: string | number | Color = 0xffffff, g: number | undefined = undefined, b: number | undefined = undefined, a: number | undefined = undefined) {
