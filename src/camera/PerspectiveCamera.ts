@@ -1,6 +1,6 @@
-import { Vector3 }  from '../math/Vector3';
+import { Vector3 }  from '@/math/Vector3';
 import { Camera } from './Camera';
-import { DEG2RAD } from '@/util';
+import { DEG2RAD } from '@/util/math';
 
 export class PerspectiveCamera extends Camera {
     protected isPerspectiveCamera: boolean = true;
@@ -31,7 +31,6 @@ export class PerspectiveCamera extends Camera {
   
     updateProjectionMatrix() {
         this.projectionMatrix.setPerspective(this.fov * DEG2RAD, this.aspect, this.near, this.far);
-        console.log(this.projectionMatrix);
         this.projectionViewMatrix.multiplyMatrices(this.projectionMatrix, this.viewMatrix);
         this.updateFrustum();
     }

@@ -62,6 +62,7 @@ export class Renderer {
         this.renderPassDescriptor = {
             colorAttachments: [
                 {
+                    // @ts-ignore
                     view: undefined, // Will be set later
                     clearValue: { r: 0.4, g: 0.5, b: 0.5, a: 1.0 },
                     loadOp: 'clear' as GPULoadOp,

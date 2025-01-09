@@ -1,5 +1,5 @@
-import { uuid } from '@/util';
-import { BufferData } from '@/data';
+import { uuid } from '@/util/general';
+import { BufferData } from './BufferData';
 import { Texture } from './Texture';
 
 export type UniformDataType = BufferData | Texture | number;

@@ -1,5 +1,8 @@
-import { Plane, BoundingSphere, Vector3 } from '.';
-import { BufferData } from '@/data';
+//import { Plane, BoundingSphere, Vector3 } from '.';
+import { BoundingSphere } from '@/math/BoundingSphere';
+import { Plane } from '@/math/Plane';
+import { Vector3 } from '@/math/Vector3';
+import { BufferData } from '@/data/BufferData';
 
 const _sphere = new BoundingSphere();
 

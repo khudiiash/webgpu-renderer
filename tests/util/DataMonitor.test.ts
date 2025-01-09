@@ -18,10 +18,10 @@ describe('DataMonitor', () => {
                 (this as any)[0] = 1
                 return this
             },
-            onChange() {
+            onChange(callback: Function) {
                 return this
             },
-            offChange() {
+            offChange(callback: Function) {
                 return this
             }
         })

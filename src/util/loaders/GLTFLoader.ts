@@ -5,7 +5,7 @@ import {load, parse} from '@loaders.gl/core';
 import { Mesh } from '@/core';
 import { Geometry } from '@/geometry';
 //import { InstancedMesh } from '../core/InstancedMesh.js';
-import { TextureLoader } from '.';
+import { TextureLoader } from './index.js';
 import { Object3D } from '../../core/Object3D.js';
 // import { Skeleton } from '../animation/Skeleton.js';
 // import { SkinnedMesh } from '../animation/SkinnedMesh.js';

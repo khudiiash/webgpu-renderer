@@ -1,5 +1,8 @@
-import { Euler, Vector3, Quaternion, Matrix4 } from "@/math";
-import { uuid, num } from "@/util";
+import { Euler } from "@/math/Euler";
+import { Vector3 } from "@/math/Vector3";
+import { Quaternion } from "@/math/Quaternion";
+import { Matrix4 } from "@/math/Matrix4";
+import { uuid, num } from "@/util/general";
 
 export class Object3D {
     public position: Vector3;
@@ -35,6 +38,12 @@ export class Object3D {
         this.matrixWorld = new Matrix4();
         this.children = [];
         this.parent = null;
+    }
+
+    lookAt(target: Vector3): void {
+        Matrix4.instance.lookAt(this.position, target);
+        this.quaternion.setFromRotationMatrix(Matrix4.instance);
+        this.updateMatrix();
     }
     updateMatrix() {
         if (this.matrixUpdateInProgress) return;

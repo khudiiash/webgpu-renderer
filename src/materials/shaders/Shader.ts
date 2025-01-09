@@ -1,6 +1,12 @@
 import { ShaderConfig, ShaderVarying, ShaderBuiltin, ShaderDefines, ShaderAttribute } from "./ShaderLibrary";
-import { TemplateProcessor } from "./TemplateProcessor";
+import { TemplateBinding, TemplateProcessor } from "./TemplateProcessor";
 import { ShaderFormatter } from "./ShaderFormatter";
+
+export type ShaderBinding = {
+    group: number;
+    binding: number;
+    resource: unknown;
+};
 
 class Shader {
     name: string;
@@ -14,7 +20,7 @@ class Shader {
     varyings: Map<string, ShaderVarying>;
     builtins: Map<string, ShaderBuiltin>;
     options: any;
-    bindings: any;
+    bindings: TemplateBinding[];
     
     constructor(name: string, options = {}) {
         this.name = name;

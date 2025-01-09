@@ -1,16 +1,13 @@
-import { Object3D } from '@/core';
+import { Object3D } from '@/core/Object3D';
 import { Frustum } from '@/math/Frustum';
 import { Matrix4 } from '@/math/Matrix4';
 import { Vector3 } from '@/math/Vector3';
 
-import { UniformData, UniformDataConfig } from '@/data';
-import { uuid } from '@/util';
-console.log(Matrix4)
+import { UniformData, UniformDataConfig } from '@/data/UniformData';
+import { uuid } from '@/util/general';
 
-const _projScreenMatrix = new Matrix4();
-const _vector = new Vector3();
 
-class Camera extends Object3D {
+export class Camera extends Object3D {
     protected isCamera: boolean = true;
     protected type: string = 'camera';
     public target: Vector3;
@@ -29,7 +26,7 @@ class Camera extends Object3D {
         super();
         this.name = 'Camera';
         this.target = new Vector3(0, 0, 0);
-        this.up = new Vector3(0, 1, 0);
+        this.up = Vector3.UP;
         this.id = uuid('camera');
 
         this.matrixWorldInverse = new Matrix4();
@@ -86,27 +83,22 @@ class Camera extends Object3D {
 
     updateViewMatrix() {
         this.viewMatrix.lookAt(this.position, this.target, this.up);
-        this.rightDirection.set([this.viewMatrix[0], this.viewMatrix[1], this.viewMatrix[2]]);
-        this.projectionViewMatrix.multiplyMatrices(this.projectionMatrix, this.viewMatrix);
+        this.matrixWorldInverse.copy(this.viewMatrix).invert();
     }
 
     updateProjectionMatrix() {
         // Implemented in subclasses
     }
 
-    updateWorldMatrix(fromParent: boolean = false) {
+    updateMatrixWorld(fromParent: boolean = false) {
         super.updateMatrixWorld(fromParent);
         this.updateViewMatrix();
     }
 
-    updateMatrixWorld(force: boolean = false) {
-        super.updateMatrixWorld(force);
-        this.updateViewMatrix();
-    }
-
-    clone() {
-        return new this.constructor().copy(this);
-    }
+    // clone() {
+    //     return new this.constructor().copy(this);
+    // }
 }
 
-export { Camera };
+const _projScreenMatrix = new Matrix4();
+const _vector = new Vector3();

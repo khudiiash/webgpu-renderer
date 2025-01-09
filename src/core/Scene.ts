@@ -1,7 +1,8 @@
 import { Object3D } from "./Object3D";
-import { Fog, Color } from '@/math';
-import { clamp } from '@/util';
-import { UniformData, UniformDataArray } from '@/data';
+import { Fog } from '@/math/Fog';
+import { Color } from '@/math/Color';
+import { UniformData } from '@/data/UniformData';
+import { UniformDataArray } from '@/data/UniformDataArray';
 
 interface SceneConfig {
     backgroundColor?: string;
