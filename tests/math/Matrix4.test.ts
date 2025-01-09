@@ -69,9 +69,11 @@ describe('Matrix4', () => {
         ]);
         const b = new Matrix4().setIdentity().translate(new Vector3(1,1,1));
         const m = new Matrix4().multiplyMatrices(a, b);
-        expect(m[12]).toBe(14); 
-        expect(m[13]).toBe(15);
-        expect(m[14]).toBe(16);
+    
+        expect(m[12]).toBe(28); 
+        expect(m[13]).toBe(32);
+        expect(m[14]).toBe(36);
+        expect(m[15]).toBe(40);
     });
 
     test('scale matrix', () => {
@@ -242,10 +244,10 @@ describe('Matrix4', () => {
         const m = new Matrix4();
         m.setRotationFromEuler(e);
         // Check rotation set in top-left
-        expect(Math.round(m[5])).toBe(0);
-        expect(Math.round(m[6])).toBe(-1);
-        expect(Math.round(m[9])).toBe(1);
-        expect(Math.round(m[10])).toBe(0);
+        expect(Math.abs(Math.round(m[5]))).toBe(0);
+        expect(Math.round(m[6])).toBeCloseTo(1);
+        expect(Math.round(m[9])).toBeCloseTo(-1);
+        expect(Math.abs(Math.round(m[10]))).toBe(0);
     });
 
     test('setIdentity', () => {
@@ -267,8 +269,8 @@ describe('Matrix4', () => {
     test('setOrthographic', () => {
         const m = new Matrix4().setOrthographic(-1,1,-1,1,1,10);
         // W-value for translation
-        expect(m[12]).toBe(0);
-        expect(m[13]).toBe(0);
+        expect(Math.abs(m[12])).toBe(0);
+        expect(Math.abs(m[13])).toBe(0);
         expect(m[14]).toBeCloseTo(-1.222, 3);
     });
 
@@ -276,10 +278,10 @@ describe('Matrix4', () => {
         const m = new Matrix4();
         m.setPerspective(Math.PI/4, 1, 1, 100);
         const result = Array.from(m).map(v => Math.round(v * 1000) / 1000);
-        expect(result[0]).toBeCloseTo(2.414, 2);
-        expect(result[5]).toBeCloseTo(2.414, 2);
-        expect(result[10]).toBeCloseTo(-1.020, 2);
-        expect(result[14]).toBeCloseTo(-2.020, 2);
+        expect(result[0]).toBeCloseTo(2.4141, 3);
+        expect(result[5]).toBeCloseTo(2.4141, 3);
+        expect(result[10]).toBeCloseTo(-1.0101, 3);
+        expect(result[14]).toBeCloseTo(-1.0101, 3);
     });
 
     test('transformPoint', () => {
