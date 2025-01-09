@@ -15,14 +15,14 @@ export class Vector3 extends BufferData {
     static get forward(): Vector3 { return new Vector3(0, 0, -1); }
     static get back(): Vector3 { return new Vector3(0, 0, 1); }
 
-    protected static ZERO = new Vector3(0, 0, 0);
-    protected static ONE = new Vector3(1, 1, 1);
-    protected static UP = new Vector3(0, 1, 0);
-    protected static DOWN = new Vector3(0, -1, 0);
-    protected static LEFT = new Vector3(-1, 0, 0);
-    protected static RIGHT = new Vector3(1, 0, 0);
-    protected static FORWARD = new Vector3(0, 0, -1);
-    protected static BACK = new Vector3(0, 0, 1);
+    static ZERO = new Vector3(0, 0, 0);
+    static ONE = new Vector3(1, 1, 1);
+    static UP = new Vector3(0, 1, 0);
+    static DOWN = new Vector3(0, -1, 0);
+    static LEFT = new Vector3(-1, 0, 0);
+    static RIGHT = new Vector3(1, 0, 0);
+    static FORWARD = new Vector3(0, 0, -1);
+    static BACK = new Vector3(0, 0, 1);
 
     static instance = new Vector3();
 

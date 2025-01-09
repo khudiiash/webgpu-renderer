@@ -36,6 +36,12 @@ export class Object3D {
         this.children = [];
         this.parent = null;
     }
+
+    lookAt(target: Vector3): void {
+        Matrix4.instance.lookAt(this.position, target);
+        this.quaternion.setFromRotationMatrix(Matrix4.instance);
+        this.updateMatrix();
+    }
     updateMatrix() {
         if (this.matrixUpdateInProgress) return;
         this.matrixUpdateInProgress = true;

@@ -379,7 +379,7 @@ export class Matrix4 extends BufferData {
         return this;
     }
 
-    lookAt(eye: Vector3, target: Vector3, up: Vector3) {
+    lookAt(eye: Vector3, target: Vector3, up: Vector3 = Vector3.UP): this {
         const te = this;
 
         const zAxis = _v1.subVectors(eye, target).normalize();

@@ -5,7 +5,6 @@ import { Vector3 } from '@/math/Vector3';
 
 import { UniformData, UniformDataConfig } from '@/data';
 import { uuid } from '@/util';
-console.log(Matrix4)
 
 const _projScreenMatrix = new Matrix4();
 const _vector = new Vector3();
@@ -29,7 +28,7 @@ class Camera extends Object3D {
         super();
         this.name = 'Camera';
         this.target = new Vector3(0, 0, 0);
-        this.up = new Vector3(0, 1, 0);
+        this.up = Vector3.UP;
         this.id = uuid('camera');
 
         this.matrixWorldInverse = new Matrix4();
@@ -86,21 +85,16 @@ class Camera extends Object3D {
 
     updateViewMatrix() {
         this.viewMatrix.lookAt(this.position, this.target, this.up);
-        this.rightDirection.set([this.viewMatrix[0], this.viewMatrix[1], this.viewMatrix[2]]);
-        this.projectionViewMatrix.multiplyMatrices(this.projectionMatrix, this.viewMatrix);
+        this.matrixWorldInverse.copy(this.viewMatrix).invert();
+        console.log(this.viewMatrix);
     }
 
     updateProjectionMatrix() {
         // Implemented in subclasses
     }
 
-    updateWorldMatrix(fromParent: boolean = false) {
+    updateMatrixWorld(fromParent: boolean = false) {
         super.updateMatrixWorld(fromParent);
-        this.updateViewMatrix();
-    }
-
-    updateMatrixWorld(force: boolean = false) {
-        super.updateMatrixWorld(force);
         this.updateViewMatrix();
     }
 

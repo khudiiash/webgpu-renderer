@@ -7,6 +7,7 @@ import { Mesh, Scene } from '@/core';
 import { PipelineManager } from './PipelineManager';
 import { ResourceManager } from './ResourceManager';
 import { PerspectiveCamera } from '@/camera';
+import { Vector3 } from '@/math';
 
 export class Engine {
     static #instance: Engine;
@@ -71,10 +72,15 @@ export class Engine {
         scene.add(mesh);
         scene.add(camera);
         camera.position.z = 5;
+        camera.position.y = 2;
 
         let last = performance.now();
         let elapsed = 0;
         const loop = () => {
+            const x = Math.sin(elapsed) * 10;
+            const z = Math.cos(elapsed) * 10;
+            camera.setPosition(x, 10, z);
+            camera.lookAt(Vector3.ZERO);
             const now = performance.now();
             const delta = (now - last) / 1000;
             last = now;

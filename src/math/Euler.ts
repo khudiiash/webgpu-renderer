@@ -48,139 +48,86 @@ export class Euler extends BufferData {
         return this;
     }
     
-    setFromRotationMatrix(m: Matrix4, order = this.order) {
-        const te = m;
-		const m11 = te[ 0 ], m12 = te[ 4 ], m13 = te[ 8 ];
-		const m21 = te[ 1 ], m22 = te[ 5 ], m23 = te[ 9 ];
-		const m31 = te[ 2 ], m32 = te[ 6 ], m33 = te[ 10 ];
-
-		switch ( order ) {
-
+	setFromRotationMatrix(m: Matrix4, order = this.order) {
+		const te = m;
+		const m11 = te[0], m12 = te[4], m13 = te[8];
+		const m21 = te[1], m22 = te[5], m23 = te[9];
+		const m31 = te[2], m32 = te[6], m33 = te[10];
+	
+		switch (order) {
 			case Euler.XYZ:
-
-				this[1] = Math.asin( clamp( m13, - 1, 1 ) );
-
-				if ( Math.abs( m13 ) < 0.9999999 ) {
-
-					this[0] = Math.atan2( - m23, m33 );
-					this[3] = Math.atan2( - m12, m11 );
-
+				this[1] = Math.asin(clamp(m13, -1, 1));
+				if (Math.abs(m13) < 0.9999999) {
+					this[0] = Math.atan2(-m23, m33);
+					this[2] = Math.atan2(-m12, m11);
 				} else {
-
-					this[0] = Math.atan2( m32, m22 );
-					this[3] = 0;
-
+					this[0] = Math.atan2(m32, m22);
+					this[2] = 0;
 				}
-
 				break;
-
+	
 			case Euler.YXZ:
-
-				this[0] = Math.asin( - clamp( m23, - 1, 1 ) );
-
-				if ( Math.abs( m23 ) < 0.9999999 ) {
-
-					this[1] = Math.atan2( m13, m33 );
-					this[3] = Math.atan2( m21, m22 );
-
+				this[0] = Math.asin(-clamp(m23, -1, 1));
+				if (Math.abs(m23) < 0.9999999) {
+					this[1] = Math.atan2(m13, m33);
+					this[2] = Math.atan2(m21, m22);
 				} else {
-
-					this[1] = Math.atan2( - m31, m11 );
-					this[3] = 0;
-
+					this[1] = Math.atan2(-m31, m11);
+					this[2] = 0;
 				}
-
 				break;
-
+	
 			case Euler.ZXY:
-
-				this[0] = Math.asin( clamp( m32, - 1, 1 ) );
-
-				if ( Math.abs( m32 ) < 0.9999999 ) {
-
-					this[1] = Math.atan2( - m31, m33 );
-					this[3] = Math.atan2( - m12, m22 );
-
+				this[0] = Math.asin(clamp(m32, -1, 1));
+				if (Math.abs(m32) < 0.9999999) {
+					this[1] = Math.atan2(-m31, m33);
+					this[2] = Math.atan2(-m12, m22);
 				} else {
-
 					this[1] = 0;
-					this[3] = Math.atan2( m21, m11 );
-
+					this[2] = Math.atan2(m21, m11);
 				}
-
 				break;
-
+	
 			case Euler.ZYX:
-
-				this[1] = Math.asin( - clamp( m31, - 1, 1 ) );
-
-				if ( Math.abs( m31 ) < 0.9999999 ) {
-
-					this[0] = Math.atan2( m32, m33 );
-					this[3] = Math.atan2( m21, m11 );
-
+				this[1] = Math.asin(-clamp(m31, -1, 1));
+				if (Math.abs(m31) < 0.9999999) {
+					this[0] = Math.atan2(m32, m33);
+					this[2] = Math.atan2(m21, m11);
 				} else {
-
 					this[0] = 0;
-					this[3] = Math.atan2( - m12, m22 );
-
+					this[2] = Math.atan2(-m12, m22);
 				}
-
 				break;
-
+	
 			case Euler.YZX:
-
-				this[3] = Math.asin( clamp( m21, - 1, 1 ) );
-
-				if ( Math.abs( m21 ) < 0.9999999 ) {
-
-					this[0] = Math.atan2( - m23, m22 );
-					this[1] = Math.atan2( - m31, m11 );
-
+				this[2] = Math.asin(clamp(m21, -1, 1));
+				if (Math.abs(m21) < 0.9999999) {
+					this[0] = Math.atan2(-m23, m22);
+					this[1] = Math.atan2(-m31, m11);
 				} else {
-
 					this[0] = 0;
-					this[1] = Math.atan2( m13, m33 );
-
+					this[1] = Math.atan2(m13, m33);
 				}
-
 				break;
-
+	
 			case Euler.XZY:
-
-				this[3] = Math.asin( - clamp( m12, - 1, 1 ) );
-
-				if ( Math.abs( m12 ) < 0.9999999 ) {
-
-					this[0] = Math.atan2( m32, m22 );
-					this[1] = Math.atan2( m13, m11 );
-
+				this[2] = Math.asin(-clamp(m12, -1, 1));
+				if (Math.abs(m12) < 0.9999999) {
+					this[0] = Math.atan2(m32, m22);
+					this[1] = Math.atan2(m13, m11);
 				} else {
-
-					this[0] = Math.atan2( - m23, m33 );
+					this[0] = Math.atan2(-m23, m33);
 					this[1] = 0;
-
 				}
-
 				break;
-
+	
 			default:
-				console.warn( 'Euler: .setFromRotationMatrix() unknown order: ' + order );
-
+				console.warn('Euler: .setFromRotationMatrix() unknown order: ' + order);
 		}
-
-
-		this[4] = this.__getOrderNum(order);
+		this.order = order;
 		return this;
-    }
+	}
 
-    // Helper method to normalize angles to [-π, π]
-    normalize(): this {
-        this[0] = ((this.x + Math.PI) % (2 * Math.PI)) - Math.PI;
-        this[1] = ((this.y + Math.PI) % (2 * Math.PI)) - Math.PI;
-        this[2] = ((this.z + Math.PI) % (2 * Math.PI)) - Math.PI;
-        return this;
-    }
     
     setFromVector3(v: Vector3, order = this.order) {
         return this.set([v.x, v.y, v.z, this.__getOrderNum(order)]);
