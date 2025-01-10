@@ -25,6 +25,11 @@ export class BufferData extends Float32Array {
         return this;
     }
 
+    setXYZ(x: number, y: number, z: number): this {
+        this.set([x, y, z]);
+        return this;
+    }
+
     setSilent(array: ArrayLike<number> | BufferData, offset: number = 0): this {
         super.set(array, offset);
         return this;
@@ -50,7 +55,11 @@ export class BufferData extends Float32Array {
     }
 
     fromArray(array: ArrayLike<number> | BufferData, offset: number = 0): this {
-        return this.set(array, offset);
+        for (let i = 0; i < this.length; i++) {
+            this[i] = array[offset + i];
+        }
+        this.monitor.check();
+        return this;
     }
 
     toArray(array: number[] = [], offset: number = 0): number[] {

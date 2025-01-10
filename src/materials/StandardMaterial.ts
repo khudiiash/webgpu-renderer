@@ -24,9 +24,7 @@ interface StandardMaterialOptions {
 
 class StandardMaterial extends Material {
 
-    renderState: RenderState;
-    uniforms: UniformData;
-    shader: Shader;
+
     ambient!: Color;
     diffuse!: Color;
     specular!: Color;
@@ -76,11 +74,7 @@ class StandardMaterial extends Material {
             }
         });
 
-        this.shader = Shader.create(ShaderLibrary.STANDARD, {
-            USE_DIFFUSE_MAP: true,
-            USE_LIGHTING: false,
-            USE_GAMMA: true,
-        });
+        this.createShader(ShaderLibrary.STANDARD);
     }
 }
 

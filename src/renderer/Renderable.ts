@@ -5,7 +5,6 @@ import { autobind, uuid } from '@/util/general';
 import { Mesh } from '@/core/Mesh';
 import { Material } from '@/materials/Material';
 import { Geometry } from '@/geometry/Geometry';
-import { Engine } from '@/engine/Engine';
 
 export type BindGroupConfig = {
     name: string;
@@ -39,6 +38,8 @@ export class Renderable {
         this.material = mesh.material;
         this.geometry = mesh.geometry;
         this.id = uuid('renderable');
+
+        this.material.on('rebuild', this.createBindGroups);
         
         this.resourceManager = ResourceManager.getInstance();
         this.pipelineManager = PipelineManager.getInstance();
@@ -181,11 +182,10 @@ export class Renderable {
         }
         
         pass.setVertexBuffer(0, this.vertexBuffer);
-        pass.setIndexBuffer(this.indexBuffer as GPUBuffer, this.geometry.indexFormat as GPUIndexFormat);
         
         if (this.isIndexed && this.indexBuffer) {
             pass.setIndexBuffer(this.indexBuffer, this.geometry.indexFormat as GPUIndexFormat);
-            pass.drawIndexed(this.geometry.indices.length, 1);
+            pass.drawIndexed(this.geometry.indices.length, this.mesh.count);
         } else {
             pass.draw(this.geometry.positions.length / 3, 1, 0, 0);
         }

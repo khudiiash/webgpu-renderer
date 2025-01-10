@@ -12,6 +12,7 @@ import { ResourceManager } from './ResourceManager';
 import { PerspectiveCamera } from '@/camera/PerspectiveCamera';
 import { EventCallback, EventEmitter } from '@/core/EventEmitter';
 import { rand } from '@/util';
+import { ObjectMonitor } from '@/data/ObjectMonitor';
 
 export class Engine extends EventEmitter {
     static #instance: Engine;
@@ -91,21 +92,19 @@ export class Engine extends EventEmitter {
         const scene = new Scene();
         scene.backgroundColor.setHex(0x92aabb);
         const camera = new PerspectiveCamera(45, this.settings.width / this.settings.height, 0.1, 500);
-        camera.position.z = 5;
-        const mesh = new Mesh(new BoxGeometry(1, 1, 1), new StandardMaterial({ diffuse: '#ff0000' }));
+        camera.position.setXYZ(2, 20, 20);
+        const mesh = new Mesh(new BoxGeometry(1, 1, 1), new StandardMaterial({ diffuse: '#ff0000' }), 10);
+        for (let i = 0; i < mesh.count; i++) {
+            mesh.setPositionAt(i, rand(-5, 5), rand(-5, 5), rand(-5, 5));
+        }
         mesh.name = 'Box';
         scene.add(mesh);
         scene.add(camera);
-        camera.viewMatrix.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -0, -0, -5, 1])
-        camera.projectionMatrix.set([1.2071068286895752, 0, 0, 0, 0, 2.4142136573791504, 0, 0, 0, 0, -1.0020040273666382, -1, 0, 0, -1.0020040273666382, 0])
 
         let last = performance.now();
         let elapsed = 0;
 
         const loop = () => {
-            camera.position.x = Math.sin(elapsed) * 5;
-            camera.position.z = Math.cos(elapsed) * 5;
-            camera.lookAt(mesh.position);
             const now = performance.now();
             const delta = (now - last) / 1000;
             last = now;

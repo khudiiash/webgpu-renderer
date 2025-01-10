@@ -9,6 +9,14 @@ export type TemplateBinding = {
     type: string;
 }
 
+export type TemplateDefines = {
+    [key: string]: boolean;
+}
+
+export type TemplateVars = {
+    [key: string]: number | string | boolean;
+}
+
 
 export class TemplateProcessor {
 
@@ -28,6 +36,7 @@ export class TemplateProcessor {
         return TemplateProcessor.#instance;
     }
 
+
     static processTemplate(template: string, defines: ShaderDefines, bindings: TemplateBinding[]) {
         return TemplateProcessor.getInstance().processTemplate(template, defines, bindings);
     }
@@ -39,8 +48,22 @@ export class TemplateProcessor {
         processed = this.processIncludes(processed, includeNames);
         processed = this.processFunctions(processed);
         processed = this.processIfBlocks(processed, defines);
+        processed = this.processVars(processed, defines);
         this.processBindings(processed, bindings);
         return processed;
+    }
+
+    processVars(template: string, defines: TemplateDefines): string {
+        const varRegex = /\${(\w+)}/g;
+        let match;
+        while ((match = varRegex.exec(template)) !== null) {
+            const [_, key] = match;
+            if (defines[key] !== undefined) {
+                template = template.replace(`\${${key}}`, defines[key].toString());
+            }
+        }
+
+        return template;
     }
 
     processIfBlocks(template: string, defines: ShaderDefines) {

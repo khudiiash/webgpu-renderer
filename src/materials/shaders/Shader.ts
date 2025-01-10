@@ -1,5 +1,5 @@
-import { ShaderConfig, ShaderVarying, ShaderBuiltin, ShaderDefines, ShaderAttribute } from "./ShaderLibrary";
-import { TemplateBinding, TemplateProcessor } from "./TemplateProcessor";
+import { ShaderConfig, ShaderVarying, ShaderAttribute } from "./ShaderLibrary";
+import { TemplateBinding, TemplateDefines, TemplateProcessor } from "./TemplateProcessor";
 import { ShaderFormatter } from "./ShaderFormatter";
 
 export type ShaderBinding = {
@@ -15,10 +15,9 @@ class Shader {
     vertexSource!: string;
     fragmentSource!: string;
     computeSource!: string;
-    defines: ShaderDefines;
+    defines: TemplateDefines;
     attributes: Map<string, ShaderAttribute>;
     varyings: Map<string, ShaderVarying>;
-    builtins: Map<string, ShaderBuiltin>;
     options: any;
     bindings: TemplateBinding[];
     
@@ -29,7 +28,6 @@ class Shader {
         this.defines = {};
         this.attributes = new Map();
         this.varyings = new Map();
-        this.builtins = new Map();
         this.options = options;
         this.bindings = [];
     }
@@ -50,15 +48,9 @@ class Shader {
         this.attributes.set(attribute.name, attribute);
     }
 
-    addBuiltin(builtin: ShaderBuiltin) {
-        this.builtins.set(builtin.name, builtin);
-    }
 
     generateAttributes() {
         let result = '';
-        for (const [name, type] of this.builtins) {
-            result += `@builtin(${name}) ${name}: ${type},\n`;
-        }
         for (const [name, attribute] of this.attributes) {
             result += `@location(${attribute.location}) ${name}: ${attribute.type},\n`;
         }
@@ -73,16 +65,10 @@ class Shader {
         return result;
     }
 
-    static create(options: ShaderConfig, defines: ShaderDefines) {
+    static create(options: ShaderConfig, defines: TemplateDefines = {}) {
         const shader = new Shader(options.name || 'unnamed');
         const bindings = shader.bindings;
         
-        if (options.builtins) {
-            for (let i = 0; i < options.builtins.length; i++) {
-                const builtin = options.builtins[i];
-                shader.addBuiltin(builtin);
-            }
-        }
         if (options.attributes) {
             for (let i = 0; i < options.attributes.length; i++) {
                 const attribute = options.attributes[i];
@@ -106,7 +92,8 @@ class Shader {
             shader.vertexSource = ShaderFormatter.format(
                 TemplateProcessor.processTemplate(`
                     struct VertexInput {
-                        @builtin(vertex_index) vertexIndex: u32,
+                        @builtin(vertex_index) vertex_index: u32,
+                        @builtin(instance_index) instance_index: u32,
                         ${attributes}
                     }; 
 
@@ -129,6 +116,7 @@ class Shader {
                 TemplateProcessor.processTemplate(`
                     struct FragmentInput {
                         @builtin(position) position: vec4f,
+                        @builtin(front_facing) front_facing: bool,
                         ${varyings.replace(/@interpolate\(([\w]+), ([\w]+)\)/g, '')}
                     };
 
@@ -153,6 +141,8 @@ class Shader {
     verify(source: string) {
         return !/undefined|\[Object/.test(source);
     }
+
+
 }
 
 export { Shader };

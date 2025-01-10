@@ -15,6 +15,8 @@ export class Matrix4 extends BufferData {
         0, 0, 0, 1
     ]);
 
+    static rotationInstance = new Matrix4();
+
     static IDENTITY = new Matrix4([
         1, 0, 0, 0,
         0, 1, 0, 0,
@@ -142,6 +144,11 @@ export class Matrix4 extends BufferData {
                 - n12 * n21 * n33
                 + n12 * n23 * n31)
         );
+    }
+
+    getPosition(v?: Vector3): Vector3 {
+        v = v || new Vector3();
+        return v.setXYZ(this[12], this[13], this[14]);
     }
 
     getMaxScaleOnAxis(): number {

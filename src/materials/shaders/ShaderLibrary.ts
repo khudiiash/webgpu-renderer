@@ -14,11 +14,6 @@ export type ShaderAttribute = {
     location?: number;
 }
 
-export type ShaderBuiltin = {
-    name: string;
-    type: string;
-}
-
 export type ShaderDefines = {
     [key: string]: boolean
 };
@@ -27,7 +22,6 @@ export type ShaderConfig = {
     name: string;
     attributes: ShaderAttribute[];
     varyings: ShaderVarying[];
-    builtins?: ShaderBuiltin[];
     vertexTemplate: string;
     fragmentTemplate: string;
 }
@@ -82,15 +76,16 @@ export class ShaderLibrary {
                 #include <model>
 
                 @vertex(input) -> output {
-                    output.position = camera.view * camera.projection * model * vec4(input.position, 1.0);
-                    var position = input.position;
-                    var normal = input.normal;
-                    var worldPosition = (model * vec4(position, 1.0)).xyz;
-                    var worldNormal = normalize((model * vec4(normal, 0.0)).xyz);
-                    var uv = input.uv;
+                    var position: vec3f = input.position;
+                    var normal: vec3f = input.normal;
+                    var uv: vec2f = input.uv;
+                    var worldPosition: vec3f;
+                    var screenPosition: vec4f;
+                    var worldNormal: vec3f;
 
                     {{vertex}}
 
+                    output.position = screenPosition;
                     output.vNormal = normal;
                     output.vNormalW = worldNormal;
                     output.vPosition = position;
@@ -104,8 +99,10 @@ export class ShaderLibrary {
                 #include <camera>
                 #include <diffuse_map>
                 #include <standard>
-                #include <fog>
 
+                #if USE_FOG {
+                    #include <fog>
+                }
                 #if USE_GAMMA {
                     #include <gamma>
                 }

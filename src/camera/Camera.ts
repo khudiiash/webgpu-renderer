@@ -6,7 +6,7 @@ import { Vector3 } from '@/math/Vector3';
 import { UniformData, UniformDataConfig } from '@/data/UniformData';
 import { uuid } from '@/util/general';
 import { Renderer } from '@/renderer/Renderer';
-import { ResourceManager } from '@/engine';
+import { ResourceManager } from '@/engine/ResourceManager';
 
 
 export class Camera extends Object3D {

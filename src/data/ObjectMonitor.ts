@@ -2,8 +2,10 @@ type ObjectChangeCallback = (prop: string, value: any) => void;
 
 export class ObjectMonitor {
     static callbacks: WeakMap<ObjectMonitor, ObjectChangeCallback[]> = new Map();
+    private listener: { [key: string]: any };
+    [key: string]: any;
 
-    constructor(data: any, parent?: Object) {
+    constructor(data: any, parent?: any) {
         const values = { ...data };
         let lastData = { ...data };
         const config: any = {}
@@ -25,8 +27,25 @@ export class ObjectMonitor {
                 configurable: true
             }
         }
+        this.listener = parent || this;
 
-        Object.defineProperties(parent || this, config);
+        Object.defineProperties(this.listener, config);
+    }
+
+    add(key: string, value: any) {
+        Object.defineProperty(this.listener, key, {
+            get: () => value,
+            set: (newValue: any) => {
+                value = newValue;
+                this.dispatch(key, newValue);
+            },
+            enumerable: true,
+            configurable: true
+        });
+    }
+
+    remove(key: string) {
+        delete this.listener[key];
     }
 
     [Symbol.iterator]() {
