@@ -4,11 +4,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 8080",
-    "test": "vitest",
+    "test": "vitest --coverage",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^2.1.8",
     "@webgpu/types": "^0.1.52",
     "jest": "^29.7.0",
     "typescript": "~5.6.2",
