@@ -8,5 +8,9 @@ export default mergeConfig(viteConfig, defineConfig({
       moduleDirectories: ['node_modules', 'src'],
     },
     alias: { '@': '/src' },
+    coverage: {
+      reporter: ['text', 'json-summary', 'json'],
+      reportOnFailure: true,
+    }
   },
 }))
