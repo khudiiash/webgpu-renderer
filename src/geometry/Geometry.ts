@@ -45,16 +45,16 @@ export class Geometry {
 
     setIndices(indices: ArrayLike<number> | Uint32Array | Uint16Array | Uint8Array) {
         if (indices instanceof Uint32Array) {
-            this.index = indices;
+            this.indices = indices;
             this.indexFormat = 'uint32';
         } else if (indices instanceof Uint16Array) {
-            this.index = indices;
+            this.indices = indices;
             this.indexFormat = 'uint16';
         } else if (indices instanceof Uint8Array) {
-            this.index = indices;
+            this.indices = indices;
             this.indexFormat = 'uint8'; 
         } else {
-            this.index = new Uint16Array(indices);
+            this.indices = new Uint16Array(indices);
             this.indexFormat = 'uint16';
         }
         this.isIndexed = true;
@@ -137,7 +137,7 @@ export class Geometry {
             });
             offset += attr.itemSize * attr.data.BYTES_PER_ELEMENT;
         }
-        layout.dataStride = offset;
+        layout.arrayStride = offset;
         return layout as GPUVertexBufferLayout;
     }
 

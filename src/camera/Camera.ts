@@ -6,6 +6,7 @@ import { Vector3 } from '@/math/Vector3';
 import { UniformData, UniformDataConfig } from '@/data/UniformData';
 import { uuid } from '@/util/general';
 import { Renderer } from '@/renderer/Renderer';
+import { ResourceManager } from '@/engine';
 
 
 export class Camera extends Object3D {
@@ -48,7 +49,9 @@ export class Camera extends Object3D {
                 direction: this.target.clone().sub(this.position).normalize(),
             }
         };
-        this.uniforms = new UniformData(this, uniformConfig);
+        this.uniforms = new UniformData(this, uniformConfig).onChange(() => {
+            ResourceManager.updateBuffer(this.uniforms.id);
+        });
 
         this.aspect = 1; // Default aspect ratio
 
@@ -92,6 +95,8 @@ export class Camera extends Object3D {
     updateViewMatrix() {
         this.viewMatrix.lookAt(this.position, this.target, this.up);
         this.matrixWorldInverse.copy(this.viewMatrix).invert();
+        this.rightDirection.set([this.viewMatrix[0], this.viewMatrix[1], this.viewMatrix[2]]);
+        this.projectionViewMatrix.multiplyMatrices(this.projectionMatrix, this.viewMatrix);
     }
 
     updateProjectionMatrix() {

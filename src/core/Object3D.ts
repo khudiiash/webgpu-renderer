@@ -16,6 +16,7 @@ export class Object3D extends EventEmitter {
     public parent: Object3D | null;
     public name: string = 'Object';
     public id: string;
+    public direction = new Vector3(0, 0, -1);
 
     private matrixUpdateInProgress: boolean = false;
 
@@ -25,14 +26,16 @@ export class Object3D extends EventEmitter {
             this.updateMatrix();
         });
         this.rotation = new Euler().onChange(() => {
-            this.quaternion.setFromEuler(this.rotation);
+            Quaternion.instance.setFromEuler(this.rotation);
+            this.quaternion.copySilent(Quaternion.instance);
             this.updateMatrix();
         });
         this.scale = new Vector3(1, 1, 1).onChange(() => {
             this.updateMatrix();
         });
         this.quaternion = new Quaternion().onChange(() => {
-            this.rotation.setFromQuaternion(this.quaternion);
+            Euler.instance.setFromQuaternion(this.quaternion, this.rotation.order);
+            this.rotation.copySilent(Euler.instance);
             this.updateMatrix();
         }); 
         this.id = uuid('object');
@@ -68,6 +71,8 @@ export class Object3D extends EventEmitter {
         this.children.forEach(child => {
             child.updateMatrixWorld(true);
         });
+
+        this.direction.set([ this.matrixWorld[8], this.matrixWorld[9], this.matrixWorld[10] ]).normalize();
 
         this.matrixUpdateInProgress = false;
     }

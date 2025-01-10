@@ -106,6 +106,7 @@ class Shader {
             shader.vertexSource = ShaderFormatter.format(
                 TemplateProcessor.processTemplate(`
                     struct VertexInput {
+                        @builtin(vertex_index) vertexIndex: u32,
                         ${attributes}
                     }; 
 

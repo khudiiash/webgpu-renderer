@@ -25,9 +25,19 @@ export class BufferData extends Float32Array {
         return this;
     }
 
+    setSilent(array: ArrayLike<number> | BufferData, offset: number = 0): this {
+        super.set(array, offset);
+        return this;
+    }
+
     copy(data: BufferData): this {
         super.set(data);
         this.monitor.check();
+        return this;
+    }
+
+    copySilent(data: BufferData): this {
+        super.set(data);
         return this;
     }
 
@@ -54,4 +64,5 @@ export class BufferData extends Float32Array {
     magnitude(): number {
         return Math.sqrt(this.reduce((sum, value) => sum + value ** 2, 0));
     }
+
 }

@@ -150,14 +150,17 @@ export class PipelineManager {
   
     private static createDefaultLayouts(device: GPUDevice): void {
       const global = {
+        label: 'Global',
         group: 0,
         entries: [
           {
+            label: 'Scene',
             binding: 0,
             visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
             buffer: {}
           },
           {
+            label: 'Camera',
             binding: 1,
             visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
             buffer: {}
@@ -166,9 +169,11 @@ export class PipelineManager {
       };
   
       const model = {
+        label: 'Model',
         group: 1,
         entries: [
           {
+            label: 'Model',
             binding: 0,
             visibility: GPUShaderStage.VERTEX,
             buffer: {}
@@ -177,19 +182,23 @@ export class PipelineManager {
       };
   
       const material = {
+        label: 'Material',
         group: 2,
         entries: [
           {
+            label: 'Material',
             binding: 0,
             visibility: GPUShaderStage.FRAGMENT,
             buffer: {}
           },
           {
+            label: 'Texture',
             binding: 1,
             visibility: GPUShaderStage.FRAGMENT,
             texture: {}
           },
           {
+            label: 'Sampler',
             binding: 2,
             visibility: GPUShaderStage.FRAGMENT,
             sampler: {}

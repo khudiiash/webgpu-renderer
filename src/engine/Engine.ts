@@ -11,6 +11,7 @@ import { PipelineManager } from './PipelineManager';
 import { ResourceManager } from './ResourceManager';
 import { PerspectiveCamera } from '@/camera/PerspectiveCamera';
 import { EventCallback, EventEmitter } from '@/core/EventEmitter';
+import { rand } from '@/util';
 
 export class Engine extends EventEmitter {
     static #instance: Engine;
@@ -62,7 +63,12 @@ export class Engine extends EventEmitter {
             canvas.width = this.settings.width;
             canvas.height = this.settings.height;
         } else {
+            const fullscreen = this.settings.fullscreen; 
+            const width = fullscreen ? '100%' : `${this.settings.width}px`;
+            const height = fullscreen ? '100%' : `${this.settings.height}px`;
             canvas = document.createElement('canvas');
+            canvas.style.width =  width;
+            canvas.style.height = height;
             canvas.width = this.settings.width;
             canvas.height = this.settings.height;
             document.body.appendChild(canvas);
@@ -80,21 +86,26 @@ export class Engine extends EventEmitter {
         PipelineManager.init(Engine.device);
         ResourceManager.init(Engine.device);
 
-
         renderer.setResources(ResourceManager.getInstance());
 
         const scene = new Scene();
-        const camera = new PerspectiveCamera(45, this.settings.width / this.settings.height, 0.1, 1000);
+        scene.backgroundColor.setHex(0x92aabb);
+        const camera = new PerspectiveCamera(45, this.settings.width / this.settings.height, 0.1, 500);
+        camera.position.z = 5;
         const mesh = new Mesh(new BoxGeometry(1, 1, 1), new StandardMaterial({ diffuse: '#ff0000' }));
+        mesh.name = 'Box';
         scene.add(mesh);
         scene.add(camera);
-        scene.backgroundColor.setHex(0x112233);
-        camera.position.z = 5;
+        camera.viewMatrix.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -0, -0, -5, 1])
+        camera.projectionMatrix.set([1.2071068286895752, 0, 0, 0, 0, 2.4142136573791504, 0, 0, 0, 0, -1.0020040273666382, -1, 0, 0, -1.0020040273666382, 0])
 
         let last = performance.now();
         let elapsed = 0;
 
         const loop = () => {
+            camera.position.x = Math.sin(elapsed) * 5;
+            camera.position.z = Math.cos(elapsed) * 5;
+            camera.lookAt(mesh.position);
             const now = performance.now();
             const delta = (now - last) / 1000;
             last = now;

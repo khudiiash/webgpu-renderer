@@ -1,7 +1,7 @@
 import { Texture } from "@/data/Texture";
 import { BufferData } from "@/data/BufferData";
 import { UniformData } from "@/data/UniformData";
-import { Engine } from "./Engine";
+import { EventCallback, EventEmitter } from "@/core/EventEmitter";
 
 type TextureDescription = {
     label?: string;
@@ -67,7 +67,24 @@ type BindGroupConfigItem = {
     };
 };
 
-export class ResourceManager {
+export class ResourceManager extends EventEmitter {
+
+    static on(event: string, listener: EventCallback, context?: any) {
+        ResourceManager.getInstance()?.on(event, listener, context);
+    }
+
+    static off(event: string, listener: EventCallback) {
+        ResourceManager.getInstance()?.off(event, listener);
+    }
+
+    static fire(event: string, data: any) {
+        ResourceManager.getInstance()?.fire(event, data);
+    }
+
+    static updateBuffer(dataID: string) {
+        ResourceManager.getInstance()?.updateBuffer(dataID);
+    }
+
     static #instance: ResourceManager;
     private device!: GPUDevice;
     private buffers!: Map<string, GPUBuffer>;
@@ -97,6 +114,7 @@ export class ResourceManager {
         if (ResourceManager.#instance) {
             return ResourceManager.#instance;
         }
+        super();
 
         this.device = device;
         this.buffers = new Map();
@@ -110,6 +128,7 @@ export class ResourceManager {
         this.currentFrame = 0;
         this.createDefaultTexture();
         this.createDefaultSampler();
+        this.on('update_buffer', this.updateBuffer, this);
     }
 
     getTexture(name: string): GPUTexture | undefined {
@@ -121,6 +140,9 @@ export class ResourceManager {
     }
 
     createDepthTexture(name: string, width: number, height: number) {
+        if (this.textures.has(name)) {
+            this.destroyTexture(name);
+        }
         const texture = this.device.createTexture({
             size: [width, height, 1],
             format: 'depth32float',
@@ -129,6 +151,15 @@ export class ResourceManager {
 
         this.textures.set(name, texture);
         this.textureViews.set(name, texture.createView());
+    }
+
+    destroyTexture(name: string) {
+        const texture = this.textures.get(name);
+        if (texture) {
+            texture.destroy();
+            this.textures.delete(name);
+            this.textureViews.delete(name);
+        }
     }
 
     /**
@@ -279,13 +310,11 @@ export class ResourceManager {
     updateBuffer(dataID: string) {
         const buffer = this.buffers.get(dataID);
         if (!buffer) {
-            console.error(`Buffer ${dataID} does not exist`);
             return;
         }
 
         const uniformData = UniformData.getByID(dataID);
         if (!uniformData) {
-            console.error(`UniformData ${dataID} does not exist`);
             return;
         }
 

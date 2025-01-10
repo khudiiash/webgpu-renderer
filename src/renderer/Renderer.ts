@@ -60,15 +60,22 @@ export class Renderer extends EventEmitter {
         if (!adapter) {
             throw new Error("Failed to get GPU adapter.");
         }
+        this.device = await adapter.requestDevice();
+        if (!this.device) {
+            throw new Error("Failed to get GPU device.");
+        }
 
         const canvas = this.canvas;
+        this.width = canvas.width;
+        this.height = canvas.height;
+        this.aspect = this.width / this.height;
 
-        this.device = await adapter.requestDevice();
         this.context = canvas.getContext('webgpu') as GPUCanvasContext;
         this.format = navigator.gpu.getPreferredCanvasFormat();
         this.context.configure({
             device: this.device,
             format: this.format,
+            alphaMode: 'premultiplied',
         });
 
         const observer = new ResizeObserver((entries) => {
@@ -83,8 +90,8 @@ export class Renderer extends EventEmitter {
                 this.height = target.height;
                 this.aspect = this.width / this.height;
                 this.fire('resize', { width: this.width, height: this.height, aspect: this.aspect });
+                this.onResize();
             }
-            this.onResize();
         });
         
         observer.observe(this.canvas);
@@ -92,8 +99,6 @@ export class Renderer extends EventEmitter {
     }
 
     onResize() {
-        this.canvas.width = this.width;
-        this.canvas.height = this.height;
         this.resources.createDepthTexture('depth', this.width, this.height);
         this.initRenderPassDescriptor();
     }
@@ -120,7 +125,7 @@ export class Renderer extends EventEmitter {
                 {
                     // @ts-ignore
                     view: undefined, // Will be set later
-                    clearValue: { r: 0.4, g: 0.5, b: 0.5, a: 1.0 },
+                    clearValue: [0.4, 0.5, 0.5, 1],
                     loadOp: 'clear' as GPULoadOp,
                     storeOp: 'store' as GPUStoreOp,
                 }

@@ -16,9 +16,9 @@ interface StandardMaterialOptions {
     opacity?: number;
     metalness?: number;
     roughness?: number;
-    emissiveFactor?: number;
-    specularFactor?: number;
-    alphaTest?: number;
+    emissive_factor?: number;
+    specular_factor?: number;
+    alpha_test?: number;
     diffuse_map?: Texture;
 }
 
@@ -35,9 +35,9 @@ class StandardMaterial extends Material {
     opacity!: number;
     metalness!: number;
     roughness!: number;
-    emissiveFactor!: number;
-    specularFactor!: number;
-    alphaTest!: number;
+    emissive_factor!: number;
+    specular_factor!: number;
+    alpha_test!: number;
     diffuse_map!: Texture;
 
     constructor(options: RenderStateOptions & StandardMaterialOptions = {}) {
@@ -68,9 +68,9 @@ class StandardMaterial extends Material {
                 opacity: options.opacity || 1.0,
                 metalness: options.metalness || 0.0,
                 roughness: options.roughness || 0.5,
-                emissive_factor: options.emissiveFactor || 1.0,
-                specular_factor: options.specularFactor || 1.0,
-                alpha_test: options.alphaTest || 0.0,
+                emissive_factor: options.emissive_factor || 1.0,
+                specular_factor: options.specular_factor || 1.0,
+                alpha_test: options.alpha_test || 0.0,
 
                 diffuse_map: options.diffuse_map || Texture2D.DEFAULT,
             }
@@ -78,7 +78,7 @@ class StandardMaterial extends Material {
 
         this.shader = Shader.create(ShaderLibrary.STANDARD, {
             USE_DIFFUSE_MAP: true,
-            USE_LIGHTING: true,
+            USE_LIGHTING: false,
             USE_GAMMA: true,
         });
     }

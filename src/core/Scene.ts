@@ -99,7 +99,11 @@ class Scene extends Object3D {
         }
     }
 
-    public remove(object: any): void {
+    public remove(object: Object3D): void {
+        if (!(object instanceof Object3D)) {
+            console.error('Scene.remove: object not an instance of Object3D.', object);
+            return;
+        }
         super.remove(object);
         if (object.isMesh) {
             const i = this.meshes.indexOf(object);

@@ -111,7 +111,7 @@ export class ShaderLibrary {
                 }
 
                 @fragment(input) -> output {
-                    var color: vec4f = vec4f(1.0);
+                    var color: vec4f = material.diffuse;
 
                     {{fragment}}
 

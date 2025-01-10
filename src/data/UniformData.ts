@@ -128,7 +128,6 @@ export class UniformData {
       this.layout = newLayout;
       this.textures = newTextures;
       this.data = newData;
-  
       // Set up getters and setters for all properties on parent
       for (const [name, value] of Object.entries(values)) {
         this._defineProperty(name, value);
@@ -165,8 +164,6 @@ export class UniformData {
           get: () => value,
           set: (newValue: BufferData) => {
             if (newValue !== value) {
-              this.data.set(newValue, offset);
-
               newValue.onChange(() => {
                 this.data.set(newValue, offset);
                 this.changeCallbacks.forEach(cb => cb(this.id, name, newValue));
@@ -174,7 +171,9 @@ export class UniformData {
 
               this.changeCallbacks.forEach(cb => cb(this.id, name, newValue));
               value = newValue;
+              this.parent[name] = newValue;
             }
+            this.data.set(newValue, offset);
           },
           enumerable: true,
           configurable: true
@@ -183,13 +182,17 @@ export class UniformData {
         Object.defineProperty(this.parent, name, {
           get: () => this.data[layout.offset],
           set: (newValue: number) => {
+            if (this.parent[name] === newValue) return;
             this.data[layout.offset] = newValue;
+            this.parent[name] = newValue;
             this.changeCallbacks.forEach(cb => cb(this.id, name, newValue));
           },
           enumerable: true,
           configurable: true
         });
       }
+
+      this.parent[name] = value;
     }
   
     private _handleTexture(name: string, texture: Texture) {
@@ -352,7 +355,7 @@ export class UniformData {
       };
     }
   
-    onChange(callback: UniformChangeCallback) {
+    onChange(callback: UniformChangeCallback): this {
       if (!callback) throw new Error('Callback is undefined');
       
       if (!this.changeCallbacks.includes(callback)) {
@@ -360,13 +363,16 @@ export class UniformData {
       } else {
         console.warn('Callback already exists', callback);
       } 
+      return this;
     }
   
-    onRebuild(callback: UniformRebuildCallback) {
+    onRebuild(callback: UniformRebuildCallback): this {
       if (!callback) throw new Error('Callback is undefined');
       if (!this.rebuildCallbacks.includes(callback)) {
         this.rebuildCallbacks.push(callback);
       } 
+
+      return this;
     }
   
     offChange(callback: Function) {

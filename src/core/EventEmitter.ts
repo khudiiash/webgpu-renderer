@@ -1,9 +1,35 @@
 // Types for event handling
-export type EventCallback<T = any> = (data?: T) => void;
+export type EventCallback = (data: any) => void;
 
 // Base event emitter that all event-capable objects will inherit from
 export class EventEmitter {
     private _events: Map<string, Array<{ callback: EventCallback; scope?: any; once: boolean }>> = new Map();
+
+    static #instance: EventEmitter;
+
+    static on(event: string, listener: EventCallback, context?: any) {
+        EventEmitter.#instance?.on(event, listener, context);
+    }
+
+    static off(event: string, listener: EventCallback) {
+        EventEmitter.#instance?.off(event, listener);
+    }
+
+    static fire(event: string, data: any) {
+        EventEmitter.#instance?.fire(event, data);
+    }
+
+    static getInstance(): EventEmitter | null {
+        if (!EventEmitter.#instance) {
+            return null;
+        }
+        return EventEmitter.#instance;
+    }
+
+    constructor() {
+        EventEmitter.#instance = this;
+    }
+    
 
     /**
      * Subscribe to an event
@@ -11,7 +37,7 @@ export class EventEmitter {
      * @param callback Callback function
      * @param scope 'this' object to use when calling the callback
      */
-    on<T = any>(name: string, callback: EventCallback<T>, scope?: any): this {
+    on(name: string, callback: EventCallback, scope?: any): this {
         let events = this._events.get(name);
         if (!events) {
             events = [];
@@ -24,7 +50,7 @@ export class EventEmitter {
     /**
      * Subscribe to an event for one time only
      */
-    once<T = any>(name: string, callback: EventCallback<T>, scope?: any): this {
+    once(name: string, callback: EventCallback, scope?: any): this {
         let events = this._events.get(name);
         if (!events) {
             events = [];
@@ -63,7 +89,7 @@ export class EventEmitter {
     /**
      * Fire an event
      */
-    fire<T = any>(name: string, data?: T): this {
+    fire(name: string, data?: any): this {
         const events = this._events.get(name);
         if (!events) return this;
 

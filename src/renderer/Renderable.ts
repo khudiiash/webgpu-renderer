@@ -5,6 +5,7 @@ import { autobind, uuid } from '@/util/general';
 import { Mesh } from '@/core/Mesh';
 import { Material } from '@/materials/Material';
 import { Geometry } from '@/geometry/Geometry';
+import { Engine } from '@/engine/Engine';
 
 export type BindGroupConfig = {
     name: string;
@@ -155,7 +156,7 @@ export class Renderable {
         this.indexBuffer = this.resourceManager.createAndUploadBuffer(
             { 
                 name: "Geometry Index Buffer",
-                data: this.geometry.index as ArrayBuffer, 
+                data: this.geometry.indices as ArrayBuffer, 
                 usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
                 id: 'ib_' + this.geometry.id,
             },
@@ -180,12 +181,13 @@ export class Renderable {
         }
         
         pass.setVertexBuffer(0, this.vertexBuffer);
+        pass.setIndexBuffer(this.indexBuffer as GPUBuffer, this.geometry.indexFormat as GPUIndexFormat);
         
         if (this.isIndexed && this.indexBuffer) {
             pass.setIndexBuffer(this.indexBuffer, this.geometry.indexFormat as GPUIndexFormat);
             pass.drawIndexed(this.geometry.indices.length, 1);
         } else {
-            pass.draw(this.geometry.positions.length / 3, 1);
+            pass.draw(this.geometry.positions.length / 3, 1, 0, 0);
         }
     }
     

@@ -124,7 +124,7 @@ export class Euler extends BufferData {
 			default:
 				console.warn('Euler: .setFromRotationMatrix() unknown order: ' + order);
 		}
-		this.order = order;
+		this[3] = Euler.ORDERS.indexOf(order);
 		return this;
 	}
 
