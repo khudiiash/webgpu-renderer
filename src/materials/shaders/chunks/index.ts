@@ -9,3 +9,4 @@ export { default as fog } from './fog.wgsl?raw';
 export { default as phong } from './phong.wgsl?raw';
 export { default as scene } from './scene.wgsl?raw';
 export { default as gamma } from './gamma.wgsl?raw';
+export { default as noise } from './noise.wgsl?raw';

@@ -52,7 +52,7 @@ class StandardMaterial extends Material {
             transparent: options.transparent || false,
             depthCompare: options.depthCompare || 'less',
             topology: options.topology || 'triangle-list',
-            frontFace: options.frontFace || 'cw',
+            frontFace: options.frontFace || 'ccw',
 		}); 
 
         this.uniforms = new UniformData(this, {

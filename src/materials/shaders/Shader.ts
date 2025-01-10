@@ -33,14 +33,28 @@ class Shader {
     }
 
     addVarying(varying: ShaderVarying) {
+        if (varying.interpolate) {
+            const { interpolate } = varying;
+            const { type, sampling } = interpolate;
+            if (type === 'flat' && type && !['first', 'either'].includes(sampling as string)) {
+                varying.interpolate.sampling = 'first';
+                console.warn(`Invalid sampling mode for flat interpolation: ${varying.interpolate.sampling}. Using 'first' instead.`);
+            }
+            if (type !== 'flat' && type && ['first', 'either'].includes(sampling as string)) {
+                varying.interpolate.sampling = 'center';
+                console.warn(`Invalid sampling mode for ${varying.interpolate.type} interpolation: ${varying.interpolate.sampling}. Using 'center' instead.`);
+            }
+        } else {
+            varying.interpolate = {
+                type: 'perspective',
+                sampling: 'center'
+            };
+        }
         this.varyings.set(varying.name, {
             name: varying.name,
             type: varying.type,
             location: varying.location,
-            interpolate: {
-                type: varying.interpolate?.type || 'perspective',
-                sampling: varying.interpolate?.sampling || 'center'
-            }
+            interpolate: varying.interpolate,
         });
     }
 
@@ -86,6 +100,7 @@ class Shader {
         }
 
         const varyings = shader.generateVaryings();
+        console.log(varyings);
         const attributes = shader.generateAttributes();
 
         if (options.vertexTemplate) {
@@ -117,7 +132,7 @@ class Shader {
                     struct FragmentInput {
                         @builtin(position) position: vec4f,
                         @builtin(front_facing) front_facing: bool,
-                        ${varyings.replace(/@interpolate\(([\w]+), ([\w]+)\)/g, '')}
+                        ${varyings}
                     };
 
                     struct FragmentOutput {
@@ -135,6 +150,7 @@ class Shader {
             }
         }
 
+        console.log(shader);
         return shader;
     }
 

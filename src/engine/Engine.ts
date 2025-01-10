@@ -111,7 +111,7 @@ export class Engine extends EventEmitter {
             Vector3.instance.setXYZ(x, 0, z);
             const y = -(Vector3.instance.magnitude() * 0.01) + rand(-20, 10);
             positions.push(x, y, z);
-            scales.push(rand(0.5, 2), rand(0.5, 20), rand(0.5, 2));
+            scales.push(rand(0.2, 3), rand(0.5, 30), rand(0.2, 3));
         }
         mesh.setAllPositions(positions);
         mesh.setAllScales(scales);

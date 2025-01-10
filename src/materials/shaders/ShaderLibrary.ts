@@ -5,7 +5,7 @@ export type ShaderVarying = {
     name: string;
     type: string;
     location?: number;
-    interpolate?: { type: string, sampling: string };
+    interpolate?: { type: 'flat' | 'perspective' | 'linear', sampling?: 'center' | 'centroid' | 'sample' | 'first' | 'either' }
 }
 
 export type ShaderAttribute = {
@@ -99,6 +99,7 @@ export class ShaderLibrary {
                 #include <camera>
                 #include <diffuse_map>
                 #include <standard>
+                #include <noise>
 
                 #if USE_FOG {
                     #include <fog>
