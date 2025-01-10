@@ -9,6 +9,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    permissions:
+      pull-requests: write
+
     strategy:
       matrix:
         node-version: [20.9.0]
