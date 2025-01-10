@@ -35,3 +35,7 @@ jobs:
         with:
           name: coverage-report
           path: coverage
+
+      - name: 'Report Coverage'
+      if: always() 
+      uses:  davelosert/vitest-coverage-report-action@v2
