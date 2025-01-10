@@ -182,6 +182,18 @@ export class Vector3 extends BufferData {
         return this;
     }
 
+    setFromMatrixPosition(matrix: Matrix4): this {
+        if (!this.locked) {
+            return this.fromArray(matrix, 12);
+        }
+        return this;
+    }
+
+    setXYZ(x: number, y: number, z: number): this {
+        this.set([x, y, z]);
+        return this;
+    }
+
     normalize(): this {
         if (!this.locked) {
             const length = this.magnitude();

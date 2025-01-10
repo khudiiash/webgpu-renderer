@@ -51,8 +51,8 @@ class Scene extends Object3D {
 
         const fog = new Fog({
             color: backgroundColor,
-            start: 10,
-            end: 50,
+            start: 50,
+            end: 200,
             density: 0.01,
             type: Fog.LINEAR
         });

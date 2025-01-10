@@ -10,8 +10,8 @@ import { ResourceManager } from '@/engine/ResourceManager';
 
 
 export class Camera extends Object3D {
-    protected isCamera: boolean = true;
-    protected type: string = 'camera';
+    public isCamera: boolean = true;
+    public type: string = 'camera';
     public target: Vector3;
     public up: Vector3;
     public matrixWorldInverse: Matrix4;
@@ -87,11 +87,6 @@ export class Camera extends Object3D {
         super.setPosition(x, y, z);
     }
 
-    lookAt(target: Vector3): void {
-        this.target.copy(target);
-        this.updateViewMatrix();
-    }
-    
     updateViewMatrix() {
         this.viewMatrix.lookAt(this.position, this.target, this.up);
         this.matrixWorldInverse.copy(this.viewMatrix).invert();

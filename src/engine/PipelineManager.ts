@@ -176,7 +176,7 @@ export class PipelineManager {
             label: 'Model',
             binding: 0,
             visibility: GPUShaderStage.VERTEX,
-            buffer: {}
+            buffer: { type: 'read-only-storage' },
           }
         ]
       };

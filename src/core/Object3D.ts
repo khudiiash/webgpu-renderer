@@ -15,10 +15,14 @@ export class Object3D extends EventEmitter {
     public children: Object3D[];
     public parent: Object3D | null;
     public name: string = 'Object';
+    public up: Vector3 = Vector3.up;
     public id: string;
     public direction = new Vector3(0, 0, -1);
 
     private matrixUpdateInProgress: boolean = false;
+    public isCamera: boolean = false;
+    public isLight: boolean = false;
+    public isMesh: boolean = false;
 
     constructor() {
         super();
@@ -45,10 +49,40 @@ export class Object3D extends EventEmitter {
         this.parent = null;
     }
 
-    lookAt(target: Vector3): void {
-        Matrix4.instance.lookAt(this.position, target);
-        this.quaternion.setFromRotationMatrix(Matrix4.instance);
-        this.updateMatrix();
+    lookAt(x: number | Vector3 | Object3D, y: number, z: number): void {
+        if (x instanceof Object3D) {
+            x.updateMatrixWorld();
+            _target.copy(x.position);
+        } else if (x instanceof Vector3 ) {
+			_target.copy(x);
+		} else if (num(x, y, z)) {
+			_target.setXYZ(x, y, z);
+		} else {
+            console.error( `Object3D.lookAt(): Invalid target ${x}, ${y}, ${z}` );
+            return;
+        }
+
+		const parent = this.parent;
+
+		this.updateMatrixWorld();
+
+		_position.setFromMatrixPosition( this.matrixWorld );
+
+		if (this.isCamera || this.isLight) {
+			_m1.lookAt( _position, _target, this.up );
+		} else {
+			_m1.lookAt( _target, _position, this.up );
+
+		}
+
+		this.quaternion.setFromRotationMatrix( _m1 );
+
+		if ( parent ) {
+            _m1.setFromRotationMatrix( parent.matrixWorld );
+			_q1.setFromRotationMatrix( _m1 );
+			this.quaternion.premultiply( _q1.inverse() );
+
+		}
     }
     updateMatrix() {
         if (this.matrixUpdateInProgress) return;
@@ -127,3 +161,8 @@ export class Object3D extends EventEmitter {
         return new Object3D().copy(this);
     }
 }
+
+const _target = new Vector3();
+const _position = new Vector3();
+const _m1 = new Matrix4();
+const _q1 = new Quaternion();

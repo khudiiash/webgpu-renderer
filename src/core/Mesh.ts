@@ -15,9 +15,9 @@ export class Mesh extends Object3D {
     public count = 1;
     public instanceMatrices: BufferData;
 
-    protected isMesh: boolean = true;
-    protected isInstanced: boolean = false;
-    protected type: string = 'mesh';
+    public isMesh: boolean = true;
+    public isInstanced: boolean = false;
+    public type: string = 'mesh';
 
     constructor(geometry: Geometry, material: Material, count: number = 1) {
         super();
@@ -39,6 +39,7 @@ export class Mesh extends Object3D {
         this.uniforms = new UniformData(this, {
             name: 'model',
             isGlobal: false,
+            type: 'storage',
             values: {
                 transforms: this.instanceMatrices
             }
@@ -46,7 +47,7 @@ export class Mesh extends Object3D {
     }
 
     getMatrixAt(index = 0, matrix = Matrix4.instance): Matrix4 {
-        matrix.fromArray(this.instanceMatrices, index * 16); 
+        matrix.fromArraySilent(this.instanceMatrices, index * 16); 
         return matrix;
     }
 
@@ -99,6 +100,29 @@ export class Mesh extends Object3D {
         this.setMatrixAt(index, _mat);
     }
 
+    /** 
+     * Set all instance positions at once
+     * @param positions Continuous array of positions, must be 3 * count in length
+     */
+    setAllPositions(positions: ArrayLike<number>) {
+        for (let i = 0; i < this.count - 1; i++) {
+            this.instanceMatrices[12 + i * 16] = positions[i * 3];
+            this.instanceMatrices[13 + i * 16] = positions[i * 3 + 1];
+            this.instanceMatrices[14 + i * 16] = positions[i * 3 + 2];
+        }
+
+        this.instanceMatrices.monitor.check();
+    }
+
+    setAllScales(scales: ArrayLike<number>) {
+        for (let i = 0; i < this.count - 1; i++) {
+            this.getMatrixAt(i, _mat);
+            _mat.scale(Vector3.instance.set([scales[i * 3], scales[i * 3 + 1], scales[i * 3 + 2]]));
+            this.instanceMatrices.setSilent(_mat, i * 16);
+        }
+        this.instanceMatrices.monitor.check();
+    }
+
     rotateXAt(index: number, angle: number) {
         this.getMatrixAt(index, _mat);
         _mat.rotateX(angle);
@@ -124,7 +148,7 @@ export class Mesh extends Object3D {
         for (let i = 0; i < this.count; i++) {
             const m = this.getMatrixAt(i, _mat);
             m.multiply(this.matrixWorld);
-            this.setMatrixAt(i, m);
+            this.instanceMatrices.setSilent(m, i * 16);
         }
     }
 

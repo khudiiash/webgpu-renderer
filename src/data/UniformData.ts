@@ -9,6 +9,7 @@ export type UniformDataLayout = Record<string, { offset: number, size: number }>
 export type UniformDataConfig = {
     name: string;
     isGlobal: boolean;
+    type?: 'uniform' | 'storage';
     values: Record<string, UniformDataType>;
 }
 
@@ -53,6 +54,7 @@ export class UniformData {
     public readonly name: string;
     public readonly isGlobal: boolean;
     public readonly id: string;
+    public type: 'uniform' | 'storage' = 'uniform';
     private parent: any;
     
     private layout: UniformDataLayout;
@@ -62,7 +64,8 @@ export class UniformData {
     public textures: Map<string, Texture>;
   
     constructor(parent: any, config: UniformDataConfig) {
-      const { name, isGlobal, values } = config;
+      const { name, isGlobal, values, type } = config;
+      this.type = type || 'uniform';
       const id = uuid('uniform_data');
   
       if (isGlobal && !UniformData.hasName(name)) {
@@ -296,61 +299,14 @@ export class UniformData {
       return { entries } as GPUBindGroupLayoutDescriptor;
     }
   
-    getBindings() {
-      const items = [];
-  
-      if (this.data?.length > 0) {
-        items.push({
-          name: this.name,
-          binding: 0,
-          dataID: this.id,
-          resource: {
-            buffer: { 
-              isGlobal: this.isGlobal,
-              data: this.data,
-              size: this.data.byteLength,
-              type: 'uniform',
-              usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-            }
-          }
-        });
-      }
-  
-      const samplerBindings = new Map();
-  
-      for (const [name, texture] of this.textures) {
-        items.push({
-          name,
-          binding: items.length,
-          resource: {
-             texture,
-          }
-        });
-  
-        const samplerType = texture.samplerType;
-  
-        if (!samplerBindings.has(samplerType)) {
-          samplerBindings.set(samplerType, items.length);
-          items.push({
-            name: 'sampler',
-            binding: items.length,
-            resource: {
-              sampler: { type: samplerType }
-            }
-          });
-        }
-      }
-  
-      return items;
-    }
-  
     getBufferDescriptor() {
       if (!this.data?.length) return null;
+      const usage = this.type === 'storage' ? GPUBufferUsage.STORAGE : GPUBufferUsage.UNIFORM;
   
       return {
         data: this.data,
         size: this.data.byteLength,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        usage: usage | GPUBufferUsage.COPY_DST,
         offset: 0,
       };
     }

@@ -101,6 +101,15 @@ export class Quaternion extends BufferData {
         return this;
     }
 
+    premultiply(q: Quaternion): this {
+        const x = this.x, y = this.y, z = this.z, w = this.w;
+        this.x = q.w * x + q.x * w + q.y * z - q.z * y;
+        this.y = q.w * y - q.x * z + q.y * w + q.z * x;
+        this.z = q.w * z + q.x * y - q.y * x + q.z * w;
+        this.w = q.w * w - q.x * x - q.y * y - q.z * z;
+        return this;
+    }
+
     setFromEuler(euler: Euler): this {
         const { x, y, z, order } = euler;
 

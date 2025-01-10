@@ -269,7 +269,7 @@ export class ResourceManager extends EventEmitter {
                 let buffer = this.createAndUploadBuffer({
                     name: item.name,
                     data: resource.buffer.data,
-                    usage: resource.buffer.usage ?? GPUBufferUsage.UNIFORM,
+                    usage: resource.buffer.usage ?? (GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST),
                     id: item.dataID,
                 });
                 entry.resource = { buffer, offset: resource.buffer.offset || 0, size: resource.buffer.size };

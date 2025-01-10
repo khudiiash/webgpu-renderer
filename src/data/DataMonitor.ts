@@ -9,7 +9,7 @@ class DataMonitor {
         for (const prop of Object.getOwnPropertyNames(proto)) {
             const descriptor = Object.getOwnPropertyDescriptor(proto, prop);
             
-            if (prop === 'constructor' || descriptor?.get || descriptor?.set) {
+            if (prop === 'constructor' || descriptor?.get || descriptor?.set || /silent/i.test(prop)) {
                 continue;
             }
             

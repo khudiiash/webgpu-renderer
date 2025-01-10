@@ -7,7 +7,7 @@
     let fogDistance = length(input.vPositionW - camera.position);
     
     let height = input.vPositionW.y;
-    let heightFalloff = 0.15;
+    let heightFalloff = 0.01;
     let groundLevel = 0.0;
     
     var fogFactor = 1.0;

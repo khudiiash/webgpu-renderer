@@ -391,17 +391,17 @@ export class Matrix4 extends BufferData {
 
         const zAxis = _v1.subVectors(eye, target).normalize();
         const xAxis = _v2.copy(up).cross(zAxis).normalize();
-        const yAxis = _v3.copy(xAxis).cross(zAxis).normalize();
-
+        const yAxis = _v3.copy(zAxis).cross(xAxis).normalize(); // Changed from xAxis.cross(zAxis)
+    
         te[ 0] = xAxis[0];  te[ 1] = yAxis[0];  te[ 2] = zAxis[0];  te[ 3] = 0;
         te[ 4] = xAxis[1];  te[ 5] = yAxis[1];  te[ 6] = zAxis[1];  te[ 7] = 0;
         te[ 8] = xAxis[2];  te[ 9] = yAxis[2];  te[10] = zAxis[2];  te[11] = 0;
-
+    
         te[12] = -(xAxis[0] * eye[0] + xAxis[1] * eye[1] + xAxis[2] * eye[2]);
         te[13] = -(yAxis[0] * eye[0] + yAxis[1] * eye[1] + yAxis[2] * eye[2]);
         te[14] = -(zAxis[0] * eye[0] + zAxis[1] * eye[1] + zAxis[2] * eye[2]);
         te[15] = 1;
-
+    
         return this;
     }
     setFromRotationMatrix(m: Matrix4): this {

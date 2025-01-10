@@ -1,4 +1,4 @@
-@group(1) @binding(0) var<uniform> model: array<mat4x4f, ${MAX_INSTANCES}>;
+@group(1) @binding(0) var<storage> model: array<mat4x4f>;
 
 fn getScreenPosition(position: vec3f, model: mat4x4f, view: mat4x4f, projection: mat4x4f) -> vec4f {
     return view * projection * model * vec4f(position, 1.0);

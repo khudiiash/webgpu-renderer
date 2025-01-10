@@ -6,6 +6,7 @@ import { Texture } from "@/data/Texture";
 import { UniformData } from "@/data/UniformData";
 import { RenderState, RenderStateOptions } from "@/renderer/RenderState";
 import { Texture2D } from "@/data/Texture2D";
+import { ObjectMonitor } from '@/data/ObjectMonitor';
 
 interface StandardMaterialOptions {
     ambient?: string | number;
@@ -51,7 +52,7 @@ class StandardMaterial extends Material {
             transparent: options.transparent || false,
             depthCompare: options.depthCompare || 'less',
             topology: options.topology || 'triangle-list',
-            frontFace: options.frontFace || 'ccw',
+            frontFace: options.frontFace || 'cw',
 		}); 
 
         this.uniforms = new UniformData(this, {
@@ -72,6 +73,15 @@ class StandardMaterial extends Material {
 
                 diffuse_map: options.diffuse_map || Texture2D.DEFAULT,
             }
+        });
+
+        this.defines = new ObjectMonitor({
+            USE_LIGHT: true,
+            USE_SHADOW: true,
+            USE_FOG: true,
+            MAX_INSTANCES: 1,
+        }).onChange(() => {
+            this.createShader();
         });
 
         this.createShader(ShaderLibrary.STANDARD);

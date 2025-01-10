@@ -13,6 +13,10 @@ import { PerspectiveCamera } from '@/camera/PerspectiveCamera';
 import { EventCallback, EventEmitter } from '@/core/EventEmitter';
 import { rand } from '@/util';
 import { ObjectMonitor } from '@/data/ObjectMonitor';
+import { Texture2D } from '@/data/Texture2D';
+import { Vector3 } from '@/math';
+import { BufferData } from '@/data/BufferData';
+import { V } from 'vitest/dist/chunks/reporters.D7Jzd9GS.js';
 
 export class Engine extends EventEmitter {
     static #instance: Engine;
@@ -89,17 +93,33 @@ export class Engine extends EventEmitter {
 
         renderer.setResources(ResourceManager.getInstance());
 
+
         const scene = new Scene();
         scene.backgroundColor.setHex(0x92aabb);
         const camera = new PerspectiveCamera(45, this.settings.width / this.settings.height, 0.1, 500);
-        camera.position.setXYZ(2, 20, 20);
-        const mesh = new Mesh(new BoxGeometry(1, 1, 1), new StandardMaterial({ diffuse: '#ff0000' }), 10);
+        camera.position.setXYZ(2, 30, 20);
+        const mesh = new Mesh(new BoxGeometry(1, 1, 1), new StandardMaterial({ 
+            diffuse_map: Texture2D.from('assets/textures/grid.jpg'), 
+        }), 1_000_000);
+
+        const positions = [];
+        const scales = [];
         for (let i = 0; i < mesh.count; i++) {
-            mesh.setPositionAt(i, rand(-5, 5), rand(-5, 5), rand(-5, 5));
+            const range = 400;
+            const x = rand(-range, range);
+            const z = rand(-range, range);
+            Vector3.instance.setXYZ(x, 0, z);
+            const y = -(Vector3.instance.magnitude() * 0.01) + rand(-20, 10);
+            positions.push(x, y, z);
+            scales.push(rand(0.5, 2), rand(0.5, 20), rand(0.5, 2));
         }
+        mesh.setAllPositions(positions);
+        mesh.setAllScales(scales);
         mesh.name = 'Box';
         scene.add(mesh);
         scene.add(camera);
+        scene.backgroundColor.setHex(0x111111);
+        scene.fog.color.setHex(0x111111);
 
         let last = performance.now();
         let elapsed = 0;
@@ -109,6 +129,8 @@ export class Engine extends EventEmitter {
             const delta = (now - last) / 1000;
             last = now;
             elapsed += delta;
+            camera.position.setXYZ(40 * Math.sin(elapsed * 0.3), 50 * Math.sin(elapsed * 0.5) + 100, 40 * Math.cos(elapsed * 0.36));
+            camera.target.set([Math.cos(elapsed * 0.8) * 100, Math.sin(elapsed * 0.5) * 10, Math.cos(elapsed * 0.1) * 100]);
             renderer.render(scene, camera);
             requestAnimationFrame(loop);
         }

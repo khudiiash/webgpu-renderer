@@ -21,14 +21,9 @@ export class BufferData extends Float32Array {
 
     set(array: ArrayLike<number> | BufferData, offset: number = 0): this {
         super.set(array, offset);
-        this.monitor.check();
         return this;
     }
 
-    setXYZ(x: number, y: number, z: number): this {
-        this.set([x, y, z]);
-        return this;
-    }
 
     setSilent(array: ArrayLike<number> | BufferData, offset: number = 0): this {
         super.set(array, offset);
@@ -37,7 +32,6 @@ export class BufferData extends Float32Array {
 
     copy(data: BufferData): this {
         super.set(data);
-        this.monitor.check();
         return this;
     }
 
@@ -54,11 +48,19 @@ export class BufferData extends Float32Array {
         return arraysEqual(this, data, precision);
     }
 
-    fromArray(array: ArrayLike<number> | BufferData, offset: number = 0): this {
-        for (let i = 0; i < this.length; i++) {
-            this[i] = array[offset + i];
+    fromArray(array: ArrayLike<number> | BufferData, start: number = 0, end: number = array.length - 1): this {
+        const length = Math.min(this.length, end - start + 1);
+        for (let i = 0; i < length; i++) {
+            this[i] = array[start + i];
         }
-        this.monitor.check();
+        return this;
+    }
+
+    fromArraySilent(array: ArrayLike<number> | BufferData, start: number = 0, end: number = array.length - 1): this {
+        const length = Math.min(this.length, end - start + 1);
+        for (let i = 0; i < length; i++) {
+            this[i] = array[start + i];
+        }
         return this;
     }
 

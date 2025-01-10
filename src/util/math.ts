@@ -44,6 +44,12 @@ export function seedRandom(s?: number): number {
     return ((t ^ t >>> 14) >>> 0) / 4294967296;
 }
 
+export function distance(x1: number, y1: number,  x2: number, y2: number): number {
+    const dx = x1 - x2;
+    const dy = y1 - y2;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
 export function normalize(value: number, array: Float32Array | Uint32Array | Uint16Array | Uint8Array | Int32Array | Int16Array | Int8Array): number {
     switch (array.constructor) {
         case Float32Array:
