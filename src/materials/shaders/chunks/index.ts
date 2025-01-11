@@ -1,5 +1,6 @@
 export { default as common } from './common.wgsl?raw';
 export { default as standard } from './standard.wgsl?raw';
+export { default as emission } from './emission.wgsl?raw';
 export { default as camera } from './camera.wgsl?raw';
 export { default as model } from './model.wgsl?raw';
 export { default as pbr } from './pbr.wgsl?raw';

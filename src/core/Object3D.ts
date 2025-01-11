@@ -22,6 +22,9 @@ export class Object3D extends EventEmitter {
     private matrixUpdateInProgress: boolean = false;
     public isCamera: boolean = false;
     public isLight: boolean = false;
+    public isDirectionalLight: boolean = false;
+    public isPointLight: boolean = false;
+    public isSpotLight: boolean = false;
     public isMesh: boolean = false;
 
     constructor() {
@@ -106,7 +109,9 @@ export class Object3D extends EventEmitter {
             child.updateMatrixWorld(true);
         });
 
-        this.direction.set([ this.matrixWorld[8], this.matrixWorld[9], this.matrixWorld[10] ]).normalize();
+        if (!this.isDirectionalLight) {
+            this.direction.set([ this.matrixWorld[8], this.matrixWorld[9], this.matrixWorld[10] ]).normalize();
+        }
 
         this.matrixUpdateInProgress = false;
     }
@@ -117,7 +122,7 @@ export class Object3D extends EventEmitter {
         }
         child.parent = this;
         this.children.push(child);
-        child.updateMatrixWorld();
+        //child.updateMatrixWorld(true);
     }
 
     remove(child: Object3D) {
@@ -136,13 +141,14 @@ export class Object3D extends EventEmitter {
         }
     }
 
-    setScale(x: number | Vector3, y: number = 0, z: number = 0) {
+    setScale(x: number | Vector3, y?: number, z?: number) {
+        console.log(x, y, z, num(x, y, z));
         if (x instanceof Vector3) {
             this.scale.copy(x);
         } else if (num(x) && !num(y, z)) {
             this.scale.set([x, x, x]);
         } else if (num(x, y, z)) {
-            this.scale.set([x, y, z]);
+            this.scale.set([x, y as number, z as number]);
         }
     }
 

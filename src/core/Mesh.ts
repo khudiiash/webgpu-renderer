@@ -18,6 +18,7 @@ export class Mesh extends Object3D {
     public isMesh: boolean = true;
     public isInstanced: boolean = false;
     public type: string = 'mesh';
+    localInstanceMatrices: BufferData;
 
     constructor(geometry: Geometry, material: Material, count: number = 1) {
         super();
@@ -28,12 +29,13 @@ export class Mesh extends Object3D {
         material.addMesh(this);
 
         this.instanceMatrices = new BufferData(this.count * 16);
+        this.localInstanceMatrices = new BufferData(this.count * 16);
+
+        for (let i = 0; i < this.count; i++) {
+            this.localInstanceMatrices.set(Matrix4.IDENTITY, i * 16);
+        }
         for (let i = 0; i < this.count; i++) {
             this.instanceMatrices.set(Matrix4.IDENTITY, i * 16);
-        }
-
-        if (this.isInstanced) {
-            this.material.defines.MAX_INSTANCES = Math.max(this.count, this.material.defines.MAX_INSTANCES);
         }
 
         this.uniforms = new UniformData(this, {
@@ -54,7 +56,8 @@ export class Mesh extends Object3D {
     setMatrixAt(index: number, matrix: Matrix4) {
         if (index >= 0 && index < this.count) {
             const offset = index * 16;
-            this.instanceMatrices.set(matrix, offset);
+            this.localInstanceMatrices.set(matrix, offset);
+            this.updateInstanceWorldMatrix(index);
         }
     }
 
@@ -64,11 +67,8 @@ export class Mesh extends Object3D {
             y = x.y;
             x = x.x;
         } 
-        try {
-            this.instanceMatrices.set([x, y, z], index * 16 + 12);
-        } catch (e) {
-            console.error(e, index * 16 + 12, this.instanceMatrices.length);
-        }
+        this.localInstanceMatrices.set([x, y, z], index * 16 + 12);
+        this.updateInstanceWorldMatrix(index);
     }
 
     setScaleAt(index: number, x: number | Vector3, y: number, z: number) {
@@ -105,22 +105,22 @@ export class Mesh extends Object3D {
      * @param positions Continuous array of positions, must be 3 * count in length
      */
     setAllPositions(positions: ArrayLike<number>) {
-        for (let i = 0; i < this.count - 1; i++) {
-            this.instanceMatrices[12 + i * 16] = positions[i * 3];
-            this.instanceMatrices[13 + i * 16] = positions[i * 3 + 1];
-            this.instanceMatrices[14 + i * 16] = positions[i * 3 + 2];
+        for (let i = 0; i < this.count; i++) {
+            this.localInstanceMatrices[12 + i * 16] = positions[i * 3];
+            this.localInstanceMatrices[13 + i * 16] = positions[i * 3 + 1];
+            this.localInstanceMatrices[14 + i * 16] = positions[i * 3 + 2];
         }
 
-        this.instanceMatrices.monitor.check();
+        this.updateAllInstanceWorldMatrices();
     }
 
     setAllScales(scales: ArrayLike<number>) {
-        for (let i = 0; i < this.count - 1; i++) {
+        for (let i = 0; i < this.count; i++) {
             this.getMatrixAt(i, _mat);
             _mat.scale(Vector3.instance.set([scales[i * 3], scales[i * 3 + 1], scales[i * 3 + 2]]));
-            this.instanceMatrices.setSilent(_mat, i * 16);
+            this.localInstanceMatrices.setSilent(_mat, i * 16);
         }
-        this.instanceMatrices.monitor.check();
+        this.updateAllInstanceWorldMatrices();
     }
 
     rotateXAt(index: number, angle: number) {
@@ -143,13 +143,33 @@ export class Mesh extends Object3D {
 
     updateMatrixWorld(fromParent: boolean = false) {
         super.updateMatrixWorld(fromParent);
-        // treat mesh as parent for instances
-        // multiply its world matrix to instance matrices
+        this.updateAllInstanceWorldMatrices();
+    }
+
+    private updateInstanceWorldMatrix(index: number) {
+        const localMatrix = this.getLocalMatrixAt(index, _mat);
+        const worldMatrix = Matrix4.instance.multiplyMatrices(this.matrixWorld, localMatrix);
+        this.instanceMatrices.set(worldMatrix, index * 16);
+    }
+
+    private updateInstanceWorldMatrixSilent(index: number) {
+        const localMatrix = this.getLocalMatrixAt(index, _mat);
+        const worldMatrix = Matrix4.instance.multiplyMatrices(this.matrixWorld, localMatrix);
+        this.instanceMatrices.setSilent(worldMatrix, index * 16);
+    }
+
+    private updateAllInstanceWorldMatrices() {
         for (let i = 0; i < this.count; i++) {
-            const m = this.getMatrixAt(i, _mat);
-            m.multiply(this.matrixWorld);
-            this.instanceMatrices.setSilent(m, i * 16);
+            this.updateInstanceWorldMatrixSilent(i);
         }
+
+        this.instanceMatrices.monitor.check();
+    }
+
+
+    getLocalMatrixAt(index: number, matrix = Matrix4.instance): Matrix4 {
+        matrix.fromArraySilent(this.localInstanceMatrices, index * 16);
+        return matrix;
     }
 
     setMaterial(material: Material) {
