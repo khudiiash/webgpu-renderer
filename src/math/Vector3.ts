@@ -87,13 +87,16 @@ export class Vector3 extends BufferData {
 
     divide(v: Vector3): this {
         if (!this.locked) {
+            if (v[0] === 0 || v[1] === 0 || v[2] === 0) {
+                throw new Error('Division by zero');
+            }
             this[0] /= v[0];
             this[1] /= v[1];
             this[2] /= v[2];
         }
         return this;
     }
-
+    
     multiply(v: Vector3): this {
         if (!this.locked) {
             this[0] *= v[0];
@@ -189,6 +192,9 @@ export class Vector3 extends BufferData {
 
     setFromMatrixColumn(matrix: Matrix4, index: number): this {
         if (!this.locked) {
+            if (index < 0 || index > 3) {
+                throw new Error('Index out of bounds');
+            }
             return this.fromArray(matrix, index * 4);
         }
         return this;
