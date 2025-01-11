@@ -106,6 +106,7 @@ https://github.com/user-attachments/assets/0cd42e44-60ef-4440-8bd4-def7ede117dc
 
 <!-- ROADMAP -->
 ## Roadmap
+- [x] Typescript
 - [ ] VAT
 - [ ] PBR
 - [ ] Multisampling (AutoLOD)
