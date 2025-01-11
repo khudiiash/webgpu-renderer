@@ -41,6 +41,17 @@ describe('Vector3', () => {
         expect(v.z).toBe(3);
     });
 
+    
+    test('set values', () => {
+        const v = new Vector3();
+        v.x = 1;
+        v.y = 2;
+        v.z = 3;
+        expect(v.x).toBe(1);
+        expect(v.y).toBe(2);
+        expect(v.z).toBe(3);
+    });
+
     test('lock() prevents value changes', () => {
         const v = new Vector3();
         v.lock();
