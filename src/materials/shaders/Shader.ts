@@ -100,7 +100,6 @@ class Shader {
         }
 
         const varyings = shader.generateVaryings();
-        console.log(varyings);
         const attributes = shader.generateAttributes();
 
         if (options.vertexTemplate) {
@@ -150,7 +149,6 @@ class Shader {
             }
         }
 
-        console.log(shader);
         return shader;
     }
 

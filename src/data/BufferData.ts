@@ -21,6 +21,7 @@ export class BufferData extends Float32Array {
 
     set(array: ArrayLike<number> | BufferData, offset: number = 0): this {
         super.set(array, offset);
+        this.monitor.check();
         return this;
     }
 
@@ -32,6 +33,7 @@ export class BufferData extends Float32Array {
 
     copy(data: BufferData): this {
         super.set(data);
+        this.monitor.check();
         return this;
     }
 
@@ -53,6 +55,7 @@ export class BufferData extends Float32Array {
         for (let i = 0; i < length; i++) {
             this[i] = array[start + i];
         }
+        this.monitor.check();
         return this;
     }
 
