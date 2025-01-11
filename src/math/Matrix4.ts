@@ -305,6 +305,7 @@ export class Matrix4 extends BufferData {
     rotateZ(radians: number): this {
         return this.rotateOnAxis(new Vector3(0, 0, 1), radians);
     }
+
     scale(v: Vector3): this {
         const te = this;
         const v0 = v[0];
@@ -317,6 +318,19 @@ export class Matrix4 extends BufferData {
             v2 * te[8], v2 * te[9], v2 * te[10], v2 * te[11],
             te[12], te[13], te[14], te[15]
         ])
+    }
+
+    // Use makeScale if you need a pure scaling matrix or want to replace any existing transformations
+    makeScale(scale: Vector3): this {
+        const te = this;
+        const { x: sx, y: sy, z: sz } = scale;
+    
+        return te.set([
+            sx, 0,  0,  0,
+            0,  sy, 0,  0,
+            0,  0,  sz, 0,
+            0,  0,  0,  1
+        ]);
     }
 
     rotateOnAxis(axis: Vector3, radians: number): this {
