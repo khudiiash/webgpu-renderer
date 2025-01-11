@@ -12,9 +12,15 @@ class Color extends BufferData {
         super(4);
         
         if (g !== undefined && typeof(r) ==='number') {
+            if (b === undefined) {
+                b = 1;
+            } 
+            if (a === undefined) {
+                a = 1;
+            }
             // Clamp each value to the [0, 1] range
             const clamp = (value: number) => Math.max(0, Math.min(1, value));
-            this.set([clamp(r ?? 0), clamp(g ?? 0), clamp(b ?? 0), clamp(a ?? 1)]);
+            this.set([clamp(r), clamp(g), clamp(b), clamp(a)]);
         }
         else {
             this.setHex(r);   
@@ -39,7 +45,12 @@ class Color extends BufferData {
         if (string[0] !== '#') {
             throw new Error('Color.fromString: string should start with #');
         }
-        const color = parseInt(string.slice(1), 16);
+        // Remove the '#' and check if the rest is a valid hex string
+        const hexPart = string.slice(1,16);
+        if (!/^[0-9A-Fa-f]{6}$/.test(hexPart)) {
+            throw new Error('Invalid hex string');
+        }
+        const color = parseInt(hexPart, 16);
         this.set([
             ((color >> 16) & 255) / 255,
             ((color >> 8) & 255) / 255,
@@ -75,12 +86,16 @@ class Color extends BufferData {
     }
     
     setRGB(r: number, g: number, b: number) {
-        this.set([r, g, b]);
+        // Clamp each value to the [0, 1] range
+        const clamp = (value: number) => Math.max(0, Math.min(1, value));
+        this.set([clamp(r), clamp(g), clamp(b)]);
         return this;
     }
 
     setRGBA(r: number, g: number, b: number, a: number) {
-        this.set([r, g, b, a]);
+        // Clamp each value to the [0, 1] range
+        const clamp = (value: number) => Math.max(0, Math.min(1, value));
+        this.set([clamp(r), clamp(g), clamp(b), clamp(a)]);
         return this;
     }
 
