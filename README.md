@@ -71,21 +71,6 @@ https://github.com/user-attachments/assets/83fedd2b-f73f-430f-9275-4a937da58410
 
 https://github.com/user-attachments/assets/0cd42e44-60ef-4440-8bd4-def7ede117dc
 
-### Key features:
-
-* ShaderLib for composing shaders from chunks
-* Buffers management
-* Directional Light
-* Fog
-* PCF Shadows
-* Phong Material
-* GLTFLoader
-* Instancing
-* Wind Shader
-* Boids
-
-"I am excited about how well it performs on both PC and mobile hitting 60 FPS on my iPhone 13 without a sweat" - Khudiiash
-
 
 <!-- GETTING STARTED -->
 ## Getting Started
@@ -96,23 +81,35 @@ https://github.com/user-attachments/assets/0cd42e44-60ef-4440-8bd4-def7ede117dc
    ```
 2. Install NPM packages
    ```sh
-   yarn
+   npm i
    ```
-3. Build
-   ```js
-   yarn build
-   ```
-4. Run
+3. Run
    ```sh
-   yarn run
+   npm run dev
    ```
+<!-- FEATURE TRACKING -->
+## Nearest Features Tracking
+- [x] shader library
+- [x] standard material
+- [x] instancing
+- [ ] directional lighting
+- [ ] model loading
+- [ ] camera controls
+- [ ] render graph
+- [ ] shadow pass
+- [ ] occlusion pass
+- [ ] VAT animation
+- [ ] point lights
+- [ ] normal mapping
+- [ ] cube mapping
+
 
 <!-- ROADMAP -->
 ## Roadmap
-
-- [x] Add Readme
-- [ ] Add License
-- [ ] Global Illumination
+- [ ] VAT
+- [ ] PBR
+- [ ] Multisampling (AutoLOD)
+- [ ] Global Illumination (Radiance Cascades)
 
 See the [open issues](https://github.com/khudiiash/webgpu-renderer/issues) for a full list of proposed features (and known issues).
 
