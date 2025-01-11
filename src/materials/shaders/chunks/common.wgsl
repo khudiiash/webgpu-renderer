@@ -1,0 +1,5 @@
+const PI = 3.14159265359;
+const PI2 = 6.28318530718;
+const PI_OVER_2 = 1.57079632679;
+const EPSILON = 0.001;
+

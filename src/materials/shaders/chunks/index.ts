@@ -1,0 +1,12 @@
+export { default as common } from './common.wgsl?raw';
+export { default as standard } from './standard.wgsl?raw';
+export { default as camera } from './camera.wgsl?raw';
+export { default as model } from './model.wgsl?raw';
+export { default as pbr } from './pbr.wgsl?raw';
+export { default as shadow_pcf } from './shadow_pcf.wgsl?raw';
+export { default as diffuse_map } from './diffuse_map.wgsl?raw';
+export { default as fog } from './fog.wgsl?raw';
+export { default as phong } from './phong.wgsl?raw';
+export { default as scene } from './scene.wgsl?raw';
+export { default as gamma } from './gamma.wgsl?raw';
+export { default as noise } from './noise.wgsl?raw';

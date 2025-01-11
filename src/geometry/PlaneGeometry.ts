@@ -1,0 +1,54 @@
+import { Geometry } from "./Geometry";
+
+class PlaneGeometry extends Geometry {
+    width: number;
+    height: number;
+    widthSegments: number;
+    heightSegments: number;
+
+    constructor(width = 1, height = 1, widthSegments = 1, heightSegments = 1) {
+        super();
+        this.width = width;
+        this.height = height;
+        this.widthSegments = widthSegments;
+        this.heightSegments = heightSegments;
+        this.build();
+    }
+    
+    build() {
+        const w = this.width / 2;
+        const h = this.height / 2;
+        const positions = [
+            -w, -h, 0,
+            -w, h, 0,
+            w, h, 0,
+            -w, -h, 0,
+            w, h, 0,
+            w, -h, 0
+        ];
+        const normals = [
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1,
+            0, 0, -1
+        ];
+        const uvs = [
+            0, 0,
+            0, 1,
+            1, 1,
+            0, 0,
+            1, 1,
+            1, 0
+        ];
+        const indices = [
+            0, 1, 2,
+            3, 4, 5
+        ];
+
+        this.setFromArrays({ indices, positions, normals, uvs });
+    }
+}
+
+export { PlaneGeometry };
