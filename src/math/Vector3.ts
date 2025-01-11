@@ -202,9 +202,20 @@ export class Vector3 extends BufferData {
     }
 
     setXYZ(x: number, y: number, z: number): this {
-        this.set([x, y, z]);
+        if (!this.locked) {
+            this.set([x, y, z]);
+        }
         return this;
     }
+
+    static lerp(v1: Vector3, v2: Vector3, t: number): Vector3 {
+        return new Vector3(
+            v1.x + (v2.x - v1.x) * t,
+            v1.y + (v2.y - v1.y) * t,
+            v1.z + (v2.z - v1.z) * t
+        );
+    }
+
 
     setFromSphericalCoords(radius: number, phi: number, theta: number): this {
         const sinPhiRadius = Math.sin(phi) * radius;
