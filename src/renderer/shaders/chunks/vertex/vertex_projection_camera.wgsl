@@ -1,1 +1,0 @@
-let projectionView = camera.projection * camera.view;

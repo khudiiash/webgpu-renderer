@@ -1,26 +1,27 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebGPU Renderer</title>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebGPU</title>
     <style>
-        html,
-        body {
-            width: 100vw;
-            height: 100vh;
-            margin: 0;
-            padding: 0;
-        }
-        canvas {
-            width: 100%;
-            height: 100%;
-            display: block; 
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html, body {
+        width: 100vw;
+        height: 100vh;
+        display: absolute;
+        left: 0;
+        top: 0;
+        overflow: hidden;
+      }
     </style>
-</head>
-<body>
-    <canvas id="canvas"></canvas>
-    <script src="src/main.js" type="module"></script> 
-</body>
+  </head>
+  <body>
+    <script type="module" src="/src/index.ts"></script>
+  </body>
 </html>
