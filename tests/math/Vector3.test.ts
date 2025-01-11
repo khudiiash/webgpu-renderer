@@ -335,5 +335,131 @@ describe('Vector3', () => {
         expect(v.z).toBe(0);
     });
 
+    test('should correctly divide components by another vector', () => {
+        const v1 = new Vector3(6, 9, 12);
+        const v2 = new Vector3(2, 3, 4);
+        v1.divide(v2);
+        expect(v1[0]).toBe(3);
+        expect(v1[1]).toBe(3);
+        expect(v1[2]).toBe(3);
+    });
+
+    test('should not modify the vector if it is locked', () => {
+        const v1 = new Vector3(6, 9, 12);
+        const v2 = new Vector3(2, 3, 4);
+        v1.locked = true;
+        v1.divide(v2);
+        expect(v1[0]).toBe(6);
+        expect(v1[1]).toBe(9);
+        expect(v1[2]).toBe(12);
+    });
+
+    test('should handle division by zero', () => {
+        const v1 = new Vector3(6, 9, 12);
+        const v2 = new Vector3(2, 0, 4); // Zero in the second component
+        expect(() => v1.divide(v2)).toThrow('Division by zero');
+    });
+
+    test('should remain unchanged when dividing by a vector of ones', () => {
+        const v1 = new Vector3(6, 9, 12);
+        const v2 = new Vector3(1, 1, 1);
+        v1.divide(v2);
+        expect(v1[0]).toBe(6);
+        expect(v1[1]).toBe(9);
+        expect(v1[2]).toBe(12);
+    });
+
+    test('setFromMatrixColumn() sets vector from matrix column', () => {
+        const m = new Matrix4().set([
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            9, 10, 11, 12,
+            13, 14, 15, 16
+        ]);
+        const v = new Vector3().setFromMatrixColumn(m, 1);
+        expect(v.toString()).toEqual(new Vector3(5, 6, 7).toString());
+    });
+
+    test('setFromMatrixPosition() sets vector from matrix position', () => {
+        const m = new Matrix4().set([
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            9, 10, 11, 12,
+            13, 14, 15, 16
+        ]);
+        const v = new Vector3().setFromMatrixPosition(m);
+        expect(v.toString()).toEqual(new Vector3(13, 14, 15).toString());
+    });
+
+    test('setFromMatrixColumn() should throw error for invalid index', () => {
+        const m = new Matrix4().set([
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            9, 10, 11, 12,
+            13, 14, 15, 16
+        ]);
+        const v = new Vector3();
+
+        expect(() => v.setFromMatrixColumn(m, -1)).toThrowError('Index out of bounds');
+        expect(() => v.setFromMatrixColumn(m, 4)).toThrowError('Index out of bounds');
+    });
+
+    test('setFromMatrixColumn() should not modify vector if locked', () => {
+        const m = new Matrix4().set([
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            9, 10, 11, 12,
+            13, 14, 15, 16
+        ]);
+        const v = new Vector3().lock();
+
+        // Attempt to set vector from matrix column
+        v.setFromMatrixColumn(m, 1);
+        
+        // The vector should remain unchanged due to locking
+        expect(v.toString()).toEqual(new Vector3(0, 0, 0).toString());  // Assuming default initialization
+    });
+
+    test('setFromMatrixColumn() should correctly set vector from matrix column when unlocked', () => {
+        const m = new Matrix4().set([
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            9, 10, 11, 12,
+            13, 14, 15, 16
+        ]);
+        const v = new Vector3();
+
+        v.setFromMatrixColumn(m, 1);
+        expect(v.toString()).toEqual(new Vector3(5, 6, 7).toString());
+    });
+
+    test('setFromMatrixPosition() should not modify vector if locked', () => {
+        const m = new Matrix4().set([
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            9, 10, 11, 12,
+            13, 14, 15, 16
+        ]);
+        const v = new Vector3().lock();
+
+        // Attempt to set vector from matrix position
+        v.setFromMatrixPosition(m);
+        
+        // The vector should remain unchanged due to locking
+        expect(v.toString()).toEqual(new Vector3(0, 0, 0).toString());  // Assuming default initialization
+    });
+
+    test('setFromMatrixPosition() should correctly set vector from matrix position when unlocked', () => {
+        const m = new Matrix4().set([
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            9, 10, 11, 12,
+            13, 14, 15, 16
+        ]);
+        const v = new Vector3();
+
+        v.setFromMatrixPosition(m);
+        expect(v.toString()).toEqual(new Vector3(13, 14, 15).toString());
+    });
 
 });
