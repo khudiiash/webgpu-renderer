@@ -33,9 +33,13 @@ export class BoundingBox {
     }
 
     public setFromPoints(points: Float32Array[]): void {
-        if (!points.length) return;
         this.min.set([Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY]);
         this.max.set([Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY]);
+
+        if (!points.length) {
+            return;
+        }
+    
 
         for (const p of points) {
             const [x, y, z] = p;
