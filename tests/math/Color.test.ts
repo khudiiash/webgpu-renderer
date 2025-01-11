@@ -163,6 +163,12 @@ describe('Color', () => {
         expect(color.g).toBe(0);
         expect(color.b).toBe(1);
         expect(color.a).toBe(1);
+        const color2 = new Color(1, 1, undefined, undefined);
+        expect(color2.r).toBe(1);
+        expect(color2.g).toBe(1);
+        expect(color2.b).toBe(1);
+        expect(color2.a).toBe(1);
+
     });
     
     it('should print RGBA correctly for extreme values', () => {
@@ -176,4 +182,67 @@ describe('Color', () => {
         expect(color.printRGBA()).toBe('rgba(0.123457, 0.234568, 0.345679, 0.456789)');
     });
 
+    it('setHex() should handle string input with "#" prefix', () => {
+        const c = new Color();
+        const hexString = "#ff5733";
+
+        c.setHex(hexString);
+        expect(c.toString()).toEqual(new Color(255/ 255, 87/ 255, 51/ 255).toString()); 
+    });
+
+    it('setHex() should handle string input with numeric hex', () => {
+        const c = new Color();
+        const hexString = "16734003";
+
+        c.setHex(hexString);
+        expect(c.toString()).toEqual(new Color(255/ 255, 87/ 255, 51/ 255).toString()); 
+    });
+
+    it('setHex() should throw an error or handle invalid hex string', () => {
+        const c = new Color();
+        const invalidHexString = "#xyz123";
+
+        expect(() => c.setHex(invalidHexString)).toThrowError('Invalid hex string');
+    });
+
+    it('setHex() should handle number input', () => {
+        const c = new Color();
+        const hexNumber = 0xff5733;  // Hex number input
+
+        c.setHex(hexNumber);
+        expect(c.toString()).toEqual(new Color(255 / 255, 87 / 255, 51 / 255).toString());
+    });
+
+    it('setRGB() should set correct RGB values', () => {
+        const c = new Color();
+        const r = 255 / 255, g = 0, b = 0;
+
+        c.setRGB(r, g, b);
+        expect(c.toString()).toEqual(new Color(r, g, b).toString());
+    });
+
+    it('setRGBA() should set correct RGBA values', () => {
+        const c = new Color();
+        const r = 10 / 255, g = 20 / 255, b = 0 / 30, a = 0.5;
+
+        c.setRGBA(r, g, b, a);
+        expect(c.toString()).toEqual(new Color(r, g, b, a).toString());
+    });
+
+    it('setRGB() should handle invalid RGB values', () => {
+        const c = new Color();
+        const r = 300 / 255, g = -1, b = 255 / 255;  // Invalid RGB values
+
+        c.setRGB(r, g, b);
+        expect(c.toString()).toEqual(new Color(1, 0, 1).toString());
+    });
+
+    it('setRGBA() should handle invalid RGBA values', () => {
+        const c = new Color();
+        const r = 355 / 255, g = 455 / 255, b = 555 / 255, a = 1.5;  // Invalid alpha value
+
+        c.setRGBA(r, g, b, a);
+        expect(c.toString()).toEqual(new Color(1, 1, 1, 1).toString());
+    });
+    
 });
