@@ -1,9 +1,9 @@
-import { describe, test, expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { Vector3 } from '@/math/Vector3';
 import { Matrix4 } from '@/math/Matrix4';
 
 describe('Vector3', () => {
-    test('static properties return correct vectors', () => {
+    it('static properties return correct vectors', () => {
         expect(Vector3.zero.toString()).toEqual(new Vector3(0, 0, 0).toString());
         expect(Vector3.one.toString()).toEqual(new Vector3(1, 1, 1).toString());
         expect(Vector3.up.toString()).toEqual(new Vector3(0, 1, 0).toString());
@@ -14,7 +14,7 @@ describe('Vector3', () => {
         expect(Vector3.back.toString()).toEqual(new Vector3(0, 0, 1).toString());
     });
 
-    test('static constants exist and have correct values', () => {
+    it('static constants exist and have correct values', () => {
         expect(Vector3.ZERO.toString()).toEqual(new Vector3(0, 0, 0).toString());
         expect(Vector3.ONE.toString()).toEqual(new Vector3(1, 1, 1).toString());
         expect(Vector3.UP.toString()).toEqual(new Vector3(0, 1, 0).toString());
@@ -25,7 +25,7 @@ describe('Vector3', () => {
         expect(Vector3.BACK.toString()).toEqual(new Vector3(0, 0, 1).toString());
     });
 
-    test('constructor initializes with default values', () => {
+    it('constructor initializes with default values', () => {
         const v = new Vector3();
         expect(v.x).toBe(0);
         expect(v.y).toBe(0);
@@ -34,7 +34,7 @@ describe('Vector3', () => {
         expect(v.length).toBe(3);
     });
 
-    test('constructor initializes with provided values', () => {
+    it('constructor initializes with provided values', () => {
         const v = new Vector3(1, 2, 3);
         expect(v.x).toBe(1);
         expect(v.y).toBe(2);
@@ -42,7 +42,7 @@ describe('Vector3', () => {
     });
 
     
-    test('set values', () => {
+    it('set values', () => {
         const v = new Vector3();
         v.x = 1;
         v.y = 2;
@@ -52,7 +52,7 @@ describe('Vector3', () => {
         expect(v.z).toBe(3);
     });
 
-    test('lock() prevents value changes', () => {
+    it('lock() prevents value changes', () => {
         const v = new Vector3();
         v.lock();
         v.x = 1;
@@ -63,7 +63,7 @@ describe('Vector3', () => {
         expect(v.z).toBe(0);
     });
 
-    test('unlock() allows value changes', () => {
+    it('unlock() allows value changes', () => {
         const v = new Vector3();
         v.lock();
         v.x = 1;
@@ -72,7 +72,7 @@ describe('Vector3', () => {
         expect(v.x).toBe(2);
     });
 
-    test('add() adds vectors correctly when unlocked', () => {
+    it('add() adds vectors correctly when unlocked', () => {
         const v1 = new Vector3(1, 2, 3);
         const v2 = new Vector3(2, 3, 4);
         v1.add(v2);
@@ -81,7 +81,7 @@ describe('Vector3', () => {
         expect(v1.z).toBe(7);
     });
 
-    test('addVectors() adds two vectors into this vector', () => {
+    it('addVectors() adds two vectors into this vector', () => {
         const v1 = new Vector3(1, 2, 3);
         const v2 = new Vector3(2, 3, 4);
         const result = new Vector3().addVectors(v1, v2);
@@ -90,7 +90,7 @@ describe('Vector3', () => {
         expect(result.z).toBe(7);
     });
 
-    test('sub() subtracts vectors correctly when unlocked', () => {
+    it('sub() subtracts vectors correctly when unlocked', () => {
         const v1 = new Vector3(5, 5, 5);
         const v2 = new Vector3(2, 1, 3);
         v1.sub(v2);
@@ -99,7 +99,7 @@ describe('Vector3', () => {
         expect(v1.z).toBe(2);
     });
 
-    test('subVectors() subtracts two vectors into this vector', () => {
+    it('subVectors() subtracts two vectors into this vector', () => {
         const v1 = new Vector3(5, 5, 5);
         const v2 = new Vector3(2, 1, 3);
         const result = new Vector3().subVectors(v1, v2);
@@ -108,7 +108,7 @@ describe('Vector3', () => {
         expect(result.z).toBe(2);
     });
 
-    test('multiply() multiplies vectors correctly when unlocked', () => {
+    it('multiply() multiplies vectors correctly when unlocked', () => {
         const v1 = new Vector3(2, 3, 4);
         const v2 = new Vector3(2, 2, 2);
         v1.multiply(v2);
@@ -117,7 +117,7 @@ describe('Vector3', () => {
         expect(v1.z).toBe(8);
     });
 
-    test('multiplyVectors() multiplies two vectors into this vector', () => {
+    it('multiplyVectors() multiplies two vectors into this vector', () => {
         const v1 = new Vector3(2, 3, 4);
         const v2 = new Vector3(2, 2, 2);
         const result = new Vector3().multiplyVectors(v1, v2);
@@ -126,7 +126,7 @@ describe('Vector3', () => {
         expect(result.z).toBe(8);
     });
 
-    test('scale() scales vector by number', () => {
+    it('scale() scales vector by number', () => {
         const v = new Vector3(1, 2, 3);
         v.scale(2);
         expect(v.x).toBe(2);
@@ -134,7 +134,7 @@ describe('Vector3', () => {
         expect(v.z).toBe(6);
     });
 
-    test('scale() scales vector by Vector3', () => {
+    it('scale() scales vector by Vector3', () => {
         const v = new Vector3(1, 2, 3);
         v.scale(new Vector3(2, 3, 4));
         expect(v.x).toBe(2);
@@ -142,7 +142,7 @@ describe('Vector3', () => {
         expect(v.z).toBe(12);
     });
 
-    test('cross() computes cross product correctly when unlocked', () => {
+    it('cross() computes cross product correctly when unlocked', () => {
         const v1 = new Vector3(1, 0, 0);
         const v2 = new Vector3(0, 1, 0);
         v1.cross(v2);
@@ -151,14 +151,14 @@ describe('Vector3', () => {
         expect(v1.z).toBe(1);
     });
 
-    test('dot() computes dot product correctly', () => {
+    it('dot() computes dot product correctly', () => {
         const v1 = new Vector3(1, 2, 3);
         const v2 = new Vector3(4, 5, 6);
         const result = v1.dot(v2);
         expect(result).toBe(32);
     });
 
-    test('clamp() clamps vector components between min and max', () => {
+    it('clamp() clamps vector components between min and max', () => {
         const v = new Vector3(0, 5, -1);
         const min = new Vector3(-0.5, 0, 0);
         const max = new Vector3(0.5, 1, 1);
@@ -168,13 +168,13 @@ describe('Vector3', () => {
         expect(v.z).toBe(0);
     });
 
-    test('distanceTo() calculates distance correctly', () => {
+    it('distanceTo() calculates distance correctly', () => {
         const v1 = new Vector3(1, 1, 1);
         const v2 = new Vector3(4, 5, 1);
         expect(v1.distanceTo(v2)).toBe(5);
     });
 
-    test('applyMatrix4() transforms vector correctly', () => {
+    it('applyMatrix4() transforms vector correctly', () => {
         const v = new Vector3(1, 2, 3);
         const m = new Matrix4().set([
             2, 0, 0, 0,
@@ -188,7 +188,7 @@ describe('Vector3', () => {
         expect(v.z).toBe(9);
     });
 
-    test('setFromMatrixColumn() sets vector from matrix column', () => {
+    it('setFromMatrixColumn() sets vector from matrix column', () => {
         const m = new Matrix4().set([
             1, 2, 3, 4,
             5, 6, 7, 8,
@@ -201,7 +201,7 @@ describe('Vector3', () => {
         expect(v.z).toBe(7);
     });
 
-    test('setFromMatrixPosition() sets vector from matrix position', () => {
+    it('setFromMatrixPosition() sets vector from matrix position', () => {
         const m = new Matrix4().set([
             1, 2, 3, 4,
             5, 6, 7, 8,
@@ -214,7 +214,7 @@ describe('Vector3', () => {
         expect(v.z).toBe(15);
     });
 
-    test('setXYZ() sets vector components', () => {
+    it('setXYZ() sets vector components', () => {
         const v = new Vector3();
         v.setXYZ(1, 2, 3);
         expect(v.x).toBe(1);
@@ -222,7 +222,7 @@ describe('Vector3', () => {
         expect(v.z).toBe(3);
     });
 
-    test('normalize() normalizes vector', () => {
+    it('normalize() normalizes vector', () => {
         const v = new Vector3(3, 0, 0);
         v.normalize();
         expect(v.x).toBe(1);
@@ -230,7 +230,7 @@ describe('Vector3', () => {
         expect(v.z).toBe(0);
     });
 
-    test('normalize() handles zero vector', () => {
+    it('normalize() handles zero vector', () => {
         const v = new Vector3(0, 0, 0);
         v.normalize();
         expect(v.x).toBe(0);
@@ -238,7 +238,7 @@ describe('Vector3', () => {
         expect(v.z).toBe(0);
     });
 
-    test('locked vector ignores all modifications', () => {
+    it('locked vector ignores all modifications', () => {
         const v = new Vector3(1, 1, 1).lock();
         
         // Test various operations on a locked vector
@@ -279,7 +279,7 @@ describe('Vector3', () => {
         expect(v.z).toBe(5);
     });
     
-    test('clone() creates an identical but separate vector', () => {
+    it('clone() creates an identical but separate vector', () => {
         const v1 = new Vector3(1, 2, 3);
         const v2 = v1.clone();
         expect(v2.x).toBe(1);
@@ -288,7 +288,7 @@ describe('Vector3', () => {
         expect(v2).not.toBe(v1); // Ensure it's a separate instance
     });
     
-    test('copy() copies values from another vector', () => {
+    it('copy() copies values from another vector', () => {
         const v1 = new Vector3(1, 2, 3);
         const v2 = new Vector3();
         v2.copy(v1);
@@ -298,12 +298,12 @@ describe('Vector3', () => {
         expect(v2).not.toBe(v1); // Ensure it's a separate instance
     });
     
-    test('length() calculates the correct magnitude', () => {
+    it('length() calculates the correct magnitude', () => {
         const v = new Vector3(3, 4, 0);
         expect(v.magnitude()).toBe(5); // Pythagorean theorem
     });
     
-    test('lerp() interpolates between two vectors', () => {
+    it('lerp() interpolates between two vectors', () => {
         const v1 = new Vector3(0, 0, 0);
         const v2 = new Vector3(10, 10, 10);
         const result = Vector3.lerp(v1, v2, 0.5);
@@ -312,7 +312,7 @@ describe('Vector3', () => {
         expect(result.z).toBe(5);
     });
 
-    test('lerp() returns first vector when t = 0', () => {
+    it('lerp() returns first vector when t = 0', () => {
         const v1 = new Vector3(0, 0, 0);
         const v2 = new Vector3(10, 10, 10);
         const result = Vector3.lerp(v1, v2, 0);
@@ -321,7 +321,7 @@ describe('Vector3', () => {
         expect(result.z).toBe(v1.z);
     });
 
-    test('lerp() returns second vector when t = 1', () => {
+    it('lerp() returns second vector when t = 1', () => {
         const v1 = new Vector3(0, 0, 0);
         const v2 = new Vector3(10, 10, 10);
         const result = Vector3.lerp(v1, v2, 1);
@@ -330,7 +330,7 @@ describe('Vector3', () => {
         expect(result.z).toBe(v2.z);
     });
 
-    test('normalize() normalizes vector', () => {
+    it('normalize() normalizes vector', () => {
         const v = new Vector3(3, 4, 0);
         v.normalize();
         expect(v.x).toBeCloseTo(0.6);
@@ -338,7 +338,7 @@ describe('Vector3', () => {
         expect(v.z).toBe(0);
     });
 
-    test('normalize() returns vector unchanged if magnitude is zero', () => {
+    it('normalize() returns vector unchanged if magnitude is zero', () => {
         const v = new Vector3(0, 0, 0);
         v.normalize();
         expect(v.x).toBe(0);
@@ -346,7 +346,7 @@ describe('Vector3', () => {
         expect(v.z).toBe(0);
     });
 
-    test('should correctly divide components by another vector', () => {
+    it('should correctly divide components by another vector', () => {
         const v1 = new Vector3(6, 9, 12);
         const v2 = new Vector3(2, 3, 4);
         v1.divide(v2);
@@ -355,23 +355,23 @@ describe('Vector3', () => {
         expect(v1[2]).toBe(3);
     });
 
-    test('should not modify the vector if it is locked', () => {
+    it('should not modify the vector if it is locked', () => {
         const v1 = new Vector3(6, 9, 12);
         const v2 = new Vector3(2, 3, 4);
-        v1.locked = true;
+        v1.lock();
         v1.divide(v2);
         expect(v1[0]).toBe(6);
         expect(v1[1]).toBe(9);
         expect(v1[2]).toBe(12);
     });
 
-    test('should handle division by zero', () => {
+    it('should handle division by zero', () => {
         const v1 = new Vector3(6, 9, 12);
         const v2 = new Vector3(2, 0, 4); // Zero in the second component
         expect(() => v1.divide(v2)).toThrow('Division by zero');
     });
 
-    test('should remain unchanged when dividing by a vector of ones', () => {
+    it('should remain unchanged when dividing by a vector of ones', () => {
         const v1 = new Vector3(6, 9, 12);
         const v2 = new Vector3(1, 1, 1);
         v1.divide(v2);
@@ -380,7 +380,7 @@ describe('Vector3', () => {
         expect(v1[2]).toBe(12);
     });
 
-    test('setFromMatrixColumn() sets vector from matrix column', () => {
+    it('setFromMatrixColumn() sets vector from matrix column', () => {
         const m = new Matrix4().set([
             1, 2, 3, 4,
             5, 6, 7, 8,
@@ -391,7 +391,7 @@ describe('Vector3', () => {
         expect(v.toString()).toEqual(new Vector3(5, 6, 7).toString());
     });
 
-    test('setFromMatrixPosition() sets vector from matrix position', () => {
+    it('setFromMatrixPosition() sets vector from matrix position', () => {
         const m = new Matrix4().set([
             1, 2, 3, 4,
             5, 6, 7, 8,
@@ -402,7 +402,7 @@ describe('Vector3', () => {
         expect(v.toString()).toEqual(new Vector3(13, 14, 15).toString());
     });
 
-    test('setFromMatrixColumn() should throw error for invalid index', () => {
+    it('setFromMatrixColumn() should throw error for invalid index', () => {
         const m = new Matrix4().set([
             1, 2, 3, 4,
             5, 6, 7, 8,
@@ -415,7 +415,7 @@ describe('Vector3', () => {
         expect(() => v.setFromMatrixColumn(m, 4)).toThrowError('Index out of bounds');
     });
 
-    test('setFromMatrixColumn() should not modify vector if locked', () => {
+    it('setFromMatrixColumn() should not modify vector if locked', () => {
         const m = new Matrix4().set([
             1, 2, 3, 4,
             5, 6, 7, 8,
@@ -431,7 +431,7 @@ describe('Vector3', () => {
         expect(v.toString()).toEqual(new Vector3(0, 0, 0).toString());  // Assuming default initialization
     });
 
-    test('setFromMatrixColumn() should correctly set vector from matrix column when unlocked', () => {
+    it('setFromMatrixColumn() should correctly set vector from matrix column when unlocked', () => {
         const m = new Matrix4().set([
             1, 2, 3, 4,
             5, 6, 7, 8,
@@ -444,7 +444,7 @@ describe('Vector3', () => {
         expect(v.toString()).toEqual(new Vector3(5, 6, 7).toString());
     });
 
-    test('setFromMatrixPosition() should not modify vector if locked', () => {
+    it('setFromMatrixPosition() should not modify vector if locked', () => {
         const m = new Matrix4().set([
             1, 2, 3, 4,
             5, 6, 7, 8,
@@ -460,7 +460,7 @@ describe('Vector3', () => {
         expect(v.toString()).toEqual(new Vector3(0, 0, 0).toString());  // Assuming default initialization
     });
 
-    test('setFromMatrixPosition() should correctly set vector from matrix position when unlocked', () => {
+    it('setFromMatrixPosition() should correctly set vector from matrix position when unlocked', () => {
         const m = new Matrix4().set([
             1, 2, 3, 4,
             5, 6, 7, 8,
