@@ -24,3 +24,6 @@ yarn.lock
 *.njsproj
 *.sln
 *.sw?
+
+# Vitest Coverage
+coverage/*
