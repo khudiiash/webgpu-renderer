@@ -10,21 +10,15 @@ class Color extends BufferData {
         }
 
         super(4);
-
-        if (typeof r === 'string') {
-            if (r[0] === '#') {
-                this.__fromHexString(r);
-            } else {
-                this.__fromHexNumber(parseInt(r));
-            }
-            return this;
+        
+        if (g !== undefined && typeof(r) ==='number') {
+            // Clamp each value to the [0, 1] range
+            const clamp = (value: number) => Math.max(0, Math.min(1, value));
+            this.set([clamp(r ?? 0), clamp(g ?? 0), clamp(b ?? 0), clamp(a ?? 1)]);
         }
-        if (typeof r === 'number' &&  g === undefined) {
-            this.__fromHexNumber(r);
-            return this;
+        else {
+            this.setHex(r);   
         }
-
-        this.set([r, g ?? 0, b ?? 0, a ?? 1]);
     }
     
     get r() { return this[0]; }
@@ -37,6 +31,10 @@ class Color extends BufferData {
     set b(value) { this[2] = value; this.monitor.check(2, 3); }
     set a(value) { this[3] = value; this.monitor.check(3, 4); }
     
+    private checkDigits(str: string): boolean {
+        return /^\d+$/.test(str);
+    }
+
     private __fromHexString(string: string) {
         if (string[0] !== '#') {
             throw new Error('Color.fromString: string should start with #');
@@ -61,16 +59,19 @@ class Color extends BufferData {
         return this;
     }
 
-
-
-    setHex(hex: number | string) {
-        if (typeof hex === 'string') {
-            return this.__fromHexString(hex);
+    setHex(r: number | string) {
+        if (typeof r === 'string') {
+            if (r[0] !== '#' && this.checkDigits(r)) {
+                this.__fromHexNumber(parseInt(r))
+            } else {
+                this.__fromHexString(r);
+            }
+            return this;
         }
-        if (typeof hex === 'number') {
-            return this.__fromHexNumber(hex);
+        if (typeof r === 'number') {
+            this.__fromHexNumber(r);
+            return this;
         }
-        return this;
     }
     
     setRGB(r: number, g: number, b: number) {
