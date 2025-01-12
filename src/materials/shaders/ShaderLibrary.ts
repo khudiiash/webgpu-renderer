@@ -71,6 +71,7 @@ export class ShaderLibrary {
                 { name: 'vUv', type: 'vec2f' },
             ],
             vertexTemplate: `
+                #include <common>
                 #include <scene>
                 #include <camera>
                 #include <model>
@@ -95,17 +96,19 @@ export class ShaderLibrary {
                 }
             `,
             fragmentTemplate: `
+                #include <common>
                 #include <scene>
                 #include <camera>
                 #include <diffuse_map>
                 #include <standard>
-                #include <noise>
+                #include <emission>
+
+                #if USE_GAMMA {
+                    #include <gamma>
+                }
 
                 #if USE_FOG {
                     #include <fog>
-                }
-                #if USE_GAMMA {
-                    #include <gamma>
                 }
 
                 @fragment(input) -> output {

@@ -7,15 +7,16 @@ struct Fog {
 }
 
 struct DirectionalLight {
-    color: vec3f,
+    color: vec4f,
     direction: vec3f,
-    intensity: f32,
+    intensity: f32
 }
 
 struct PointLight {
-    color: vec3f,
+    color: vec4f,
     position: vec3f,
     intensity: f32,
+    range: f32
 }
 
 struct Scene {
@@ -27,7 +28,7 @@ struct Scene {
     directionalLightsNum: f32,
     pointLightsNum: f32,
     directionalLights: array<DirectionalLight, 8>,
-    pointLights: array<PointLight, 8>,
+    pointLights: array<PointLight, 32>,
 }
 
 @group(0) @binding(0) var<uniform> scene: Scene;

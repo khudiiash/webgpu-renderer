@@ -1,4 +1,5 @@
 //import { BufferData, UniformData, DataMonitor } from "@/data";
+import { isAlign4 } from "@/util";
 import { BufferData } from "./BufferData";
 import { DataMonitor } from "./DataMonitor";
 import { UniformData } from "./UniformData";
@@ -11,11 +12,13 @@ export class UniformDataArray extends BufferData {
     /**
      * @param {number} maxItems  maximum number of items
      * @param {number} itemSize  length of item's data
-     * @param {number} padding  padding between items (default to 4) as it is better for data alignment in gpu
      */
-    constructor(maxItems: number, itemSize: number, padding: number = 4) {
-        super(maxItems * (itemSize + padding));
-        this.itemSize = itemSize + padding;
+    constructor(maxItems: number, itemSize: number) {
+        if (!isAlign4(itemSize)) {
+            throw new Error('Item size must be aligned to 4, got ' + itemSize);
+        }
+        super(maxItems * itemSize);
+        this.itemSize = itemSize;
         this.maxItems = maxItems;
         this.items = [];
         this.monitor = new DataMonitor(this, this);
@@ -34,12 +37,12 @@ export class UniformDataArray extends BufferData {
             return;
         }
         const index = this.size * this.itemSize;
-        this.set(item.data, index);
         item.onChange(() => {
             this.set(item.data, index)
             this.monitor.dispatch();
         })
         this.items.push(item);
+        this.set(item.data, index);
     }
 
     /**
