@@ -1,6 +1,7 @@
-import { uuid } from '@/util/general';
+import { align16, align4, uuid } from '@/util/general';
 import { BufferData } from './BufferData';
 import { Texture } from './Texture';
+import { M } from 'vitest/dist/chunks/environment.LoooBwUu.js';
 
 export type UniformDataType = BufferData | Texture | number;
 export type UniformDataValues = Record<string, UniformDataType>;
@@ -56,12 +57,14 @@ export class UniformData {
     public readonly id: string;
     public type: 'uniform' | 'storage' = 'uniform';
     private parent: any;
+    private items: Map<string, UniformDataType> = new Map();
     
     private layout: UniformDataLayout;
     private changeCallbacks: UniformChangeCallback[];
     private rebuildCallbacks: UniformRebuildCallback[];
     public data!: Float32Array;
     public textures: Map<string, Texture>;
+    
   
     constructor(parent: any, config: UniformDataConfig) {
       const { name, isGlobal, values, type } = config;
@@ -89,12 +92,14 @@ export class UniformData {
     }
   
     private setProperties(values: { [s: string]: UniformDataType; }) {
+      this.items.clear();
       const newLayout = {} as UniformDataLayout;
       const newTextures = new Map();
       let totalSize = 0;
   
       // First pass: calculate layout
       for (const [name, value] of Object.entries(values)) {
+        this.items.set(name, value);
         if (value instanceof Texture) {
           newTextures.set(name, value);
           continue;
@@ -106,9 +111,9 @@ export class UniformData {
           totalSize += size;
         }
       }
-  
-      // align to 16 bytes
-      totalSize = Math.ceil(totalSize / 4) * 4 + 4;
+
+      // align data size to 16 bytes (4 floats)
+      totalSize = align4(totalSize);
   
       const needsRebuild = !this.data || this.data.length !== totalSize;
       const newData = needsRebuild ? new Float32Array(totalSize) : this.data;
@@ -139,6 +144,17 @@ export class UniformData {
       if (needsRebuild) {
         this.rebuildCallbacks.forEach((cb) => cb(this.id));
       }
+    }
+
+    getData(name: string): number | Float32Array | null {
+      const layout = this.layout[name];
+      if (!layout) return null;
+      const { offset, size } = layout;
+      return size === 1 ? this.data[offset]: this.data.subarray(offset, offset + size);
+    }
+
+    getItem(name: string): UniformDataType | null {
+      return this.items.get(name) || null;
     }
   
     private _defineProperty(name: string, value: UniformDataType) {
@@ -185,9 +201,8 @@ export class UniformData {
         Object.defineProperty(this.parent, name, {
           get: () => this.data[layout.offset],
           set: (newValue: number) => {
-            if (this.parent[name] === newValue) return;
+            if (this.data[layout.offset] === newValue) return;
             this.data[layout.offset] = newValue;
-            this.parent[name] = newValue;
             this.changeCallbacks.forEach(cb => cb(this.id, name, newValue));
           },
           enumerable: true,
@@ -213,7 +228,7 @@ export class UniformData {
   
     private _getValueSize(value: UniformDataType): number {
       if (value instanceof Float32Array) {
-        return value.byteLength / Float32Array.BYTES_PER_ELEMENT;
+        return value.length;
       }
       if (value instanceof Texture) {
         return 0;
@@ -254,10 +269,6 @@ export class UniformData {
       return this.parent[name];
     }
 
-    getData() {
-      return this.data;
-    }
-  
     getTextures() {
       return this.textures;
     }

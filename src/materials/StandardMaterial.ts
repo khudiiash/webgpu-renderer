@@ -21,10 +21,14 @@ interface StandardMaterialOptions {
     specular_factor?: number;
     alpha_test?: number;
     diffuse_map?: Texture;
+
+    useLight?: boolean;
+    useShadow?: boolean;
+    useFog?: boolean;
+    useGamma?: boolean;
 }
 
 class StandardMaterial extends Material {
-
 
     ambient!: Color;
     diffuse!: Color;
@@ -76,10 +80,10 @@ class StandardMaterial extends Material {
         });
 
         this.defines = new ObjectMonitor({
-            USE_LIGHT: true,
-            USE_SHADOW: true,
-            USE_FOG: true,
-            MAX_INSTANCES: 1,
+            USE_LIGHT: options.useLight ?? true,
+            USE_SHADOW: options.useShadow ?? true,
+            USE_FOG: options.useFog ?? true,
+            USE_GAMMA: options.useGamma ?? true,
         }).onChange(() => {
             this.createShader();
         });
