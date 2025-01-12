@@ -1,4 +1,5 @@
 import { Material } from "@/materials/Material";
+import { b } from "vitest/dist/chunks/suite.B2jumIFP.js";
 
 type ShaderConfig = {
     code: string;
@@ -83,14 +84,13 @@ type ShaderConfig = {
     };
   };
   
-  function hashPipelineState(desc: PipelineDescriptor): string {
+  function hashPipelineState(material: Material): string {
     return JSON.stringify({
-      vertex: desc.vertex,
-      fragment: desc.fragment,
-      primitive: desc.primitive,
-      depthStencil: desc.depthStencil,
-      vertex_buffers: desc.vertex_buffers,
-      colorTargets: desc.colorTargets
+      vertex: material.shader.vertexSource,
+      fragment: material.shader.fragmentSource,
+      primitive: material.renderState.getPrimitive(),
+      depthStencil: material.renderState.getDepthStencil(),
+      blend: material.renderState.getBlendState(),
     });
   }
   
@@ -292,7 +292,7 @@ export class PipelineManager {
     }): GPURenderPipeline {
       const { material, layout, vertexBuffers } = params;
       const shader = material.shader;
-      const hash = hashPipelineState(shader as unknown as PipelineDescriptor);
+      const hash = hashPipelineState(material);
   
       if (this.pipelineCache.has(hash)) {
         return this.pipelineCache.get(hash)!;

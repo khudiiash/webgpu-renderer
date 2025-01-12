@@ -1,8 +1,10 @@
+import { uuid } from '../general';
 import { TextureMipGenerator } from './TextureMipGenerator';
 
 export class TextureLoader {
     private mipGenerator!: TextureMipGenerator;
     static #instance: TextureLoader;
+    static _texturesCreated: number = 0;
 
     static async load(url: string, options = { rotateY: false }) {
         return TextureLoader.getInstance().load(url, options);
@@ -58,8 +60,9 @@ export class TextureLoader {
         return 1 + Math.floor(Math.log2(Math.max(...sizes)));
     }
 
-    private createTexture(source: ImageBitmap, options: { mips?: boolean } = {}) {
+    private createTexture(source: ImageBitmap, options: { mips?: boolean, name?: string } = {}) {
         const texture = this.device.createTexture({
+            label: options.name || 'Texture_' + TextureLoader._texturesCreated++,
             size: [source.width, source.height],
             format: 'rgba8unorm',
             mipLevelCount: options.mips ? this.numMipLevels(source.width, source.height) : 1,
