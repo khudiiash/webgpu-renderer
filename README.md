@@ -94,7 +94,7 @@ https://github.com/user-attachments/assets/0cd42e44-60ef-4440-8bd4-def7ede117dc
 - [x] instancing
 - [x] directional lights
 - [x] point lights
-- [ ] model loading
+- [x] model loading
 - [ ] camera controls
 - [ ] render graph
 - [ ] shadow pass
