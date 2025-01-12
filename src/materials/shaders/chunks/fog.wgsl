@@ -1,4 +1,4 @@
-@fragment {{
+@fragment() {{
     let fogColor = scene.fog.color;
     let fogStart = scene.fog.start;
     let fogEnd = scene.fog.end;

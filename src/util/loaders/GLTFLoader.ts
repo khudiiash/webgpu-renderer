@@ -6,7 +6,6 @@ import { Mesh } from '@/core';
 import { Geometry } from '@/geometry';
 import { TextureLoader } from './index.js';
 import { Object3D } from '../../core/Object3D.js';
-import { Matrix4 } from '../../math/Matrix4.js';
 import { StandardMaterial } from '@/materials/StandardMaterial.js';
 
 
@@ -35,6 +34,31 @@ class GLTFLoader {
     instances: number = 0;
     data: any;
 
+
+    private cache!: Map<number, Object3D>;
+    private textureLoader!: TextureLoader;
+    private materialCache!: Map<number, StandardMaterial>; // Cache for materials
+
+    constructor(_device: GPUDevice) {
+        if (GLTFLoader.#instance) {
+            return GLTFLoader.#instance;
+        }
+        this.cache = new Map();
+        this.textureLoader = TextureLoader.getInstance();
+        this.materialCache = new Map(); // Initialize material cache
+        GLTFLoader.#instance = this;
+    }
+
+    static async load(url: string, instances = 0) {
+        const loader = GLTFLoader.getInstance();
+        return loader.load(url, instances);
+    }
+
+    static async loadMesh(url: string, instances = 0) {
+        const loader = GLTFLoader.getInstance();
+        return loader.loadMesh(url, instances);
+    }
+
     static init(device: GPUDevice) {
         const loader = new GLTFLoader(device);
         return loader;
@@ -45,39 +69,11 @@ class GLTFLoader {
         }
         return GLTFLoader.#instance;
     }
-    private cache!: Map<number, Object3D>;
-    private textureLoader!: TextureLoader;
-
-    constructor(_device: GPUDevice) {
-        if (GLTFLoader.#instance) {
-            return GLTFLoader.#instance;
-        }
-        this.cache = new Map();
-        this.textureLoader = TextureLoader.getInstance();
-        GLTFLoader.#instance = this;
-    }
-
     
-    async load(url: string, instances = 0) {
-        this.cache.clear();
-        this.instances = instances;
-        this.data = await load(url, GLTF);
-        const parsed = this.parse(this.data);
-        return parsed;
-    }    
-    
-    async loadMesh(url: string, instances = 0) {
-        this.cache.clear();
-        this.instances = instances;
-        this.data = await load(url, GLTF);
-        const parsed = this.parseNode(this.data.json, this.data.buffers, 0);
-        return parsed;
-    }
-    
-      createGeometry(mesh: any, gltf: any, buffers: any) {
+    createGeometry(primitive: any, gltf: any, buffers: any) {
         const geometry = new Geometry();
-        const primitive = mesh.primitives[0];
-      
+        // Removed the need to access primitive from mesh.primitives[0]
+
         const positions = this.parseAccessor(gltf, buffers, primitive.attributes.POSITION);
         const normals = this.parseAccessor(gltf, buffers, primitive.attributes.NORMAL);
         const uvs = this.parseAccessor(gltf, buffers, primitive.attributes.TEXCOORD_0);
@@ -94,145 +90,85 @@ class GLTFLoader {
             weights: weights || undefined,
         });
         return geometry;        
-      }
-    
-     createMaterial(mesh: any, gltf: any, buffers: any) {
-         let material = new StandardMaterial();
-         try {
-            const primitive = mesh.primitives[0];
-            if (primitive.material !== undefined) {
-                  const gltfMaterial = gltf.materials[primitive.material];
-                  const pbrMetallicRoughness = gltfMaterial.pbrMetallicRoughness;
+    }
 
-
-                    if (pbrMetallicRoughness?.baseColorTexture !== undefined) {
-                      const textureToImageMap = gltf.textures[pbrMetallicRoughness.baseColorTexture.index];
-                      const image = gltf.images[textureToImageMap.source];
-                      if (!image) {
-                            return material;
-                      }
-                      const bufferView = gltf.bufferViews[image.bufferView];
-                      const buffer = buffers[bufferView.buffer];
-                      const slice = buffer.arrayBuffer.slice(buffer.byteOffset + bufferView.byteOffset, buffer.byteOffset + bufferView.byteOffset + bufferView.byteLength);
-                      const blob = new Blob([slice], { type: image.mimeType });
-                      this.textureLoader.loadFromBlob(blob).then((texture) => {
-                            (material.uniforms as any).diffuse_map.setResource(texture);
-                      })
-                  }
-            }
-         } catch(e) {
-                console.error(e);
-         }
-         
-         return material;
-     }
     
-    parse(data: any) {
+    async load(url: string, instances = 0) {
+        this.cache.clear();
+        this.instances = instances;
+        this.data = await load(url, GLTF);
+        const parsed = await this.parse(this.data);
+        return parsed;
+    }    
+    
+    async loadMesh(url: string, instances = 0) {
+        this.cache.clear();
+        this.instances = instances;
+        this.data = await load(url, GLTF);
+        const parsed = await this.parseNode(this.data.json, this.data.buffers, 0);
+        return parsed;
+    }
+    
+    // Adjusted method to process primitives individually
+    async parse(data: any) {
         const gltf = data.json;
         const buffers = data.buffers;
         
-        const scenes = this.parseScenes(gltf, buffers);
-        //const animations = this.parseAnimations(gltf, buffers);
+        const scenes = await this.parseScenes(gltf, buffers);
         const scene = scenes[gltf.scene || 0];
-        const instancedMeshes = scene.find((node: any) => node.isInstancedMesh);
         
         return {
             scenes,
-            animations: [],
-            instancedMeshes,
-            scene: scenes[gltf.scene || 0]
+            animations: [], // Adjust or implement animations if necessary
+            instancedMeshes: scene.find((node: any) => node.isInstancedMesh),
+            scene
         };
     }
     
-    parseScenes(gltf: any, buffers: any) {
-        return gltf.scenes.map((scene: any) => {
+    // Made this method async to handle asynchronous operations
+    async parseScenes(gltf: any, buffers: any) {
+        return await Promise.all(gltf.scenes.map(async (scene: any) => {
             const sceneObj = new Object3D();
-            scene.nodes.forEach((nodeIndex: number) => {
-                const childObj = this.parseNode(gltf, buffers, nodeIndex);
+            for (const nodeIndex of scene.nodes) {
+                const childObj = await this.parseNode(gltf, buffers, nodeIndex);
                 sceneObj.add(childObj as Object3D);
-            });
+            }
             return sceneObj;
-        });
+        }));
     }
     
-    // createSkeleton(nodeData: any, gltf: any, buffers: any) {
-    //     const skinData = gltf.skins[nodeData.skin];
-    //     const jointNodes = skinData.joints.map((jointIndex: any) => this.parseNode(gltf, buffers, jointIndex));
-    //     const bones = jointNodes.filter((node: any) => node instanceof Bone);
-        
-    //     let inverseBindMatricesData = this.parseAccessor(gltf, buffers, skinData.inverseBindMatrices);
-    //     let boneInverses = [];
-    //     for (let i = 0; i < bones.length; i++) {
-    //         const mat = new Matrix4().fromArray(inverseBindMatricesData, i * 16);
-    //         boneInverses.push(mat);
-    //     }
-        
-    //     const skeleton = new (Skeleton as any)(bones, boneInverses);
-    //     return skeleton;
-    // }
-    
-    // parseAnimations(gltf, buffers) {
-    //     if (!gltf.animations) return [];
-    //     return gltf.animations.map(animation => {
-    //         const tracks = animation.channels.map(channel => {
-    //             const sampler = animation.samplers[channel.sampler];
-    //             const target = channel.target;
-    //             const name = target.node !== undefined ? gltf.nodes[target.node].name : target.node;
-                
-    //             const inputAccessor = gltf.accessors[sampler.input];
-    //             const outputAccessor = gltf.accessors[sampler.output];
-                
-    //             const times = this.parseAccessor(gltf, buffers, inputAccessor);
-    //             const values = this.parseAccessor(gltf, buffers, outputAccessor);
-                
-    //             let TrackType;
-    //             switch (target.path) {
-    //                 case 'translation':
-    //                 case 'scale':
-    //                     TrackType = VectorKeyframeTrack;
-    //                     break;
-    //                 case 'rotation':
-    //                     TrackType = QuaternionKeyframeTrack;
-    //                     break;
-    //                 default:
-    //                     TrackType = KeyframeTrack;
-    //             }
-                
-    //             return new TrackType(
-    //                 name + '.' + target.path,
-    //                 times,
-    //                 values,
-    //                 sampler.interpolation
-    //             );
-    //         });
-            
-    //         return new AnimationClip(animation.name, tracks);
-    //     });
-    // } 
-    
-    isBone(nodeIndex: any) {
-        return this.data.json.skins?.some((skin: any) => skin.joints.includes(nodeIndex));
-    }
 
-    parseNode(gltf: any, buffers: any, nodeIndex: any) {
+    // Adjusted parseNode to handle multiple primitives and asynchronous texture loading
+    async parseNode(gltf: any, buffers: any, nodeIndex: any) {
         if (this.cache.has(nodeIndex)) {
             return this.cache.get(nodeIndex);
         }
         const nodeData = gltf.nodes[nodeIndex];
-        let obj;
-        
+        let obj = new Object3D();
+
         if (nodeData.mesh !== undefined) {
-            const mesh = gltf.meshes[nodeData.mesh];
-            const geometry = this.createGeometry(mesh, gltf, buffers);
-            const material = this.createMaterial(mesh, gltf, buffers);
-            obj = new Mesh(geometry, material, this.instances);
-        } else {
-         obj = new Object3D();
+            const meshData = gltf.meshes[nodeData.mesh];
+            if (meshData.primitives.length === 1) {
+                // If there's only one primitive, create a mesh directly
+                const primitive = meshData.primitives[0];
+                const geometry = this.createGeometry(primitive, gltf, buffers);
+                const material = await this.createMaterial(primitive, gltf, buffers);
+                const mesh = new Mesh(geometry, material, this.instances);
+                obj = mesh;
+            } else {
+                // Multiple primitives: create a parent object and add each mesh as a child
+                for (const primitive of meshData.primitives) {
+                    const geometry = this.createGeometry(primitive, gltf, buffers);
+                    const material = await this.createMaterial(primitive, gltf, buffers);
+                    const mesh = new Mesh(geometry, material, this.instances);
+                    obj.add(mesh);
+                }
+            }
         }
-        
+
         if (nodeData.name) {
             obj.name = nodeData.name;
-        } 
+        }
 
         this.cache.set(nodeIndex, obj);
 
@@ -246,15 +182,67 @@ class GLTFLoader {
         }
 
         if (nodeData.children) {
-            nodeData.children.forEach((childIndex: any) => {
-                const child = this.parseNode(gltf, buffers, childIndex);
+            for (const childIndex of nodeData.children) {
+                const child = await this.parseNode(gltf, buffers, childIndex);
                 if (child) {
                     obj.add(child);
                 }
-            });
+            }
         }
-        
+
         return obj;
+    }
+    // Made createMaterial async to handle asynchronous texture loading
+    async createMaterial(primitive: any, gltf: any, buffers: any) {
+        if (primitive.material !== undefined && this.materialCache.has(primitive.material)) {
+            return this.materialCache.get(primitive.material)!; // Use cached material
+        }
+
+        let material = new StandardMaterial();
+        try {
+            if (primitive.material !== undefined) {
+                const gltfMaterial = gltf.materials[primitive.material];
+                const pbr = gltfMaterial.pbrMetallicRoughness || {};
+
+                if (pbr.baseColorTexture !== undefined) {
+                    const texture = await this.loadTexture(gltf, buffers, pbr.baseColorTexture.index);
+                    console.log(texture.label);
+                    material.diffuse_map?.setTexture(texture);
+                }
+
+                // if (pbr.metallicRoughnessTexture !== undefined) {
+                //     const texture = await this.loadTexture(gltf, buffers, pbr.metallicRoughnessTexture.index);
+                //     material.setTexture('metallicRoughness_map', texture);
+                // }
+                
+                if (pbr.baseColorFactor !== undefined) {
+                    material.diffuse.fromArray(pbr.baseColorFactor);
+                }
+                if (pbr.metallicFactor !== undefined) {
+                    material.metalness = pbr.metallicFactor;
+                }
+                if (pbr.roughnessFactor !== undefined) {
+                    material.roughness = pbr.roughnessFactor;
+                }
+
+                this.materialCache.set(primitive.material, material); // Cache material
+            }
+        } catch (e) {
+            console.error(e);
+        }
+        return material;
+    }
+
+
+    async loadTexture(gltf: any, buffers: any, textureIndex: number) {
+        const textureToImageMap = gltf.textures[textureIndex];
+        const imageDef = gltf.images[textureToImageMap.source];
+        const bufferView = gltf.bufferViews[imageDef.bufferView];
+        const buffer = buffers[bufferView.buffer];
+        const slice = buffer.arrayBuffer.slice(buffer.byteOffset + bufferView.byteOffset, buffer.byteOffset + bufferView.byteOffset + bufferView.byteLength);
+        const blob = new Blob([slice], { type: imageDef.mimeType });
+        const texture = await this.textureLoader.loadFromBlob(blob);
+        return texture;
     }
     
      parseAccessor(gltf: any, buffers: any, accessorIndex: any) {

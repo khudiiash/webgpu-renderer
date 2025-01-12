@@ -24,7 +24,7 @@ fn phong(normal: vec3<f32>, lightDir: vec3<f32>, viewDir: vec3<f32>, lightColor:
     return color;
 }
 
-@fragment {{
+@fragment() {{
     // Phong lighting model
     let N: vec3<f32> = normalize(input.vNormalW);
     let V: vec3<f32> = normalize(-input.vPositionW);

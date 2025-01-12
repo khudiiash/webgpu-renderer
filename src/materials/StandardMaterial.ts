@@ -20,6 +20,8 @@ interface StandardMaterialOptions {
     emissive_factor?: number;
     specular_factor?: number;
     alpha_test?: number;
+    transmission?: number;
+
     diffuse_map?: Texture;
 
     useLight?: boolean;
@@ -45,8 +47,7 @@ class StandardMaterial extends Material {
 
     constructor(options: RenderStateOptions & StandardMaterialOptions = {}) {
         super();
-
-        this.meshes = [];
+        console.log('StandardMaterial created', this.id);
 
         this.renderState = new RenderState({
             cullMode: options.cullMode || 'back',
@@ -74,6 +75,7 @@ class StandardMaterial extends Material {
                 emissive_factor: options.emissive_factor || 1.0,
                 specular_factor: options.specular_factor || 1.0,
                 alpha_test: options.alpha_test || 0.0,
+                transmission: options.transmission || 0.0,
 
                 diffuse_map: options.diffuse_map || Texture2D.DEFAULT,
             }

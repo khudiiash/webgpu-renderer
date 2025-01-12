@@ -1,12 +1,13 @@
 import { Mesh } from "@/core/Mesh";
 import { autobind, uuid } from "@/util/general";
 import { BufferData } from "@/data/BufferData";
-import { Shader, ShaderConfig } from "@/materials/shaders"
+import { Shader, ShaderChunk, ShaderConfig } from "@/materials/shaders"
 import { UniformData } from "@/data/UniformData";
 import { Texture } from "@/data/Texture";
 import { RenderState } from "@/renderer/RenderState";
 import { EventEmitter } from "@/core/EventEmitter";
 import { ObjectMonitor } from "@/data/ObjectMonitor";
+import { clamp } from "@/util";
 
 export type MaterialOptions = {
     name?: string;
@@ -59,6 +60,18 @@ export class Material extends EventEmitter {
         this._shaderConfig = config;
         this.shader = Shader.create(this._shaderConfig, this.defines);
         this.fire('rebuild', this);
+    }
+
+    addChunk(chunk: ShaderChunk) {
+        this.shaderConfig.chunks.push(chunk.name);
+        this.createShader();
+    }
+
+    removeChunk(chunkName: string) {
+        const index = this.shaderConfig.chunks.indexOf(chunkName);
+        if (index === -1) return;
+        this.shaderConfig.chunks.splice(index, 1);
+        this.createShader();
     }
 
     addMesh(mesh: Mesh) {
