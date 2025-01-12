@@ -9,16 +9,16 @@ class DataMonitor {
         for (const prop of Object.getOwnPropertyNames(proto)) {
             const descriptor = Object.getOwnPropertyDescriptor(proto, prop);
             
-            if (prop === 'constructor' || descriptor?.get || descriptor?.set || /silent/i.test(prop)) {
+            if (prop === 'constructor' || descriptor?.get || descriptor?.set || /onChange|offChange|Silent/i.test(prop)) {
                 continue;
             }
             
             if (typeof proto[prop] === 'function') {
                 const original = proto[prop] as Function;
                 instance[prop] = function(this: typeof instance, ...args: unknown[]): unknown {
-                const result = original.apply(this, args);
-                monitor.check();
-                return result;
+                    const result = original.apply(this, args);
+                    monitor.check();
+                    return result;
                 };
             }
         }

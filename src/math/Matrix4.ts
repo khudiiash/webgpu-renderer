@@ -291,6 +291,9 @@ export class Matrix4 extends BufferData {
             a03 * b30 + a13 * b31 + a23 * b32 + a33 * b33,
         ]);
     }
+    premultiply(m: Matrix4): this {
+        return this.multiplyMatrices(m, this);
+    }
     multiplyMatrices(a: Matrix4, b: Matrix4): this {
         const te = this;
         te.copy(a);
