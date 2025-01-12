@@ -92,7 +92,8 @@ https://github.com/user-attachments/assets/0cd42e44-60ef-4440-8bd4-def7ede117dc
 - [x] shader library
 - [x] standard material
 - [x] instancing
-- [ ] directional lighting
+- [x] directional lights
+- [x] point lights
 - [ ] model loading
 - [ ] camera controls
 - [ ] render graph
