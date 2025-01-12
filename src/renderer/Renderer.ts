@@ -6,6 +6,7 @@ import { Camera } from "@/camera/Camera";
 import { ResourceManager } from "@/engine/ResourceManager";
 import { EventCallback, EventEmitter } from "@/core/EventEmitter";
 import { Color } from "@/math/Color";
+import { RenderGraph } from './RenderGraph';
 
 interface RenderPassDescriptor extends GPURenderPassDescriptor {
     colorAttachments: GPURenderPassColorAttachment[];
@@ -23,6 +24,7 @@ export class Renderer extends EventEmitter {
     public height: number = 0;
     public aspect: number = 0;
     resources!: ResourceManager;
+    private renderGraph!: RenderGraph;
 
     static #instance: Renderer;
 
@@ -78,6 +80,24 @@ export class Renderer extends EventEmitter {
             alphaMode: 'premultiplied',
         });
 
+        this.renderGraph = new RenderGraph(this.device);
+
+        this.renderGraph.addTexture({
+            name: 'mainColor',
+            format: this.format,
+            width: this.width,
+            height: this.height,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
+        });
+
+        this.renderGraph.addTexture({
+            name: 'depth',
+            format: 'depth32float',
+            width: this.width,
+            height: this.height,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+        });
+
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 const { inlineSize, blockSize } = entry.contentBoxSize[0];
@@ -96,11 +116,11 @@ export class Renderer extends EventEmitter {
         
         observer.observe(this.canvas);
         return this;
+
     }
 
     onResize() {
         this.resources.createDepthTexture('depth', this.width, this.height);
-        this.initRenderPassDescriptor();
     }
 
     setResources(resources: ResourceManager) {
@@ -119,50 +139,89 @@ export class Renderer extends EventEmitter {
             this.draw(child, camera, pass);
         }
     }
-    private initRenderPassDescriptor() {
-        this.renderPassDescriptor = {
-            colorAttachments: [
-                {
-                    // @ts-ignore
-                    view: undefined, // Will be set later
-                    clearValue: [0.4, 0.5, 0.5, 1],
-                    loadOp: 'clear' as GPULoadOp,
-                    storeOp: 'store' as GPUStoreOp,
-                }
-            ],
-            depthStencilAttachment: {
-                view: this.resources.getTextureView('depth') as GPUTextureView,
-                depthClearValue: 1.0,
-                depthLoadOp: 'clear' as GPULoadOp,
-                depthStoreOp: 'store' as GPUStoreOp,
-            }
-        };
-    }
-
-    updateTextureView(textureView: GPUTextureView) {
-        this.renderPassDescriptor.colorAttachments[0].view = textureView;
-    }
-
-    updateClearValue(color: Color) {
-        this.renderPassDescriptor.colorAttachments[0].clearValue = color;
-    }
-
 
     public render(scene: Scene, camera: Camera) {
-        const commandEncoder = this.device.createCommandEncoder();
-        const textureView = this.context.getCurrentTexture().createView();
-
-        if (!this.renderPassDescriptor) {
-            this.initRenderPassDescriptor();
+        
+        const mainColorTexture = this.renderGraph.getTexture('mainColor');
+        const depthTexture = this.renderGraph.getTexture('depth');
+        
+        if (!mainColorTexture || !depthTexture) {
+            console.error('Required textures not found');
+            return;
         }
-
-        this.updateTextureView(textureView);
-        this.updateClearValue(scene.backgroundColor);
-
-        const pass = commandEncoder.beginRenderPass(this.renderPassDescriptor);
-        this.draw(scene, camera, pass);
-        pass.end();
-
-        this.device.queue.submit([commandEncoder.finish()]);
+        
+        this.renderGraph.clear();
+    
+        //  main render pass
+        this.renderGraph.addPass({
+            name: 'mainPass',
+            colorAttachments: [{
+                texture: 'mainColor',
+                loadOp: 'clear',
+                storeOp: 'store',
+                clearValue: scene.backgroundColor
+            }],
+            depthStencilAttachment: {
+                texture: 'depth',
+                depthLoadOp: 'clear',
+                depthStoreOp: 'store',
+                depthClearValue: 1.0
+            }
+        }, (encoder: GPUCommandEncoder, resources: Map<string, GPUTextureView>) => {
+            const mainColorView = resources.get('mainColor');
+            const depthView = resources.get('depth');
+    
+            if (!mainColorView || !depthView) {
+                console.error('Required texture views not found');
+                return;
+            }
+    
+            const renderPass = encoder.beginRenderPass({
+                colorAttachments: [{
+                    view: mainColorView,
+                    clearValue: scene.backgroundColor,
+                    loadOp: 'clear',
+                    storeOp: 'store',
+                }],
+                depthStencilAttachment: {
+                    view: depthView,
+                    depthClearValue: 1.0,
+                    depthLoadOp: 'clear',
+                    depthStoreOp: 'store',
+                }
+            });
+    
+            // Draw scene using existing draw method
+            this.draw(scene, camera, renderPass);
+            renderPass.end();
+        });
+    
+        // Add presentation pass
+        this.renderGraph.addPass({
+            name: 'presentPass',
+            colorAttachments: [{
+                texture: 'mainColor',
+                loadOp: 'load',
+                storeOp: 'store'
+            }]
+        }, (encoder: GPUCommandEncoder, resources: Map<string, GPUTextureView>) => {
+            const mainColorView = resources.get('mainColor');
+            if (!mainColorView) {
+                console.error('Main color view not found for presentation');
+                return;
+            }
+        
+            const renderPass = encoder.beginRenderPass({
+                colorAttachments: [{
+                    view: this.context.getCurrentTexture().createView(),
+                    loadOp: 'clear',
+                    storeOp: 'store',
+                    clearValue: { r: 0, g: 0, b: 0, a: 1 }
+                }]
+            });
+            renderPass.end();
+        });
+        
+        this.renderGraph.execute();
     }
 }
