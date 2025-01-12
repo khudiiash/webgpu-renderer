@@ -28,7 +28,7 @@ struct Scene {
     directionalLightsNum: f32,
     pointLightsNum: f32,
     directionalLights: array<DirectionalLight, 8>,
-    pointLights: array<PointLight, 32>,
+    pointLights: array<PointLight, 64>,
 }
 
 @group(0) @binding(0) var<uniform> scene: Scene;

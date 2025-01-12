@@ -12,10 +12,10 @@ fn getWorldNormal(normal: vec3f, model: mat4x4f) -> vec3f {
     return normalize((model * vec4f(normal, 0.0)).xyz);
 }
 
-@vertex {{
-    screenPosition = getScreenPosition(input.position, model[input.instance_index], camera.view, camera.projection);
-    worldPosition = getWorldPosition(input.position, model[input.instance_index]);
-    worldNormal = getWorldNormal(input.normal, model[input.instance_index]);
+@vertex() {{
+    screenPosition = getScreenPosition(position, model[input.instance_index], camera.view, camera.projection);
+    worldPosition = getWorldPosition(position, model[input.instance_index]);
+    worldNormal = getWorldNormal(normal, model[input.instance_index]);
     uv = input.uv;
     normal = input.normal;
 }}

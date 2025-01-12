@@ -52,7 +52,7 @@ export class Object3D extends EventEmitter {
         this.parent = null;
     }
 
-    lookAt(x: number | Vector3 | Object3D, y: number, z: number): void {
+    lookAt(x: number | Vector3 | Object3D, y?: number, z?: number): void {
         if (x instanceof Object3D) {
             x.updateMatrixWorld();
             _target.copy(x.position);
@@ -142,7 +142,6 @@ export class Object3D extends EventEmitter {
     }
 
     setScale(x: number | Vector3, y?: number, z?: number) {
-        console.log(x, y, z, num(x, y, z));
         if (x instanceof Vector3) {
             this.scale.copy(x);
         } else if (num(x) && !num(y, z)) {
@@ -188,6 +187,18 @@ export class Object3D extends EventEmitter {
             stack.push(...node.children);
         }
         return result;
+    }
+
+    find(predicate: (object: Object3D) => boolean): Object3D | null {
+        const stack: Object3D[] = [this];
+        while (stack.length) {
+            const node = stack.pop()!;
+            if (predicate(node)) {
+                return node;
+            }
+            stack.push(...node.children);
+        }
+        return null;
     }
 
     copy(source: Object3D) {

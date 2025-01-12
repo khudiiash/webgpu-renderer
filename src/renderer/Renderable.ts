@@ -39,7 +39,7 @@ export class Renderable {
         this.geometry = mesh.geometry;
         this.id = uuid('renderable');
 
-        this.material.on('rebuild', this.createBindGroups);
+        this.material.on('rebuild', this.rebuild);
         
         this.resourceManager = ResourceManager.getInstance();
         this.pipelineManager = PipelineManager.getInstance();
@@ -63,6 +63,17 @@ export class Renderable {
         this.createIndexBuffer();
         this.createBindGroups();
         
+        const pipelineLayout = this.pipelineManager.createPipelineLayout(this.getBindGroupLayouts());
+        
+        this.pipeline = this.pipelineManager.createRenderPipeline({
+            material: this.material,
+            layout: pipelineLayout,
+            vertexBuffers: [this.geometry.getVertexAttributesLayout()],
+        });
+    }
+
+    rebuild() {
+        this.createBindGroups();
         const pipelineLayout = this.pipelineManager.createPipelineLayout(this.getBindGroupLayouts());
         
         this.pipeline = this.pipelineManager.createRenderPipeline({
@@ -167,7 +178,7 @@ export class Renderable {
     createVertexBuffer() {
         this.vertexBuffer = this.resourceManager.createAndUploadBuffer({
             name: "Geometry Vertex Buffer",
-            data: this.geometry.packed as Float32Array,
+            data: this.geometry.getPacked() as Float32Array,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
             id: 'vb_' + this.geometry.id,
         });
@@ -187,7 +198,7 @@ export class Renderable {
             pass.setIndexBuffer(this.indexBuffer, this.geometry.indexFormat as GPUIndexFormat);
             pass.drawIndexed(this.geometry.indices.length, this.mesh.count);
         } else {
-            pass.draw(this.geometry.positions.length / 3, 1, 0, 0);
+            pass.draw(this.geometry.vertexCount, 1, 0, 0);
         }
     }
     

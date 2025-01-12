@@ -22,6 +22,7 @@ export type ShaderConfig = {
     name: string;
     attributes: ShaderAttribute[];
     varyings: ShaderVarying[];
+    chunks: string[];
     vertexTemplate: string;
     fragmentTemplate: string;
 }
@@ -30,7 +31,7 @@ export class ShaderLibrary {
     static init() {
         const lib = new ShaderLibrary();
         for (const [name, code] of Object.entries(chunks)) {
-            lib.addChunk(new ShaderChunk(name, code));
+            new ShaderChunk(name, code);
         }
     }
     static #instance: ShaderLibrary;
@@ -42,6 +43,10 @@ export class ShaderLibrary {
         }
         this.chunks = new Map(); 
         ShaderLibrary.#instance = this;
+    }
+
+    static addChunk(chunk: ShaderChunk) {
+        this.#instance.addChunk(chunk);
     }
 
     static getChunk(name: string) {
@@ -70,12 +75,8 @@ export class ShaderLibrary {
                 { name: 'vNormalW', type: 'vec3f' },
                 { name: 'vUv', type: 'vec2f' },
             ],
+            chunks: ['common', 'noise', 'scene', 'camera', 'model', 'diffuse_map', 'standard', 'emission', 'fog'],
             vertexTemplate: `
-                #include <common>
-                #include <scene>
-                #include <camera>
-                #include <model>
-
                 @vertex(input) -> output {
                     var position: vec3f = input.position;
                     var normal: vec3f = input.normal;
@@ -96,21 +97,6 @@ export class ShaderLibrary {
                 }
             `,
             fragmentTemplate: `
-                #include <common>
-                #include <scene>
-                #include <camera>
-                #include <diffuse_map>
-                #include <standard>
-                #include <emission>
-
-                #if USE_GAMMA {
-                    #include <gamma>
-                }
-
-                #if USE_FOG {
-                    #include <fog>
-                }
-
                 @fragment(input) -> output {
                     var color: vec4f = material.diffuse;
 

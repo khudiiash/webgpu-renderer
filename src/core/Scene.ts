@@ -31,6 +31,10 @@ class Scene extends Object3D {
     public pointLightsNum!: number;
     public fog!: Fog;
 
+    private _time: number = 0;
+    private _frame: number = 0;
+    private _last: number = performance.now();
+
     constructor(config: SceneConfig = {}) {
         super();
         this.isScene = true;
@@ -44,7 +48,7 @@ class Scene extends Object3D {
         const backgroundColor = new Color(config.backgroundColor || '#111111');
         const ambientColor = new Color(config.ambientColor || '#111111');
         const MAX_DIRECTIONAL_LIGHTS = 8;
-        const MAX_POINT_LIGHTS = 32;
+        const MAX_POINT_LIGHTS = 64;
 
         const directionalLights = new UniformDataArray(
             MAX_DIRECTIONAL_LIGHTS,
@@ -58,8 +62,8 @@ class Scene extends Object3D {
 
         const fog = new Fog({
             color: backgroundColor,
-            start: 20,
-            end: 100,
+            start: 500, 
+            end: 3000,
             density: 0.01,
             type: Fog.LINEAR
         });
@@ -118,6 +122,14 @@ class Scene extends Object3D {
         if (object.isCamera) {
             this.camera = undefined;
         }
+    }
+
+    update() {
+        const now = performance.now();
+        this._time += (now - this._last) / 1000;
+        this._last = now;
+
+        this.uniforms.set('time', this._time % 1000);
     }
 }
 

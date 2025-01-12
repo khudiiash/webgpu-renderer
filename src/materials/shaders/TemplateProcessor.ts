@@ -1,3 +1,5 @@
+import { Shader } from './Shader';
+import { ShaderChunk } from './ShaderChunk';
 import { ShaderLibrary, ShaderDefines } from './ShaderLibrary';
 
 export type TemplateBinding = {
@@ -37,13 +39,14 @@ export class TemplateProcessor {
     }
 
 
-    static processTemplate(template: string, defines: ShaderDefines, bindings: TemplateBinding[]) {
-        return TemplateProcessor.getInstance().processTemplate(template, defines, bindings);
+    static processTemplate(template: string, defines: ShaderDefines, chunks: string[], bindings: TemplateBinding[]) {
+        return TemplateProcessor.getInstance().processTemplate(template, defines, chunks, bindings);
     }
 
-    processTemplate(template: string, defines: ShaderDefines, bindings: TemplateBinding[]) {
+    processTemplate(template: string, defines: ShaderDefines, chunks: string[], bindings: TemplateBinding[]) {
         let processed = template;
         processed = this.processIfBlocks(processed, defines);
+        processed = this.processChunks(processed, chunks);
         const includeNames = this.parseIncludes(processed);
         processed = this.processIncludes(processed, includeNames);
         processed = this.processFunctions(processed);
@@ -51,6 +54,32 @@ export class TemplateProcessor {
         processed = this.processVars(processed, defines);
         this.processBindings(processed, bindings);
         return processed;
+    }
+
+    processChunks(template: string, chunks: string[]) {
+        const pattern = /#include <[^>]+>/g;
+        let last: RegExpExecArray | null = null;
+        let match: RegExpExecArray | null;
+        while ((match = pattern.exec(template)) !== null) {
+            last = match;
+        }
+        if (chunks.length > 0) {
+            if (last) {
+                const insertPos = last.index + last[0].length;
+                let addition = '';
+                for (const chunk of chunks) {
+                    addition += `\n#include <${chunk}>`;
+                }
+                template = template.slice(0, insertPos) + addition + template.slice(insertPos);
+            } else {
+                let addition = '';
+                for (const chunk of chunks) {
+                    addition += `#include <${chunk}>\n`;
+                }
+                template = addition + template;
+            }
+        }
+        return template;
     }
 
     processVars(template: string, defines: TemplateDefines): string {
@@ -145,18 +174,84 @@ export class TemplateProcessor {
         return includes;
     }
 
+    sortChunks(chunks: ShaderChunk[], shaderType: 'vertex' | 'fragment' | 'compute') {
+        // Arrays to hold chunks based on their order rules
+        const chunksWithoutOrderRules: ShaderChunk[] = [];
+        const firstChunks: ShaderChunk[] = [];
+        const lastChunks: ShaderChunk[] = [];
+        const beforeAfterChunks: ShaderChunk[] = [];
+    
+        for (const chunk of chunks) {
+            const orderRule = chunk.orderRules[shaderType];
+            if (!orderRule) {
+                // Chunks without any order rules
+                chunksWithoutOrderRules.push(chunk);
+            } else if (orderRule === 'first') {
+                firstChunks.push(chunk);
+            } else if (orderRule === 'last') {
+                lastChunks.push(chunk);
+            } else if (orderRule.startsWith('before:') || orderRule.startsWith('after:')) {
+                beforeAfterChunks.push(chunk);
+            }
+        }
+    
+        const sortedChunks: ShaderChunk[] = chunksWithoutOrderRules.slice();
+    
+        for (const chunk of firstChunks) {
+            sortedChunks.unshift(chunk);
+        }
+    
+        for (const chunk of lastChunks) {
+            sortedChunks.push(chunk);
+        }
+    
+        for (const chunk of beforeAfterChunks) {
+            const orderRule = chunk.orderRules[shaderType];
+            let targetName: string;
+            let isBefore = false;
+    
+            if (orderRule.startsWith('before:')) {
+                isBefore = true;
+                targetName = orderRule.substring('before:'.length);
+            } else if (orderRule.startsWith('after:')) {
+                targetName = orderRule.substring('after:'.length);
+            } else {
+                continue;
+            }
+    
+            const targetIndex = sortedChunks.findIndex(c => c.name === targetName);
+    
+            if (targetIndex !== -1) {
+                const insertIndex = isBefore ? targetIndex : targetIndex + 1;
+                sortedChunks.splice(insertIndex, 0, chunk);
+            } else {
+                sortedChunks.push(chunk);
+            }
+        }
+
+        return sortedChunks;
+    }
+
     processIncludes(template: string, includesSet: Set<string>) {
         const includes = [...includesSet];
-        const codeRe = /{{(?:fragment|vertex|compute)}}/;
+        const templateType = template.match(/@(vertex|fragment|compute)/)?.[1] as 'vertex' | 'fragment' | 'compute';
+        if (!templateType) { return template; }
+        const codeRe = new RegExp(`{{${templateType}}}`, 'g');
         const includeRe = /#include <([\w_]+)>/g;
-        const body = [];
+        const typeIncludes = [];
         const defines = [];
         for (const include of includes) {
             const chunk = ShaderLibrary.getChunk(include);
             if (!chunk) { continue; }
-            body.push(chunk.code);
+            if (chunk.code[templateType] || chunk.stages.length === 0) {
+                typeIncludes.push(chunk);
+            }
             defines.push(chunk.defines);
         }
+
+        const sorted = this.sortChunks(typeIncludes, templateType);
+        const body = sorted.map(chunk => chunk.code[templateType]);
+
         template = template.replace(includeRe, '');
         template = `${defines.join('\n')}\n${template}`;
         template = template.replace(codeRe, body.join('\n'));
