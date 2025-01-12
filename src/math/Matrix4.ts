@@ -208,7 +208,9 @@ export class Matrix4 extends BufferData {
 
         for (let i = 0; i < 4; i++) {
             let pivot = aug[i][i];
-            if (pivot === 0) return this; // Matrix is singular
+            if (pivot === 0) {
+                return this; // Matrix is singular
+            }
 
             for (let j = 0; j < 8; j++) {
                 aug[i][j] /= pivot;

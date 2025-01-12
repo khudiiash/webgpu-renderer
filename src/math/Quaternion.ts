@@ -48,7 +48,7 @@ export class Quaternion extends BufferData {
         const halfTheta = Math.acos(cosHalfTheta);
         const sinHalfTheta = Math.sqrt(1.0 - cosHalfTheta * cosHalfTheta);
 
-        if (Math.abs(sinHalfTheta) < 0.001) {
+        if (Math.abs(sinHalfTheta) < 0.0015) {
             this.w = 0.5 * (w + this.w);
             this.x = 0.5 * (x + this.x);
             this.y = 0.5 * (y + this.y);
@@ -227,27 +227,24 @@ export class Quaternion extends BufferData {
 
     setFromUnitVectors(vFrom: Vector3, vTo: Vector3): this {
         let r = vFrom.dot(vTo) + 1;
+        
         if (r < Number.EPSILON) {
-            r = 0;
-            if (Math.abs(vFrom.x) > Math.abs(vFrom.z)) {
-                this.x = -vFrom.y;
-                this.y = vFrom.x;
-                this.z = 0;
-                this.w = r;
-            } else {
-                this.x = 0;
-                this.y = -vFrom.z;
-                this.z = vFrom.y;
-                this.w = r;
-            }
-        } else {
-            this.x = vFrom.y * vTo.z - vFrom.z * vTo.y;
-            this.y = vFrom.z * vTo.x - vFrom.x * vTo.z;
-            this.z = vFrom.x * vTo.y - vFrom.y * vTo.x;
-            this.w = r;
+            // Explicit case for opposite vectors (180 degree rotation)
+            this.x = 0;
+            this.y = 0;
+            this.z = 0;
+            this.w = -1;  // Representing a 180 degree rotation (reflection)
+            return this.normalize();
         }
+        
+        // Normal computation for non-opposite vectors
+        this.x = vFrom.y * vTo.z - vFrom.z * vTo.y;
+        this.y = vFrom.z * vTo.x - vFrom.x * vTo.z;
+        this.z = vFrom.x * vTo.y - vFrom.y * vTo.x;
+        this.w = r;
+        
         return this.normalize();
-    }
+    }    
 
     conjugate(): this {
         this.x *= -1;

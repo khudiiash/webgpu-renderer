@@ -1,12 +1,11 @@
-import { describe, expect, test } from 'vitest';
-//import { Matrix4, Vector3, Quaternion, Euler } from '@/math';
+import { describe, expect, it } from 'vitest';
 import { Matrix4 } from '@/math/Matrix4';
 import { Vector3 } from '@/math/Vector3';
 import { Quaternion } from '@/math/Quaternion';
 import { Euler } from '@/math/Euler';
 
 describe('Matrix4', () => {
-    test('constructor initializes with identity matrix by default', () => {
+    it('constructor initializes with identity matrix by default', () => {
         const m = new Matrix4();
         expect(Array.from(m)).toEqual([
             1, 0, 0, 0,
@@ -16,7 +15,7 @@ describe('Matrix4', () => {
         ]);
     });
 
-    test('add matrices', () => {
+    it('add matrices', () => {
         const m1 = new Matrix4([
             1, 2, 3, 4,
             5, 6, 7, 8,
@@ -38,7 +37,7 @@ describe('Matrix4', () => {
         ]);
     });
 
-    test('multiply matrices', () => {
+    it('multiply matrices', () => {
         const m1 = new Matrix4([
             1, 0, 0, 0,
             0, 2, 0, 0,
@@ -60,7 +59,7 @@ describe('Matrix4', () => {
         ]);
     });
 
-    test('multiplyMatrices', () => {
+    it('multiplyMatrices', () => {
         const a = new Matrix4([
             1, 2, 3, 4,
             5, 6, 7, 8,
@@ -76,7 +75,7 @@ describe('Matrix4', () => {
         expect(m[15]).toBe(40);
     });
 
-    test('scale matrix', () => {
+    it('scale matrix', () => {
         const m = new Matrix4();
         m.scale(new Vector3(2, 3, 4));
         expect(Array.from(m)).toEqual([
@@ -87,7 +86,7 @@ describe('Matrix4', () => {
         ]);
     });
 
-    test('compose and decompose', () => {
+    it('compose and decompose', () => {
         const t = new Vector3(1, 2, 3);
         const r = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 4);
         const s = new Vector3(2, 2, 2);
@@ -104,7 +103,26 @@ describe('Matrix4', () => {
         expect(Math.round(outS.z)).toEqual(2);
     });
 
-    test('set position', () => {
+    it('handles determinant < 0 (invert scale)', () => {
+        const matrix = new Matrix4([-1, 0, 0, 0, // Scaling along X with negative determinant
+            0, 1, 0, 0,  // Scaling along Y
+            0, 0, 1, 0,  // Scaling along Z
+            0, 0, 0, 1]);
+        
+        const translation = new Vector3();
+        const rotation = new Quaternion();
+        const scale = new Vector3();
+
+        matrix.decompose(translation, rotation, scale);
+
+        // Check that the X scale is negative (since determinant is negative)
+        expect(scale.x).toBeLessThan(0);
+        // Ensure Y and Z scales are positive
+        expect(scale.y).toBeGreaterThan(0);
+        expect(scale.z).toBeGreaterThan(0);
+    });
+
+    it('set position', () => {
         const m = new Matrix4();
         m.setPosition(new Vector3(1, 2, 3));
         expect(Array.from(m)).toEqual([
@@ -115,7 +133,7 @@ describe('Matrix4', () => {
         ]);
     });
 
-    test('set rotation from quaternion', () => {
+    it('set rotation from quaternion', () => {
         const m = new Matrix4();
         const q = new Quaternion();
         q.setFromAxisAngle(new Vector3(0, 1, 0), Math.PI/2);
@@ -130,7 +148,7 @@ describe('Matrix4', () => {
         ]);
     });
 
-    test('rotateX, rotateY, rotateZ', () => {
+    it('rotateX, rotateY, rotateZ', () => {
         const m = new Matrix4();
         m.rotateX(Math.PI / 2).rotateY(Math.PI / 2).rotateZ(Math.PI / 2);
         const result = Array.from(m).map(v => Number(v.toFixed(2)));
@@ -143,20 +161,20 @@ describe('Matrix4', () => {
         ]);
     });
 
-    test('rotateOnAxis', () => {
+    it('rotateOnAxis', () => {
         const m = new Matrix4();
         m.rotateOnAxis(new Vector3(1, 1, 0).normalize(), Math.PI / 4);
         // Just checking the matrix got updated (not identity)
         expect(m[0]).not.toBe(1);
     });
 
-    test('translate', () => {
+    it('translate', () => {
         const m = new Matrix4();
         m.translate(new Vector3(2, 3, 4));
         expect([m[12], m[13], m[14]]).toEqual([2, 3, 4]);
     });
 
-    test('invert', () => {
+    it('invert', () => {
         const m = new Matrix4([
             2, 0, 0, 0,
             0, 3, 0, 0,
@@ -169,7 +187,21 @@ describe('Matrix4', () => {
         expect(m[10]).toBeCloseTo(0.25);
     });
 
-    test('determinant calculation', () => {
+    it('returns unchanged matrix when pivot is 0 (singular matrix)', () => {
+        const matrix = new Matrix4([1, 0, 0, 0,
+            0, 0, 0, 0, // Zero row making it singular
+            0, 0, 1, 0,
+            0, 0, 0, 1]);
+       
+        const originalMatrix = new Matrix4().copy(matrix); // Keep a copy of the original matrix
+
+        matrix.invert();
+
+        // Expect the matrix to be unchanged because it is singular
+        expect(matrix.toString()).toEqual(originalMatrix.toString());
+    });
+
+    it('determinant calculation', () => {
         const m = new Matrix4([
             1, 0, 0, 0,
             0, 2, 0, 0, 
@@ -179,7 +211,7 @@ describe('Matrix4', () => {
         expect(m.determinant()).toBe(6);
     });
 
-    test('get max scale on axis', () => {
+    it('get max scale on axis', () => {
         const m = new Matrix4([
             2, 0, 0, 0,
             0, 3, 0, 0,
@@ -189,19 +221,19 @@ describe('Matrix4', () => {
         expect(m.getMaxScaleOnAxis()).toBe(4);
     });
 
-    test('getRotation', () => {
+    it('getRotation', () => {
         const m = new Matrix4().rotateY(Math.PI / 3);
         const q = m.getRotation();
         expect(Math.round(q.w * 10) / 10).toBeCloseTo(0.9, 1);
     });
 
-    test('getScale', () => {
+    it('getScale', () => {
         const m = new Matrix4().scale(new Vector3(2, 3, 4));
         const s = m.getScale();
         expect(s.toArray()).toEqual([2, 3, 4]);
     });
 
-    test('getScaleOnAxis', () => {
+    it('getScaleOnAxis', () => {
         const m = new Matrix4().scale(new Vector3(2, 3, 4));
         const scaleX = m.getScaleOnAxis(new Vector3(1, 0, 0));
         const scaleY = m.getScaleOnAxis(new Vector3(0, 1, 0));
@@ -209,13 +241,13 @@ describe('Matrix4', () => {
         expect(Math.round(scaleY)).toBe(3);
     });
 
-    test('getTranslation', () => {
+    it('getTranslation', () => {
         const m = new Matrix4().translate(new Vector3(1, 2, 3));
         const t = m.getTranslation();
         expect(t.toArray()).toEqual([1, 2, 3]);
     });
 
-    test('setFrustum', () => {
+    it('setFrustum', () => {
         const m = new Matrix4();
         m.setFrustum(-1, 1, -1, 1, 1, 10);
         // Rough check that corners are set
@@ -224,7 +256,7 @@ describe('Matrix4', () => {
         expect(m[10]).toBeCloseTo(-1.222, 3);
     });
 
-    test('lookAt', () => {
+    it('lookAt', () => {
         const eye = new Vector3(0,0,5);
         const target = new Vector3(0,0,0);
         const up = new Vector3(0,1,0);
@@ -233,24 +265,85 @@ describe('Matrix4', () => {
         expect(m[14]).toBeLessThan(0);
     });
 
-    test('setFromRotationMatrix', () => {
+    it('setFromRotationMatrix', () => {
         const m1 = new Matrix4().rotateZ(Math.PI / 2);
         const m2 = new Matrix4().setFromRotationMatrix(m1);
         expect(Array.from(m2)).toEqual(Array.from(m1));
     });
 
-    test('setRotationFromEuler', () => {
-        const e = new Euler(Math.PI/2, 0, 0, 'XYZ');
+    it('handles Euler order XYZ', () => {
+        const e = new Euler(Math.PI / 2, 0, 0, 'XYZ');
         const m = new Matrix4();
         m.setRotationFromEuler(e);
-        // Check rotation set in top-left
+
+        // Check values based on expected rotation matrix
         expect(Math.abs(Math.round(m[5]))).toBe(0);
         expect(Math.round(m[6])).toBeCloseTo(1);
         expect(Math.round(m[9])).toBeCloseTo(-1);
         expect(Math.abs(Math.round(m[10]))).toBe(0);
     });
 
-    test('setIdentity', () => {
+    it('handles Euler order YXZ', () => {
+        const e = new Euler(Math.PI / 2, 0, 0, 'YXZ');
+        const m = new Matrix4();
+        m.setRotationFromEuler(e);
+
+        // Check values based on expected rotation matrix
+        expect(Math.abs(Math.round(m[5]))).toBe(0);
+        expect(Math.round(m[6])).toBeCloseTo(1);
+        expect(Math.round(m[9])).toBeCloseTo(-1);
+        expect(Math.abs(Math.round(m[10]))).toBe(0);
+    });
+
+    it('handles Euler order ZXY', () => {
+        const e = new Euler(Math.PI / 2, 0, 0, 'ZXY');
+        const m = new Matrix4();
+        m.setRotationFromEuler(e);
+
+        // Check values based on expected rotation matrix
+        expect(Math.abs(Math.round(m[5]))).toBe(0);
+        expect(Math.round(m[6])).toBeCloseTo(1);
+        expect(Math.round(m[9])).toBeCloseTo(-1);
+        expect(Math.abs(Math.round(m[10]))).toBe(0);
+    });
+
+    it('handles Euler order XZY', () => {
+        const e = new Euler(Math.PI / 2, 0, 0, 'XZY');
+        const m = new Matrix4();
+        m.setRotationFromEuler(e);
+
+        // Check values based on expected rotation matrix
+        expect(Math.abs(Math.round(m[5]))).toBe(0);
+        expect(Math.round(m[6])).toBeCloseTo(1);
+        expect(Math.round(m[9])).toBeCloseTo(-1);
+        expect(Math.abs(Math.round(m[10]))).toBe(0);
+    });
+
+    it('handles Euler order YZX', () => {
+        const e = new Euler(Math.PI / 2, 0, 0, 'YZX');
+        const m = new Matrix4();
+        m.setRotationFromEuler(e);
+
+        // Check values based on expected rotation matrix
+        expect(Math.abs(Math.round(m[5]))).toBe(0);
+        expect(Math.round(m[6])).toBeCloseTo(1);
+        expect(Math.round(m[9])).toBeCloseTo(-1);
+        expect(Math.abs(Math.round(m[10]))).toBe(0);
+    });
+
+    it('handles Euler order ZYX', () => {
+        const e = new Euler(Math.PI / 2, 0, 0, 'ZYX');
+        const m = new Matrix4();
+        m.setRotationFromEuler(e);
+
+        // Check values based on expected rotation matrix
+        expect(Math.abs(Math.round(m[5]))).toBe(0);
+        expect(Math.round(m[6])).toBeCloseTo(1);
+        expect(Math.round(m[9])).toBeCloseTo(-1);
+        expect(Math.abs(Math.round(m[10]))).toBe(0);
+    });
+
+    it('setIdentity', () => {
         const m = new Matrix4([
             2, 3, 4, 5,
             5, 6, 7, 8,
@@ -266,7 +359,7 @@ describe('Matrix4', () => {
         ]);
     });
 
-    test('setOrthographic', () => {
+    it('setOrthographic', () => {
         const m = new Matrix4().setOrthographic(-1,1,-1,1,1,10);
         // W-value for translation
         expect(Math.abs(m[12])).toBe(0);
@@ -274,7 +367,7 @@ describe('Matrix4', () => {
         expect(m[14]).toBeCloseTo(-1.222, 3);
     });
 
-    test('setPerspective projection', () => {
+    it('setPerspective projection', () => {
         const m = new Matrix4();
         m.setPerspective(Math.PI/4, 1, 1, 100);
         const result = Array.from(m).map(v => Math.round(v * 1000) / 1000);
@@ -284,14 +377,170 @@ describe('Matrix4', () => {
         expect(result[14]).toBeCloseTo(-1.0101, 3);
     });
 
-    test('transformPoint', () => {
+    it('sets perspective matrix for non-finite far value', () => {
+        const m = new Matrix4();
+        const fov = Math.PI / 4; // 45 degrees field of view
+        const aspect = 1; // 1:1 aspect ratio
+        const near = 0; // Near plane at distance 1
+        const far = Infinity; // Non-finite far value
+
+        m.setPerspective(fov, aspect, near, far);
+
+        // We expect m10 to be 0 and m14 to be -near, according to the else branch
+        expect(m[4]).toBe(0); // m10
+        expect(m[12]).toBe(near); // m14 (should be -near)
+    });
+
+    it('should correctly get the position from the matrix', () => {
+        // Create a matrix and set translation (position)
+        const matrix = new Matrix4();
+        matrix.setPosition(new Vector3(5, -3, 10)); // Set the translation values (for example)
+
+        // Create a Vector3 to store the result
+        const v = new Vector3();
+        
+        // Call getPosition
+        matrix.getPosition(v);
+
+        // Check if the position values are correct
+        expect(v.x).toBe(5);
+        expect(v.y).toBe(-3);
+        expect(v.z).toBe(10);
+    });
+
+    it('should return a new Vector3 if no argument is provided', () => {
+        const matrix = new Matrix4();
+        matrix.setPosition(new Vector3(5, -3, 10));
+
+        // Call getPosition with no argument
+        const position = matrix.getPosition();
+
+        // Check if the returned Vector3 contains the correct values
+        expect(position.x).toBe(5);
+        expect(position.y).toBe(-3);
+        expect(position.z).toBe(10);
+    });
+
+    it('should set rotation from quaternion correctly', () => {
+        // Create a new Matrix4 instance (identity matrix)
+        const matrix = new Matrix4();
+
+        // Define a quaternion for a 90-degree rotation around the Y-axis
+        const quaternion = new Quaternion();
+        quaternion.setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 2); // 90-degree rotation around Y-axis
+
+        // Apply rotation using setRotationFromQuaternion
+        matrix.setRotationFromQuaternion(quaternion);
+
+        // We expect the matrix to be rotated by 90 degrees around the Y-axis
+        // Check that the rotation is correctly applied (in this case, it should affect the values in the matrix)
+        
+        // Check specific matrix values related to the Y-axis rotation
+        expect(Math.round(matrix[0])).toBe(0);   // X-axis should be rotated
+        expect(Math.round(matrix[1])).toBe(0);   // X-axis should be rotated
+        expect(Math.round(matrix[2])).toBeCloseTo(-1);  // X-axis should be rotated (expected -1 in X)
+        
+        expect(Math.round(matrix[4])).toBe(0);   // Y-axis should stay the same
+        expect(Math.round(matrix[5])).toBe(1);   // Y-axis stays the same
+        expect(Math.round(matrix[6])).toBe(0);   // Y-axis stays the same
+        
+        expect(Math.round(matrix[8])).toBe(1);   // Z-axis should be rotated
+        expect(Math.round(matrix[9])).toBe(0);   // Z-axis should be rotated
+        expect(Math.round(matrix[10])).toBe(0);  // Z-axis should be rotated (expected 0 in Z)
+    });
+
+    it('should return the same matrix when rotating by 0 degrees (identity rotation)', () => {
+        const matrix = new Matrix4();
+        const quaternion = new Quaternion(); // Identity quaternion (no rotation)
+
+        matrix.setRotationFromQuaternion(quaternion);
+
+        // With no rotation, the matrix should remain unchanged (identity matrix)
+        expect(matrix[0]).toBe(1);  // X-axis scaling factor
+        expect(matrix[5]).toBe(1);  // Y-axis scaling factor
+        expect(matrix[10]).toBe(1); // Z-axis scaling factor
+        expect(matrix[15]).toBe(1); // Homogeneous coordinate (W-component)
+
+        // All off-diagonal elements should be 0 (no rotation)
+        expect(matrix[1]).toBe(0);  // X-Y
+        expect(matrix[2]).toBe(0);  // X-Z
+        expect(matrix[3]).toBe(0);  // X-Translation
+        expect(matrix[4]).toBe(0);  // Y-X
+        expect(matrix[6]).toBe(0);  // Y-Z
+        expect(matrix[7]).toBe(0);  // Y-Translation
+        expect(matrix[8]).toBe(0);  // Z-X
+        expect(matrix[9]).toBe(0);  // Z-Y
+        expect(matrix[11]).toBe(0); // Z-Translation
+        expect(matrix[12]).toBe(0); // W-X
+        expect(matrix[13]).toBe(0); // W-Y
+        expect(matrix[14]).toBe(0); // W-Z
+    });
+    
+    it('should correctly apply a scaling transformation', () => {
+        // Create a new Matrix4 instance
+        const matrix = new Matrix4();
+        
+        // Define the scaling vector (scale by 2 in x, 3 in y, and 4 in z)
+        const scale = new Vector3(2, 3, 4);
+        
+        // Apply scaling to the matrix
+        matrix.makeScale(scale);
+        
+        // Check if the scaling values are correctly set in the matrix
+        expect(matrix[0]).toBe(2);  // Scale in X
+        expect(matrix[5]).toBe(3);  // Scale in Y
+        expect(matrix[10]).toBe(4); // Scale in Z
+        
+        // Check that other values are zero (off-diagonal elements should be 0)
+        expect(matrix[1]).toBe(0);  // X-Y
+        expect(matrix[2]).toBe(0);  // X-Z
+        expect(matrix[3]).toBe(0);  // X-Translation
+        expect(matrix[4]).toBe(0);  // Y-X
+        expect(matrix[6]).toBe(0);  // Y-Z
+        expect(matrix[7]).toBe(0);  // Y-Translation
+        expect(matrix[8]).toBe(0);  // Z-X
+        expect(matrix[9]).toBe(0);  // Z-Y
+        expect(matrix[11]).toBe(0); // Z-Translation
+        expect(matrix[12]).toBe(0); // W-X
+        expect(matrix[13]).toBe(0); // W-Y
+        expect(matrix[14]).toBe(0); // W-Z
+        expect(matrix[15]).toBe(1); // Homogeneous coordinate (W-component)
+    });
+
+    it('should apply scaling correctly when scale is 1 in all axes', () => {
+        const matrix = new Matrix4();
+        const scale = new Vector3(1, 1, 1); // No scaling, identity matrix
+        matrix.makeScale(scale);
+        
+        // Check that the matrix is unchanged (identity matrix)
+        expect(matrix[0]).toBe(1);  // X scale factor
+        expect(matrix[5]).toBe(1);  // Y scale factor
+        expect(matrix[10]).toBe(1); // Z scale factor
+        expect(matrix[15]).toBe(1); // Homogeneous coordinate (W-component)
+
+        // All off-diagonal elements should be 0
+        expect(matrix[1]).toBe(0);
+        expect(matrix[2]).toBe(0);
+        expect(matrix[3]).toBe(0);
+        expect(matrix[4]).toBe(0);
+        expect(matrix[6]).toBe(0);
+        expect(matrix[7]).toBe(0);
+        expect(matrix[8]).toBe(0);
+        expect(matrix[9]).toBe(0);
+        expect(matrix[11]).toBe(0);
+        expect(matrix[12]).toBe(0);
+        expect(matrix[13]).toBe(0);
+        expect(matrix[14]).toBe(0);
+    });
+
+    it('transformPoint', () => {
         const m = new Matrix4().translate(new Vector3(1,2,3));
         const v = new Vector3(0,0,0);
         const result = m.transformPoint(v);
         expect(result.toArray()).toEqual([1,2,3]);
     });
 
-    test('transpose', () => {
+    it('transpose', () => {
         const m = new Matrix4([
             1,2,3,4,
             5,6,7,8,

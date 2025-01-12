@@ -15,7 +15,7 @@ export class Euler extends BufferData {
     static YXZ: EulerOrder = 'YXZ';
     static ZYX: EulerOrder = 'ZYX';
 
-    private static ORDERS: EulerOrder[] = [Euler.XYZ, Euler.YZX, Euler.ZXY, Euler.XZY, Euler.YXZ, Euler.ZYX];
+    static ORDERS: EulerOrder[] = [Euler.XYZ, Euler.YZX, Euler.ZXY, Euler.XZY, Euler.YXZ, Euler.ZYX];
     static DEFAULT_ORDER: EulerOrder = Euler.XYZ;
 
     static instance = new Euler();
