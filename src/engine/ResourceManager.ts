@@ -419,7 +419,11 @@ export class ResourceManager extends EventEmitter {
                 this.device.queue.writeBuffer(buffer, 0, uniformData.data);
             })
         }
-        this.device.queue.writeBuffer(buffer, 0, data);
+        try {
+            this.device.queue.writeBuffer(buffer, 0, data);
+        } catch (e) {
+            console.error(e, data);
+        }
         this.buffers.set(id, buffer);
         this.bufferDescriptors.set(id, { size: data.byteLength, usage });
         this.references.set(id, { refCount: 1, lastUsedFrame: this.currentFrame });

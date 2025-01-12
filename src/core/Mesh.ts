@@ -5,7 +5,7 @@ import { Geometry } from '@/geometry/Geometry';
 import { Material } from '@/materials/Material';
 import { uuid } from '@/util/general';
 import { BufferData } from '@/data/BufferData';
-import { Quaternion, Vector3 } from '@/math';
+import { Euler, Quaternion, Vector3 } from '@/math';
 
 export class Mesh extends Object3D {
     public geometry: Geometry;
@@ -123,6 +123,17 @@ export class Mesh extends Object3D {
         this.updateAllInstanceWorldMatrices();
     }
 
+    setAllRotations(rotations: ArrayLike<number>) {
+        for (let i = 0; i < this.count; i++) {
+            this.getMatrixAt(i, _mat);
+            const position = _mat.getPosition(Vector3.instance);
+            const scale = _mat.getScale(new Vector3());
+            _mat.compose(position, Quaternion.instance.setFromEuler(Euler.instance.fromArray(rotations, i * 3)), scale);
+            this.localInstanceMatrices.setSilent(_mat, i * 16);
+        }
+        this.updateAllInstanceWorldMatrices();
+    }
+
     rotateXAt(index: number, angle: number) {
         this.getMatrixAt(index, _mat);
         _mat.rotateX(angle);
@@ -145,6 +156,23 @@ export class Mesh extends Object3D {
         super.updateMatrixWorld(fromParent);
         this.updateAllInstanceWorldMatrices();
     }
+
+    getPositionAt(index: number, vector = Vector3.instance): Vector3 {
+        vector.fromArray(this.localInstanceMatrices, index * 16 + 12);
+        return vector;
+    }
+
+    getScaleAt(index: number, vector = Vector3.instance): Vector3 {
+        this.getMatrixAt(index, _mat);
+        return _mat.getScale(vector);
+    }
+
+    getWorldPositionAt(index: number, vector = Vector3.instance): Vector3 {
+        this.getMatrixAt(index, _mat);
+        return _mat.getPosition(vector);
+    }
+
+
 
     private updateInstanceWorldMatrix(index: number) {
         const localMatrix = this.getLocalMatrixAt(index, _mat);

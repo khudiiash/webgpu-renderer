@@ -89,6 +89,7 @@ export class Texture {
             console.error('Texture: Invalid texture');
             return;
         }
+        console.warn('setting texture', texture.label, ' for ', this.id);
         this.texture = texture;
         this.loadCbs.forEach(cb => cb(this.texture));
     }

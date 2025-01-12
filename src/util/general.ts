@@ -114,8 +114,18 @@ export function isAlign4(value: number): boolean {
 
 export function autobind(context: any) {
     Object.getOwnPropertyNames(Object.getPrototypeOf(context))
-        .filter(key => key !== 'constructor' && typeof context[key] === 'function')
-        .forEach(key => {
+        .filter((key) => {
+            const desc = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(context), key);
+            return key !== 'constructor' && desc && typeof desc.value === 'function';
+        })
+        .forEach((key) => {
             context[key] = context[key].bind(context);
         });
+}
+
+export function alignArray(array: ArrayLike<number>): Float32Array {
+    const len = array.length;
+    const aligned = new Float32Array(align4(len));
+    aligned.set(array);
+    return aligned;
 }
