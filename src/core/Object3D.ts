@@ -152,6 +152,44 @@ export class Object3D extends EventEmitter {
         }
     }
 
+    traverse(callback: (object: Object3D) => void) {
+        const stack: Object3D[] = [this];
+        while (stack.length) {
+            const current = stack.pop()!;
+            callback(current);
+            for (let i = 0, len = current.children.length; i < len; i++) {
+                stack.push(current.children[i]);
+            }
+        }
+    }
+
+    findByName(name: string): Object3D | null {
+        const stack: Object3D[] = [this];
+        while (stack.length) {
+            const current = stack.pop()!;
+            if (current.name === name) {
+                return current;
+            }
+            for (let i = 0, len = current.children.length; i < len; i++) {
+                stack.push(current.children[i]);
+            }
+        }
+        return null;
+    }
+
+    findAll(predicate: (object: Object3D) => boolean): Object3D[] {
+        const result: Object3D[] = [];
+        const stack: Object3D[] = [this];
+        while (stack.length) {
+            const node = stack.pop()!;
+            if (predicate(node)) {
+                result.push(node);
+            }
+            stack.push(...node.children);
+        }
+        return result;
+    }
+
     copy(source: Object3D) {
         this.position.copy(source.position);
         this.rotation.copy(source.rotation);
