@@ -30,6 +30,8 @@ class Scene extends Object3D {
     public directionalLightsNum!: number;
     public pointLightsNum!: number;
     public fog!: Fog;
+    public time: number = 0;
+    public frame: number = 0;
 
     private _time: number = 0;
     private _frame: number = 0;
@@ -137,7 +139,7 @@ class Scene extends Object3D {
         this._time += (now - this._last) / 1000;
         this._last = now;
 
-        this.uniforms.set('time', this._time % 1000);
+        this.time = this._time;
     }
 }
 
