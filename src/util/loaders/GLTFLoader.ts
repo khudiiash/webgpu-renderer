@@ -206,10 +206,10 @@ class GLTFLoader {
 
                 if (pbr.baseColorTexture !== undefined) {
                     const texture = await this.loadTexture(gltf, buffers, pbr.baseColorTexture.index);
-                    console.log(texture.label);
                     material.diffuse_map?.setTexture(texture);
                 }
 
+                // TODO
                 // if (pbr.metallicRoughnessTexture !== undefined) {
                 //     const texture = await this.loadTexture(gltf, buffers, pbr.metallicRoughnessTexture.index);
                 //     material.setTexture('metallicRoughness_map', texture);

@@ -47,7 +47,6 @@ class StandardMaterial extends Material {
 
     constructor(options: RenderStateOptions & StandardMaterialOptions = {}) {
         super();
-        console.log('StandardMaterial created', this.id);
 
         this.renderState = new RenderState({
             cullMode: options.cullMode || 'back',

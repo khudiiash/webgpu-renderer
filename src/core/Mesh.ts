@@ -28,8 +28,8 @@ export class Mesh extends Object3D {
         this.isInstanced = count > 1;
         material.addMesh(this);
 
-        this.instanceMatrices = new BufferData(this.count * 16);
-        this.localInstanceMatrices = new BufferData(this.count * 16);
+        this.instanceMatrices = new BufferData(this.count, 16);
+        this.localInstanceMatrices = new BufferData(this.count, 16);
 
         for (let i = 0; i < this.count; i++) {
             this.localInstanceMatrices.set(Matrix4.IDENTITY, i * 16);
@@ -71,19 +71,17 @@ export class Mesh extends Object3D {
         this.updateInstanceWorldMatrix(index);
     }
 
-    setScaleAt(index: number, x: number | Vector3, y: number, z: number) {
+    setScaleAt(index: number, x: number | Vector3, y?: number, z?: number) {
         if (x instanceof Vector3) {
             z = x.z;
             y = x.y;
             x = x.x;
-        } else if (y === undefined) {
-            y = x;
-        } else if (z === undefined) {
-            z = x;
+        } else if (y === undefined || z === undefined) {
+            y = z = x;
         }
 
         const m = this.getMatrixAt(index, _mat);
-        m.scale(Vector3.instance.setXYZ(x, y, z));
+        m.setScale(x, y, z);
         this.setMatrixAt(index, m);
     }
 
@@ -114,11 +112,19 @@ export class Mesh extends Object3D {
         this.updateAllInstanceWorldMatrices();
     }
 
-    setAllScales(scales: ArrayLike<number>) {
-        for (let i = 0; i < this.count; i++) {
-            this.getMatrixAt(i, _mat);
-            _mat.scale(Vector3.instance.set([scales[i * 3], scales[i * 3 + 1], scales[i * 3 + 2]]));
-            this.localInstanceMatrices.setSilent(_mat, i * 16);
+    setAllScales(scales: ArrayLike<number> | number) {
+        if (typeof scales === 'number') {
+            for (let i = 0; i < this.count; i++) {
+                this.getMatrixAt(i, _mat);
+                _mat.scale(Vector3.instance.setXYZ(scales, scales, scales));
+                this.localInstanceMatrices.setSilent(_mat, i * 16);
+            }
+        } else {
+            for (let i = 0; i < this.count; i++) {
+                this.getMatrixAt(i, _mat);
+                _mat.scale(Vector3.instance.setXYZ(scales[i * 3], scales[i * 3 + 1], scales[i * 3 + 2]));
+                this.localInstanceMatrices.setSilent(_mat, i * 16);
+            }
         }
         this.updateAllInstanceWorldMatrices();
     }
@@ -127,7 +133,7 @@ export class Mesh extends Object3D {
         for (let i = 0; i < this.count; i++) {
             this.getMatrixAt(i, _mat);
             const position = _mat.getPosition(Vector3.instance);
-            const scale = _mat.getScale(new Vector3());
+            const scale = _mat.getScale(_vec1);
             _mat.compose(position, Quaternion.instance.setFromEuler(Euler.instance.fromArray(rotations, i * 3)), scale);
             this.localInstanceMatrices.setSilent(_mat, i * 16);
         }
@@ -194,6 +200,24 @@ export class Mesh extends Object3D {
         this.instanceMatrices.monitor.check();
     }
 
+    translateAt(index: number, x: number, y: number, z: number) {
+        this.getMatrixAt(index, _mat);
+        _mat.translate(Vector3.instance.setXYZ(x, y, z));
+        this.localInstanceMatrices.setSilent(_mat, index * 16);
+        this.updateInstanceWorldMatrix(index);
+    }
+
+    translateAll(translations: ArrayLike<number>) {
+        for (let i = 0; i < this.count; i++) {
+            this.getMatrixAt(i, _mat);
+            _mat.translate(Vector3.instance.setXYZ(translations[i * 3], translations[i * 3 + 1], translations[i * 3 + 2]));
+            this.localInstanceMatrices.setSilent(_mat, i * 16);
+        }
+
+        this.updateAllInstanceWorldMatrices();
+    }
+
+
 
     getLocalMatrixAt(index: number, matrix = Matrix4.instance): Matrix4 {
         matrix.fromArraySilent(this.localInstanceMatrices, index * 16);
@@ -216,6 +240,9 @@ export class Mesh extends Object3D {
     }
 }
 
+const _vec1 = new Vector3();
+const _vec2 = new Vector3();
+const _vec3 = new Vector3();
 const _mat = new Matrix4();
 const _rotMat = new Matrix4();
 const _quat = new Quaternion();

@@ -10,6 +10,7 @@ export type FogConfig = {
 }
 
 export class Fog extends BufferData {
+    static size = 8;
 
     static LINEAR: number = 0;
     static EXPONENTIAL: number = 1;
@@ -30,7 +31,6 @@ export class Fog extends BufferData {
 
         this._color = new Color(config.color).onChange(() => {
             this.set([this._color.r, this._color.g, this._color.b, this._color.a]);
-            this.monitor.check();
         });
 
 
@@ -52,10 +52,10 @@ export class Fog extends BufferData {
     get density() { return this[7]; }
     get color() { return this._color; }
 
-    set type(value) { this[4] = value; this.monitor.check(); }
-    set start(value) { this[5] = value; this.monitor.check(); }
-    set end(value) { this[6] = value; this.monitor.check(); }
-    set density(value) { this[7] = value; this.monitor.check(); }
+    set type(value) { this[4] = value; this.monitor.check(4, 5); }
+    set start(value) { this[5] = value; this.monitor.check(5, 6); }
+    set end(value) { this[6] = value; this.monitor.check(6, 7); }
+    set density(value) { this[7] = value; this.monitor.check(7, 8); }
 
     set color(value) { 
         this._color.offChange();
@@ -63,9 +63,7 @@ export class Fog extends BufferData {
         this.set([this._color.r, this._color.g, this._color.b, this._color.a]);
         this._color.onChange(() => {
             this.set([this._color.r, this._color.g, this._color.b, this._color.a]);
-            this.monitor.check();
         });
-        this.monitor.check(); 
     }
     
 }

@@ -167,9 +167,9 @@ export class Matrix4 extends BufferData {
     getScale(v?: Vector3): Vector3 {
         v = v || new Vector3();
         const te = this;
-        v.x = Math.sqrt(te[0] * te[0] + te[1] * te[1] + te[2] * te[2]);
-        v.y = Math.sqrt(te[4] * te[4] + te[5] * te[5] + te[6] * te[6]);
-        v.z = Math.sqrt(te[8] * te[8] + te[9] * te[9] + te[10] * te[10]);
+        v[0] = Math.hypot(te[0], te[1], te[2]);
+        v[1] = Math.hypot(te[4], te[5], te[6]);
+        v[2] = Math.hypot(te[8], te[9], te[10]);
         return v;
     }
     getScaleOnAxis(axis: Vector3): number {
@@ -230,6 +230,55 @@ export class Matrix4 extends BufferData {
             aug[0][6], aug[1][6], aug[2][6], aug[3][6],
             aug[0][7], aug[1][7], aug[2][7], aug[3][7]
         ])
+
+        return this;
+    }
+
+    setScale(x: Vector3 | number, y?: number, z?: number): this {
+        // Assuming matrix is a 16-element Float32Array in column-major order
+        // scale is an array or vector [scaleX, scaleY, scaleZ]
+        const te = this;
+        if (x instanceof Vector3) {
+            y = x[1];
+            z = x[2];
+            x = x[0];
+        } else if (y === undefined || z === undefined) {
+            y = z = x;
+        }
+    
+        let basisX = [te[0], te[1], te[2]];
+        let basisY = [te[4], te[5], te[6]];
+        let basisZ = [te[8], te[9], te[10]];
+    
+        const lengthX = Math.hypot(...basisX);
+        const lengthY = Math.hypot(...basisY);
+        const lengthZ = Math.hypot(...basisZ);
+    
+        if (lengthX > 0) {
+            basisX = basisX.map(v => v / lengthX);
+        }
+        if (lengthY > 0) {
+            basisY = basisY.map(v => v / lengthY);
+        }
+        if (lengthZ > 0) {
+            basisZ = basisZ.map(v => v / lengthZ);
+        }
+    
+        basisX = basisX.map(v => v * x);
+        basisY = basisY.map(v => v * y);
+        basisZ = basisZ.map(v => v * z);
+    
+        te[0] = basisX[0];
+        te[1] = basisX[1];
+        te[2] = basisX[2];
+    
+        te[4] = basisY[0];
+        te[5] = basisY[1];
+        te[6] = basisY[2];
+    
+        te[8] = basisZ[0];
+        te[9] = basisZ[1];
+        te[10] = basisZ[2];
 
         return this;
     }

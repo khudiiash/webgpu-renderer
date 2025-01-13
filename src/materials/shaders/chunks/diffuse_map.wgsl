@@ -5,7 +5,7 @@
     if (textureDimensions(diffuse_map).x > 1) {
         let wrappedUV = fract(input.vUv);
         color = textureSample(diffuse_map, color_sampler, wrappedUV);
-        if (color.a < 0.3) {
+        if (color.a < 0.5) {
             discard;
         }
     }

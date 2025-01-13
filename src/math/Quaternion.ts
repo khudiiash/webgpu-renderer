@@ -20,10 +20,10 @@ export class Quaternion extends BufferData {
     get z(): number { return this[2]; }
     get w(): number { return this[3]; }
 
-    set x(value: number) { this[0] = value; this.monitor.check(); }
-    set y(value: number) { this[1] = value; this.monitor.check(); }
-    set z(value: number) { this[2] = value; this.monitor.check(); }
-    set w(value: number) { this[3] = value; this.monitor.check(); }
+    set x(value: number) { this[0] = value; this.monitor.check(0); }
+    set y(value: number) { this[1] = value; this.monitor.check(1); }
+    set z(value: number) { this[2] = value; this.monitor.check(2); }
+    set w(value: number) { this[3] = value; this.monitor.check(3); }
 
 
     slerp(q: Quaternion, alpha: number): this {

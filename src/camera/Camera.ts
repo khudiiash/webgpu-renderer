@@ -49,7 +49,7 @@ export class Camera extends Object3D {
                 direction: this.target.clone().sub(this.position).normalize(),
             }
         };
-        this.uniforms = new UniformData(this, uniformConfig).onChange(() => {
+        this.uniforms = new UniformData(this, uniformConfig).onChange((data) => {
             ResourceManager.updateBuffer(this.uniforms.id);
         });
 
@@ -94,9 +94,5 @@ export class Camera extends Object3D {
         this.updateViewMatrix();
     }
 
-    // clone() {
-    //     return new this.constructor().copy(this);
-    // }
 }
 const _projScreenMatrix = new Matrix4();
-const _vector = new Vector3();
