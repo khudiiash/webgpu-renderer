@@ -182,7 +182,7 @@ export class Geometry {
         const size = this.vertexCount * vertexSize;
 
         if (!this.packed) {
-            this.packed = new BufferData(size).onChange(this.pack);
+            this.packed = new BufferData(this.vertexCount, vertexSize).onChange(this.pack);
         }
 
         for (let i = 0; i < this.vertexCount; i++) {

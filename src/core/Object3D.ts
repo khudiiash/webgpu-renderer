@@ -20,6 +20,7 @@ export class Object3D extends EventEmitter {
     public direction = new Vector3(0, 0, -1);
 
     private matrixUpdateInProgress: boolean = false;
+
     public isCamera: boolean = false;
     public isLight: boolean = false;
     public isDirectionalLight: boolean = false;
@@ -109,10 +110,11 @@ export class Object3D extends EventEmitter {
             child.updateMatrixWorld(true);
         });
 
-        if (!this.isDirectionalLight) {
+        if (this.isLight) {
+            this.direction.set([ -this.matrixWorld[8], -this.matrixWorld[9], -this.matrixWorld[10] ]).normalize();
+        }  else {
             this.direction.set([ this.matrixWorld[8], this.matrixWorld[9], this.matrixWorld[10] ]).normalize();
         }
-
         this.matrixUpdateInProgress = false;
     }
 
@@ -122,7 +124,7 @@ export class Object3D extends EventEmitter {
         }
         child.parent = this;
         this.children.push(child);
-        //child.updateMatrixWorld(true);
+        child.updateMatrixWorld(true);
     }
 
     remove(child: Object3D) {

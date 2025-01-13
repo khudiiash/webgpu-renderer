@@ -29,10 +29,6 @@ class DirectionalLight extends Light {
         });
     }
 
-    setPosition(x: number | Vector3, y?: number, z?: number): void {
-        super.setPosition(x, y, z);
-        this.direction.setXYZ(0, 0, 0).sub(this.position).normalize();
-    }
 
 }
 

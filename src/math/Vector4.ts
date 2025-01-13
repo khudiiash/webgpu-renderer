@@ -11,10 +11,10 @@ export class Vector4 extends BufferData {
     get z() { return this[2]; }
     get w() { return this[3]; }
 
-    set x(value) { this[0] = value; this.monitor.check(); }
-    set y(value) { this[1] = value; this.monitor.check(); }
-    set z(value) { this[2] = value; this.monitor.check(); }
-    set w(value) { this[3] = value; this.monitor.check(); }
+    set x(value) { this[0] = value; this.monitor.check(0); }
+    set y(value) { this[1] = value; this.monitor.check(1); }
+    set z(value) { this[2] = value; this.monitor.check(2); }
+    set w(value) { this[3] = value; this.monitor.check(3); }
 
     constructor(x: number = 0, y: number = 0, z: number = 0, w: number = 0) {
         super([x, y, z, w]);

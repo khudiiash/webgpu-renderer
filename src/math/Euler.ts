@@ -29,10 +29,10 @@ export class Euler extends BufferData {
     get z() { return this[2]; }
     get order() { return Euler.ORDERS[this[3]]; }
 
-    set x(value) { this[0] = value; this.monitor.check(); }
-    set y(value) { this[1] = value; this.monitor.check(); }
-    set z(value) { this[2] = value; this.monitor.check(); }
-    set order(value) { this[3] = Euler.ORDERS.indexOf(value); this.monitor.check(); }
+    set x(value) { this[0] = value; this.monitor.check(0, 1); }
+    set y(value) { this[1] = value; this.monitor.check(1, 2); }
+    set z(value) { this[2] = value; this.monitor.check(2, 3); }
+    set order(value) { this[3] = Euler.ORDERS.indexOf(value); this.monitor.check(3, 4); }
 
     private __getOrderNum(order: EulerOrder | number): number {
         if (typeof order === 'number') return order;

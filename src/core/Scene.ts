@@ -53,12 +53,20 @@ class Scene extends Object3D {
         const directionalLights = new UniformDataArray(
             MAX_DIRECTIONAL_LIGHTS,
             DirectionalLight.uniformSize, 
-        ).onChange(() => { this.directionalLightsNum = directionalLights.size; });
+        ).onChange(() => { 
+            if (directionalLights.size !== this.directionalLightsNum) {
+                this.directionalLightsNum = directionalLights.size; 
+            }
+        });
 
         const pointLights = new UniformDataArray(
             MAX_POINT_LIGHTS,
             PointLight.uniformSize,
-        ).onChange(() => { this.pointLightsNum = pointLights.size; });
+        ).onChange(() => { 
+            if (pointLights.size !== this.pointLightsNum) {
+                this.pointLightsNum = pointLights.size; 
+            }
+        });
 
         const fog = new Fog({
             color: backgroundColor,
@@ -72,13 +80,13 @@ class Scene extends Object3D {
             name: 'scene',
             isGlobal: true,
             values: {
-                fog,
-                ambientColor,
-                backgroundColor,
-                time: 0,
-                frame: 0,
-                directionalLightsNum: 0,
-                pointLightsNum: 0,
+                fog, // offset: 0
+                ambientColor, // offset: 8
+                backgroundColor, // offset: 12
+                time: 0, // offset: 16
+                frame: 0, // offset: 17 
+                directionalLightsNum: 0, // offset: 24
+                pointLightsNum: 0, // offset: 28
                 directionalLights,
                 pointLights
             }
