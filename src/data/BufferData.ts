@@ -24,10 +24,6 @@ export class BufferData extends Float32Array {
         } else {
             _buffers[this.constructor.name]++;
         }
-        if (this.constructor.name === 'Vector3')  {
-
-            console.warn(`${this.constructor.name}`, _buffers[this.constructor.name]);
-        }
         this.arrayStride = arrayStride;
         this.monitor = new DataMonitor(this, this, arrayStride);
     }
