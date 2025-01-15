@@ -8,8 +8,8 @@ import { BufferData } from '@/data/BufferData';
 import { Euler, Quaternion, Vector3 } from '@/math';
 
 export class Mesh extends Object3D {
-    public geometry: Geometry;
-    public material: Material;
+    public geometry!: Geometry;
+    public material!: Material;
     public id: string = uuid('mesh');
     public uniforms: UniformData;
     public count = 1;
@@ -20,13 +20,17 @@ export class Mesh extends Object3D {
     public type: string = 'mesh';
     localInstanceMatrices: BufferData;
 
-    constructor(geometry: Geometry, material: Material, count: number = 1) {
+    constructor(geometry?: Geometry, material?: Material, count: number = 1) {
         super();
-        this.geometry = geometry;
-        this.material = material;
+        if (geometry) {
+            this.geometry = geometry;
+        }
+        if (material) {
+            material.addMesh(this);
+            this.material = material;
+        }
         this.count = Math.max(1, count);
         this.isInstanced = count > 1;
-        material.addMesh(this);
 
         this.instanceMatrices = new BufferData(this.count, 16);
         this.localInstanceMatrices = new BufferData(this.count, 16);
@@ -83,19 +87,6 @@ export class Mesh extends Object3D {
         const m = this.getMatrixAt(index, _mat);
         m.setScale(x, y, z);
         this.setMatrixAt(index, m);
-    }
-
-    lookAt(target: Object3D | Vector3, index = 0) {
-        if (target instanceof Object3D) {
-            target = target.position;
-        }
-        this.getMatrixAt(index, _mat);
-        const pos = _mat.getPosition();
-        _rotMat.lookAt(pos, target);
-        _quat.setFromRotationMatrix(_rotMat).inverse();
-        _mat.compose(_mat.getPosition(), _quat, _mat.getScale());
-
-        this.setMatrixAt(index, _mat);
     }
 
     /** 
@@ -233,9 +224,11 @@ export class Mesh extends Object3D {
     }
 
     copy(source: Mesh) {
-        super.copy(source);
         this.geometry = source.geometry;
         this.material = source.material;
+        this.count = source.count;
+        super.copy(source);
+        this.uniforms.rebuild();
         return this;
     }
 }

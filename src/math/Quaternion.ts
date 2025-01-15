@@ -2,6 +2,7 @@ import { BufferData } from "@/data/BufferData";
 import { Vector3 } from "./Vector3";
 import { Matrix4 } from "./Matrix4";
 import { Euler } from "./Euler";
+import { Matrix3 } from "./Matrix3";
 
 
 export class Quaternion extends BufferData {
@@ -67,8 +68,8 @@ export class Quaternion extends BufferData {
         return this;
     }
 
-    inverse(): this {
-        return this.conjugate().normalize();
+    invert(): this {
+        return this.negate().normalize();
     }
 
     dot(q: Quaternion): number {
@@ -189,12 +190,14 @@ export class Quaternion extends BufferData {
         return this;
     }
 
-    setFromRotationMatrix(m: Matrix4): this {
+    setFromRotationMatrix(m: Matrix4 | Matrix3): this {
+        // http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/index.htm
+        // assumes the upper 3x3 of m is a pure rotation matrix (i.e, unscaled)
+
         const m11 = m[0], m12 = m[4], m13 = m[8],
               m21 = m[1], m22 = m[5], m23 = m[9],
-              m31 = m[2], m32 = m[6], m33 = m[10];
-
-        const trace = m11 + m22 + m33;
+              m31 = m[2], m32 = m[6], m33 = m[10],
+              trace = m11 + m22 + m33;
 
         if (trace > 0) {
             const s = 0.5 / Math.sqrt(trace + 1.0);
@@ -249,7 +252,7 @@ export class Quaternion extends BufferData {
         return this.normalize();
     }
 
-    conjugate(): this {
+    negate(): this {
         this.x *= -1;
         this.y *= -1;
         this.z *= -1;

@@ -29,6 +29,10 @@ export class BufferData extends Float32Array {
     }
 
     set(array: ArrayLike<number> | BufferData, offset: number = 0): this {
+        if (Array.from(array).some((v => isNaN(v)))) {
+            console.error('NaN detected in array', array); // eslint-disable-line no-
+            debugger
+        }
         super.set(array, offset);
         this.monitor.check(offset, offset + array.length);
         return this;
@@ -86,6 +90,10 @@ export class BufferData extends Float32Array {
 
     magnitude(): number {
         return Math.sqrt(this.reduce((sum, value) => sum + value ** 2, 0));
+    }
+
+    magnitudeSquared(): number {
+        return this.reduce((sum, value) => sum + value ** 2, 0);
     }
 
 }

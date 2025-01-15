@@ -264,6 +264,10 @@ export class UniformData {
       this.setProperties(props);
     }
 
+    extend(values: UniformDataValues) {
+      this.setProperties({ ...this.getProperties(), ...values });
+    }
+
     getProperties(): Record<string, UniformDataType> {
       const props: Record<string, UniformDataType> = {};
       for (const [name, layout] of Object.entries(this.layout)) {
@@ -288,6 +292,7 @@ export class UniformData {
     getTextures() {
       return this.textures;
     }
+
 
     getBindGroupLayoutDescriptor(): GPUBindGroupLayoutDescriptor {
       const entries = [];
@@ -370,5 +375,19 @@ export class UniformData {
       if (index !== -1) {
         this.rebuildCallbacks.splice(index, 1);
       }
+    }
+
+    rebuild() {
+      this.rebuildCallbacks.forEach(cb => cb(this.id));
+    }
+
+    destroy() {
+      this.changeCallbacks.length = 0;
+      this.rebuildCallbacks.length = 0;
+      this.items.clear();
+      this.textures.clear();
+      this.layout = {};
+      this.data = new Float32Array(0);
+      UniformData.#byID.delete(this.id);
     }
 }

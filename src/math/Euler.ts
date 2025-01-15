@@ -128,7 +128,14 @@ export class Euler extends BufferData {
 		return this;
 	}
 
-    
+	toDegString() {
+		return `X ${this.x * RAD2DEG}\nY ${this.y * RAD2DEG}\nZ ${this.z * RAD2DEG}\nORDER ${this.order}`;
+	}
+
+	toString() {
+		return `X ${this.x}\nY ${this.y}\nZ ${this.z}\nORDER ${this.order} }`;
+	}
+
     setFromVector3(v: Vector3, order = this.order) {
         return this.set([v.x, v.y, v.z, this.__getOrderNum(order)]);
     }

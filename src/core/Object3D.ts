@@ -15,9 +15,10 @@ export class Object3D extends EventEmitter {
     public children: Object3D[];
     public parent: Object3D | null;
     public name: string = 'Object';
-    public up: Vector3 = Vector3.up;
+    public up: Vector3 = Vector3.UP;
     public id: string;
-    public direction = new Vector3(0, 0, -1);
+    readonly forward = new Vector3(0, 0, -1);
+    readonly right = new Vector3(1, 0, 0);
 
     private matrixUpdateInProgress: boolean = false;
 
@@ -53,40 +54,34 @@ export class Object3D extends EventEmitter {
         this.parent = null;
     }
 
-    lookAt(x: number | Vector3 | Object3D, y?: number, z?: number): void {
-        if (x instanceof Object3D) {
-            x.updateMatrixWorld();
-            _target.copy(x.position);
-        } else if (x instanceof Vector3 ) {
-			_target.copy(x);
-		} else if (num(x, y, z)) {
-			_target.setXYZ(x, y, z);
-		} else {
-            console.error( `Object3D.lookAt(): Invalid target ${x}, ${y}, ${z}` );
-            return;
+    lookAt(x: number | Vector3, y?: number, z?: number): void {
+        // This method does not support objects having non-uniformly-scaled parent(s)
+        
+        if (x instanceof Vector3) {
+            _target.copy(x);
+        } else {
+            _target.set([x, y!, z!]);
         }
 
-		const parent = this.parent;
+        const parent = this.parent;
 
-		this.updateMatrixWorld();
+        this.updateMatrixWorld(true);
 
-		_position.setFromMatrixPosition( this.matrixWorld );
+        _position.setFromMatrixPosition(this.matrixWorld);
 
-		if (this.isCamera || this.isLight) {
-			_m1.lookAt( _position, _target, this.up );
-		} else {
-			_m1.lookAt( _target, _position, this.up );
+        if (this.isCamera || this.isLight) {
+            _m1.lookAt(_position, _target, this.up);
+        } else {
+            _m1.lookAt(_target, _position, this.up);
+        }
 
-		}
+        this.quaternion.setFromRotationMatrix(_m1);
 
-		this.quaternion.setFromRotationMatrix( _m1 );
-
-		if ( parent ) {
-            _m1.setFromRotationMatrix( parent.matrixWorld );
-			_q1.setFromRotationMatrix( _m1 );
-			this.quaternion.premultiply( _q1.inverse() );
-
-		}
+        if (parent) {
+            _m1.extractRotation(parent.matrixWorld);
+            _q1.setFromRotationMatrix(_m1);
+            this.quaternion.premultiply(_q1.invert());
+        }
     }
     updateMatrix() {
         if (this.matrixUpdateInProgress) return;
@@ -94,6 +89,11 @@ export class Object3D extends EventEmitter {
         this.matrix.compose(this.position, this.quaternion, this.scale);
         this.updateMatrixWorld();
         this.matrixUpdateInProgress = false;
+    }
+
+    getWorldScale(vector: Vector3 = Vector3.instance): Vector3 {
+        this.matrixWorld.getScale(vector);
+        return vector;
     }
 
     updateMatrixWorld(fromParent: boolean = false) {
@@ -110,11 +110,14 @@ export class Object3D extends EventEmitter {
             child.updateMatrixWorld(true);
         });
 
-        if (this.isLight) {
-            this.direction.set([ -this.matrixWorld[8], -this.matrixWorld[9], -this.matrixWorld[10] ]).normalize();
+        if (this.isLight || this.isCamera) {
+            this.forward.set([ -this.matrixWorld[8], -this.matrixWorld[9], -this.matrixWorld[10] ]).normalize();
+            this.right.set([ -this.matrixWorld[0], -this.matrixWorld[1], -this.matrixWorld[2] ]).normalize();
         }  else {
-            this.direction.set([ this.matrixWorld[8], this.matrixWorld[9], this.matrixWorld[10] ]).normalize();
+            this.forward.set([ this.matrixWorld[8], this.matrixWorld[9], this.matrixWorld[10] ]).normalize();
+            this.right.set([ this.matrixWorld[0], this.matrixWorld[1], this.matrixWorld[2] ]).normalize();
         }
+
         this.matrixUpdateInProgress = false;
     }
 
@@ -125,6 +128,7 @@ export class Object3D extends EventEmitter {
         child.parent = this;
         this.children.push(child);
         child.updateMatrixWorld(true);
+        return this;
     }
 
     remove(child: Object3D) {
@@ -133,6 +137,7 @@ export class Object3D extends EventEmitter {
             child.parent = null;
             this.children.splice(index, 1);
         }
+        return this;
     }
 
     setPosition(x: number | Vector3, y: number = 0, z: number = 0) {
@@ -141,6 +146,7 @@ export class Object3D extends EventEmitter {
         } else if (num(x, y, z)) {
             this.position.set([x, y, z]);
         }
+        return this;
     }
 
     setScale(x: number | Vector3, y?: number, z?: number) {
@@ -151,6 +157,7 @@ export class Object3D extends EventEmitter {
         } else if (num(x, y, z)) {
             this.scale.set([x, y as number, z as number]);
         }
+        return this;
     }
 
     traverse(callback: (object: Object3D) => void) {
@@ -203,23 +210,43 @@ export class Object3D extends EventEmitter {
         return null;
     }
 
-    copy(source: Object3D) {
-        this.position.copy(source.position);
-        this.rotation.copy(source.rotation);
-        this.scale.copy(source.scale);
-        this.quaternion.copy(source.quaternion);
-        this.matrix.copy(source.matrix);
-        this.matrixWorld.copy(source.matrixWorld);
-        this.children = source.children.map(child => child.clone());
-        return this;
-    }
+    copy( source: Object3D, recursive = true ) {
 
-    clone(): Object3D {
-        return new Object3D().copy(this);
+		this.name = source.name;
+
+		this.up.copy( source.up );
+
+		this.position.copy( source.position );
+		this.rotation.order = source.rotation.order;
+		this.quaternion.copy( source.quaternion );
+		this.scale.copy( source.scale );
+
+		this.matrix.copy( source.matrix );
+		this.matrixWorld.copy( source.matrixWorld );
+
+		if (recursive === true ) {
+			for ( let i = 0; i < source.children.length; i ++ ) {
+				const child = source.children[ i ];
+				this.add( child.clone() );
+
+			}
+
+		}
+
+		return this;
+
+	}
+
+
+
+    clone( recursive = false ) {
+        return new (this.constructor as typeof Object3D)().copy( this, recursive );
+
     }
 }
 
 const _target = new Vector3();
 const _position = new Vector3();
+const _quat = new Quaternion();
 const _m1 = new Matrix4();
 const _q1 = new Quaternion();
