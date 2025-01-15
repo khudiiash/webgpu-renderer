@@ -19,29 +19,13 @@ export class Renderer extends EventEmitter {
     public format!: GPUTextureFormat;
     public canvas: HTMLCanvasElement;
     private renderables: WeakMap<Object3D, Renderable> = new WeakMap();
-    private renderPassDescriptor!: RenderPassDescriptor;
     public width: number = 0;
     public height: number = 0;
     public aspect: number = 0;
     resources!: ResourceManager;
     private renderGraph!: RenderGraph;
-    private presentPipeline!: GPURenderPipeline;
-    private presentBindGroupLayout!: GPUBindGroupLayout;
-    private presentSampler!: GPUSampler;
 
     static #instance: Renderer;
-
-    static on(event: string, listener: EventCallback, context?: any) {
-        Renderer.#instance?.on(event, listener, context);
-    }
-
-    static off(event: string, listener: EventCallback) {
-        Renderer.#instance?.off(event, listener);
-    }
-
-    static fire(event: string, data: any) {
-        Renderer.#instance?.fire(event, data);
-    }
 
     static getInstance(): Renderer | null {
         if (!Renderer.#instance) {
@@ -70,12 +54,11 @@ export class Renderer extends EventEmitter {
             throw new Error("Failed to get GPU device.");
         }
 
-        const canvas = this.canvas;
-        this.width = canvas.width;
-        this.height = canvas.height;
+        this.width = this.canvas.width;
+        this.height = this.canvas.height;
         this.aspect = this.width / this.height;
 
-        this.context = canvas.getContext('webgpu') as GPUCanvasContext;
+        this.context = this.canvas.getContext('webgpu') as GPUCanvasContext;
         this.format = navigator.gpu.getPreferredCanvasFormat();
         this.context.configure({
             device: this.device,
@@ -83,83 +66,9 @@ export class Renderer extends EventEmitter {
             alphaMode: 'premultiplied',
         });
 
-        // Create presentation pipeline
-        const presentationShaderModule = this.device.createShaderModule({
-            label: 'Present Shader',
-            code: `
-                @vertex
-                fn vertexMain(@builtin(vertex_index) vertexIndex : u32) -> @builtin(position) vec4<f32> {
-                    var pos = array<vec2<f32>, 4>(
-                        vec2<f32>(-1.0, -1.0),
-                        vec2<f32>( 1.0, -1.0),
-                        vec2<f32>(-1.0,  1.0),
-                        vec2<f32>( 1.0,  1.0)
-                    );
-                    return vec4<f32>(pos[vertexIndex], 0.0, 1.0);
-                }
+        this.renderGraph = new RenderGraph(this.device, this.context);
 
-                @group(0) @binding(0) var inputTexture: texture_2d<f32>;
-                @group(0) @binding(1) var texSampler: sampler;
-
-                @fragment
-                fn fragmentMain(@builtin(position) pos: vec4<f32>) -> @location(0) vec4<f32> {
-                    let texCoord = vec2<f32>(pos.xy) / vec2<f32>(textureDimensions(inputTexture));
-                    return textureSample(inputTexture, texSampler, texCoord);
-                }
-            `
-        });
-
-        // Create bind group layout for presentation
-        const presentBindGroupLayout = this.device.createBindGroupLayout({
-            entries: [
-                {
-                    binding: 0,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: {}
-                },
-                {
-                    binding: 1,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    sampler: {}
-                }
-            ]
-        });
-
-        // Create presentation pipeline
-        const presentPipeline = this.device.createRenderPipeline({
-            layout: this.device.createPipelineLayout({
-                bindGroupLayouts: [presentBindGroupLayout]
-            }),
-            vertex: {
-                module: presentationShaderModule,
-                entryPoint: 'vertexMain'
-            },
-            fragment: {
-                module: presentationShaderModule,
-                entryPoint: 'fragmentMain',
-                targets: [{
-                    format: this.format
-                }]
-            },
-            primitive: {
-                topology: 'triangle-strip',
-                stripIndexFormat: 'uint32'
-            }
-        });
-
-        // Create sampler for presentation
-        const presentSampler = this.device.createSampler({
-            magFilter: 'linear',
-            minFilter: 'linear'
-        });
-
-        // Store these for use in presentation pass
-        this.presentPipeline = presentPipeline;
-        this.presentBindGroupLayout = presentBindGroupLayout;
-        this.presentSampler = presentSampler;
-
-        this.renderGraph = new RenderGraph(this.device);
-
+        // Add render targets
         this.renderGraph.addTexture({
             name: 'mainColor',
             format: this.format,
@@ -169,16 +78,6 @@ export class Renderer extends EventEmitter {
         });
 
         this.renderGraph.addTexture({
-            name: 'presentationTarget',
-            format: this.format,
-            width: this.width,
-            height: this.height,
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST
-        });
-
-
-
-        this.renderGraph.addTexture({
             name: 'depth',
             format: 'depth32float',
             width: this.width,
@@ -186,25 +85,28 @@ export class Renderer extends EventEmitter {
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
         });
 
+        this.setupResizeObserver();
+        return this;
+    }
+
+    private setupResizeObserver() {
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 const { inlineSize, blockSize } = entry.contentBoxSize[0];
-                const target = entry.target as HTMLCanvasElement;
-                target.width = inlineSize * Math.min(window.devicePixelRatio, 2);
-                target.height = blockSize * Math.min(window.devicePixelRatio, 2);
-                target.width = Math.max(1, Math.min(target.width, this.device.limits.maxTextureDimension2D));
-                target.height = Math.max(1, Math.min(target.height, this.device.limits.maxTextureDimension2D));
-                this.width = target.width;
-                this.height = target.height;
+                const dpr = Math.min(window.devicePixelRatio, 2);
+                
+                this.width = Math.min(inlineSize * dpr, this.device.limits.maxTextureDimension2D);
+                this.height = Math.min(blockSize * dpr, this.device.limits.maxTextureDimension2D);
+                this.canvas.width = Math.max(1, this.width);
+                this.canvas.height = Math.max(1, this.height);
                 this.aspect = this.width / this.height;
+
+                this.renderGraph.resize(this.width, this.height);
                 this.fire('resize', { width: this.width, height: this.height, aspect: this.aspect });
-                this.onResize();
             }
         });
         
         observer.observe(this.canvas);
-        return this;
-
     }
 
     onResize() {
@@ -213,10 +115,9 @@ export class Renderer extends EventEmitter {
 
     setResources(resources: ResourceManager) {
         this.resources = resources;
-        this.resources.createDepthTexture('depth', this.canvas.width, this.canvas.height);
     }
 
-    draw(object: Object3D, camera: Camera, pass: GPURenderPassEncoder) {
+    private draw(object: Object3D, camera: Camera, pass: GPURenderPassEncoder) {
         if (object instanceof Mesh) {
             let renderable = this.renderables.get(object) ?? new Renderable(object);
             !this.renderables.has(object) && this.renderables.set(object, renderable);
@@ -229,18 +130,13 @@ export class Renderer extends EventEmitter {
     }
 
     public render(scene: Scene, camera: Camera) {
-        
-        const mainColorTexture = this.renderGraph.getTexture('mainColor');
-        const depthTexture = this.renderGraph.getTexture('depth');
-        
-        if (!mainColorTexture || !depthTexture) {
-            console.error('Required textures not found');
+        if (!this.renderGraph.verifyRequiredTextures(['mainColor', 'depth'])) {
             return;
         }
         
         this.renderGraph.clear();
     
-        //  main render pass
+        // Main render pass
         this.renderGraph.addPass({
             name: 'mainPass',
             colorAttachments: [{
@@ -259,10 +155,7 @@ export class Renderer extends EventEmitter {
             const mainColorView = resources.get('mainColor');
             const depthView = resources.get('depth');
     
-            if (!mainColorView || !depthView) {
-                console.error('Required texture views not found');
-                return;
-            }
+            if (!mainColorView || !depthView) return;
     
             const renderPass = encoder.beginRenderPass({
                 colorAttachments: [{
@@ -283,52 +176,10 @@ export class Renderer extends EventEmitter {
             renderPass.end();
         });
 
-        this.renderGraph.addPass({
-            name: 'presentPass',
-            colorAttachments: [{
-                texture: 'presentationTarget',
-                loadOp: 'clear',
-                storeOp: 'store',
-                clearValue: { r: 0, g: 0, b: 0, a: 1 }
-            }]
-        }, (encoder: GPUCommandEncoder, resources: Map<string, GPUTextureView>) => {
-            const mainColorView = resources.get('mainColor');
-            if (!mainColorView) {
-                console.error('Main color view not found for presentation');
-                return;
-            }
+        // Add presentation pass
+        this.renderGraph.addPresentationPass('mainColor');
         
-            // Create bind group for this frame
-            const presentBindGroup = this.device.createBindGroup({
-                layout: this.presentBindGroupLayout,
-                entries: [
-                    {
-                        binding: 0,
-                        resource: mainColorView
-                    },
-                    {
-                        binding: 1,
-                        resource: this.presentSampler
-                    }
-                ]
-            });
-        
-            const renderPass = encoder.beginRenderPass({
-                colorAttachments: [{
-                    view: this.context.getCurrentTexture().createView(),
-                    clearValue: { r: 0, g: 0, b: 0, a: 1 },
-                    loadOp: 'clear',
-                    storeOp: 'store'
-                }]
-            });
-        
-            renderPass.setPipeline(this.presentPipeline);
-            renderPass.setBindGroup(0, presentBindGroup);
-            renderPass.draw(4, 1, 0, 0);  // Draw fullscreen quad
-            renderPass.end();
-        
-        });
-        
+        // Execute the frame
         this.renderGraph.execute();
     }
 }

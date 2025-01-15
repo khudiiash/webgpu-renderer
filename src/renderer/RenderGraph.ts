@@ -1,72 +1,9 @@
 import { ResourceManager } from '@/engine/ResourceManager';
-import { Texture } from '@/data/Texture';
+import { RenderPassConfig } from './RenderPassConfig';
+import { TextureDesc } from './TextureDesc';
+import { RenderPass } from './RenderPass';
 
-type PassExecuteFn = (encoder: GPUCommandEncoder, resources: Map<string, GPUTextureView>) => void;
-
-interface RenderPassConfig {
-    name: string;
-    colorAttachments?: {
-        texture: string;
-        resolveTarget?: string;
-        clearValue?: GPUColor;
-        loadOp?: GPULoadOp;
-        storeOp?: GPUStoreOp;
-    }[];
-    depthStencilAttachment?: {
-        texture: string;
-        depthLoadOp?: GPULoadOp;
-        depthStoreOp?: GPUStoreOp;
-        depthClearValue?: number;
-        stencilLoadOp?: GPULoadOp;
-        stencilStoreOp?: GPUStoreOp;
-        stencilClearValue?: number;
-    };
-    samples?: number;
-}
-
-interface TextureDesc {
-    name: string;
-    format: GPUTextureFormat;
-    width: number;
-    height: number;
-    usage: GPUTextureUsageFlags;
-    sampleCount?: number;
-}
-
-class RenderPass {
-    name: string;
-    config: RenderPassConfig;
-    executeFn: PassExecuteFn;
-    dependencies: Set<string> = new Set();
-    writes: Set<string> = new Set();
-    reads: Set<string> = new Set();
-
-    constructor(name: string, config: RenderPassConfig, executeFn: PassExecuteFn) {
-        this.name = name;
-        this.config = config;
-        this.executeFn = executeFn;
-        this.analyzeDependencies();
-    }
-
-    private analyzeDependencies() {
-        this.config.colorAttachments?.forEach(attachment => {
-            this.writes.add(attachment.texture);
-            if (attachment.resolveTarget) {
-                this.writes.add(attachment.resolveTarget);
-            }
-        });
-
-        if (this.config.depthStencilAttachment) {
-            const dsAttachment = this.config.depthStencilAttachment;
-            if (dsAttachment.depthLoadOp === 'load') {
-                this.reads.add(dsAttachment.texture);
-            }
-            if (dsAttachment.depthStoreOp === 'store') {
-                this.writes.add(dsAttachment.texture);
-            }
-        }
-    }
-}
+export type PassExecuteFn = (encoder: GPUCommandEncoder, resources: Map<string, GPUTextureView>) => void;
 
 export class RenderGraph {
     private device: GPUDevice;
@@ -75,14 +12,88 @@ export class RenderGraph {
     private textureViews: Map<string, GPUTextureView> = new Map();
     private textureDescriptors: Map<string, TextureDesc> = new Map();
     private executionOrder: string[] = [];
-    private resourceManager: ResourceManager;
     private frameNumber: number = 0;
     private enableLogging: boolean = true;
     
-    constructor(device: GPUDevice) {
+    // Presentation related members
+    private presentPipeline!: GPURenderPipeline;
+    private presentBindGroupLayout!: GPUBindGroupLayout;
+    private presentSampler!: GPUSampler;
+    private context!: GPUCanvasContext;
+    
+    constructor(device: GPUDevice, context: GPUCanvasContext) {
         this.device = device;
-        this.resourceManager = ResourceManager.getInstance();
+        this.context = context;
+        this.initializePresentationPipeline();
         this.log('RenderGraph initialized');
+    }
+
+    private initializePresentationPipeline() {
+        const presentationShaderModule = this.device.createShaderModule({
+            label: 'Present Shader',
+            code: `
+                @vertex
+                fn vertexMain(@builtin(vertex_index) vertexIndex : u32) -> @builtin(position) vec4<f32> {
+                    var pos = array<vec2<f32>, 4>(
+                        vec2<f32>(-1.0, -1.0),
+                        vec2<f32>( 1.0, -1.0),
+                        vec2<f32>(-1.0,  1.0),
+                        vec2<f32>( 1.0,  1.0)
+                    );
+                    return vec4<f32>(pos[vertexIndex], 0.0, 1.0);
+                }
+
+                @group(0) @binding(0) var inputTexture: texture_2d<f32>;
+                @group(0) @binding(1) var texSampler: sampler;
+
+                @fragment
+                fn fragmentMain(@builtin(position) pos: vec4<f32>) -> @location(0) vec4<f32> {
+                    let texCoord = vec2<f32>(pos.xy) / vec2<f32>(textureDimensions(inputTexture));
+                    return textureSample(inputTexture, texSampler, texCoord);
+                }
+            `
+        });
+
+        this.presentBindGroupLayout = this.device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: {}
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: {}
+                }
+            ]
+        });
+
+        this.presentPipeline = this.device.createRenderPipeline({
+            layout: this.device.createPipelineLayout({
+                bindGroupLayouts: [this.presentBindGroupLayout]
+            }),
+            vertex: {
+                module: presentationShaderModule,
+                entryPoint: 'vertexMain'
+            },
+            fragment: {
+                module: presentationShaderModule,
+                entryPoint: 'fragmentMain',
+                targets: [{
+                    format: this.context.getCurrentTexture().format
+                }]
+            },
+            primitive: {
+                topology: 'triangle-strip',
+                stripIndexFormat: 'uint32'
+            }
+        });
+
+        this.presentSampler = this.device.createSampler({
+            magFilter: 'linear',
+            minFilter: 'linear'
+        });
     }
 
     private log(message: string, data?: any) {
@@ -110,6 +121,62 @@ export class RenderGraph {
         const pass = new RenderPass(config.name, config, executeFn);
         this.passes.set(config.name, pass);
         return pass;
+    }
+
+    addPresentationPass(sourceTextureName: string) {
+        this.addPass({
+            name: 'presentPass',
+            colorAttachments: [{
+                texture: 'presentationTarget',
+                loadOp: 'clear',
+                storeOp: 'store',
+                clearValue: { r: 0, g: 0, b: 0, a: 1 }
+            }]
+        }, (encoder: GPUCommandEncoder, resources: Map<string, GPUTextureView>) => {
+            const sourceTextureView = resources.get(sourceTextureName);
+            if (!sourceTextureView) {
+                console.error(`Source texture ${sourceTextureName} not found for presentation`);
+                return;
+            }
+
+            const presentBindGroup = this.device.createBindGroup({
+                layout: this.presentBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: sourceTextureView
+                    },
+                    {
+                        binding: 1,
+                        resource: this.presentSampler
+                    }
+                ]
+            });
+
+            const renderPass = encoder.beginRenderPass({
+                colorAttachments: [{
+                    view: this.context.getCurrentTexture().createView(),
+                    clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                    loadOp: 'clear',
+                    storeOp: 'store'
+                }]
+            });
+
+            renderPass.setPipeline(this.presentPipeline);
+            renderPass.setBindGroup(0, presentBindGroup);
+            renderPass.draw(4, 1, 0, 0);
+            renderPass.end();
+        });
+    }
+
+    verifyRequiredTextures(names: string[]): boolean {
+        for (const name of names) {
+            if (!this.textures.has(name)) {
+                console.error(`Required texture ${name} not found`);
+                return false;
+            }
+        }
+        return true;
     }
 
     addTexture(desc: TextureDesc) {
@@ -218,11 +285,9 @@ export class RenderGraph {
         
         for (const [name, desc] of this.textureDescriptors.entries()) {
             if (desc.width !== width || desc.height !== height) {
-                // Update descriptor dimensions
                 desc.width = width;
                 desc.height = height;
                 
-                // Clean up old resources
                 const existingTexture = this.textures.get(name);
                 if (existingTexture) {
                     this.log(`Destroying old texture: ${name}`);
@@ -231,7 +296,6 @@ export class RenderGraph {
                     this.textureViews.delete(name);
                 }
                 
-                // Create new texture with updated dimensions
                 this.addTexture(desc);
             }
         }
