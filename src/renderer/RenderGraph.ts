@@ -25,6 +25,7 @@ export class RenderGraph {
         this.device = device;
         this.context = context;
         this.initializePresentationPipeline();
+        this.setLogging(false); // set to true if you want console log :)
         this.log('RenderGraph initialized');
     }
 
