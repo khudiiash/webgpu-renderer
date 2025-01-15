@@ -95,7 +95,7 @@ class Scene extends Object3D {
         })
     }
 
-    public add(object: Object3D): void {
+    public add(object: Object3D): this {
         super.add(object);
 
         if (object.isMesh) {
@@ -113,12 +113,13 @@ class Scene extends Object3D {
         if (object.isCamera) {
             this.camera = object;
         }
+        return this;
     }
 
-    public remove(object: Object3D): void {
+    public remove(object: Object3D): this {
         if (!(object instanceof Object3D)) {
             console.error('Scene.remove: object not an instance of Object3D.', object);
-            return;
+            return this;
         }
         super.remove(object);
         if (object.isMesh) {
@@ -132,6 +133,7 @@ class Scene extends Object3D {
         if (object.isCamera) {
             this.camera = undefined;
         }
+        return this;
     }
 
     update() {

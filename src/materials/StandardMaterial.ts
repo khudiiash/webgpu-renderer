@@ -1,14 +1,14 @@
 import { ShaderLibrary, ShaderDefines } from './shaders/ShaderLibrary';
 import { Material } from "./Material";
 import { Color } from "../math/Color";
-import { Shader } from "@/materials/shaders/Shader";
 import { Texture } from "@/data/Texture";
 import { UniformData } from "@/data/UniformData";
 import { RenderState, RenderStateOptions } from "@/renderer/RenderState";
 import { Texture2D } from "@/data/Texture2D";
 import { ObjectMonitor } from '@/data/ObjectMonitor';
 
-interface StandardMaterialOptions {
+
+export interface StandardMaterialOptions extends RenderStateOptions {
     ambient?: string | number;
     diffuse?: string | number;
     specular?: string | number;
@@ -28,6 +28,7 @@ interface StandardMaterialOptions {
     useShadow?: boolean;
     useFog?: boolean;
     useGamma?: boolean;
+    useBillboard?: boolean;
 }
 
 class StandardMaterial extends Material {
@@ -45,13 +46,13 @@ class StandardMaterial extends Material {
     alpha_test!: number;
     diffuse_map!: Texture;
 
-    constructor(options: RenderStateOptions & StandardMaterialOptions = {}) {
+    constructor(options: StandardMaterialOptions = {}) {
         super();
 
         this.renderState = new RenderState({
             cullMode: options.cullMode || 'back',
-            depthTest: options.depthTest || true,
-            depthWrite: options.depthWrite || true,
+            depthTest: options.depthTest ?? true,
+            depthWrite: options.depthWrite ?? true,
             blending: options.blending || 'normal',
             transparent: options.transparent || false,
             depthCompare: options.depthCompare || 'less',
@@ -85,6 +86,7 @@ class StandardMaterial extends Material {
             USE_SHADOW: options.useShadow ?? true,
             USE_FOG: options.useFog ?? true,
             USE_GAMMA: options.useGamma ?? true,
+            USE_BILLBOARD: options.useBillboard ?? false,
         }).onChange(() => {
             this.createShader();
         });

@@ -44,9 +44,9 @@ export class Camera extends Object3D {
             isGlobal: true,
             values: {
                 projection: this.projectionMatrix,
-                view: this.viewMatrix,
+                view: this.matrixWorldInverse,
                 position: this.position,
-                direction: this.target.clone().sub(this.position).normalize(),
+                direction: this.forward,
             }
         };
         this.uniforms = new UniformData(this, uniformConfig).onChange((data) => {
@@ -69,7 +69,7 @@ export class Camera extends Object3D {
         this.updateProjectionMatrix();
     }
 
-    copy(source: Camera, recursive: boolean = true) {
+    copy(source: Camera) {
         super.copy(source);
         this.matrixWorldInverse.copy(source.matrixWorldInverse);
         this.projectionMatrix.copy(source.projectionMatrix);
@@ -77,21 +77,14 @@ export class Camera extends Object3D {
         return this;
     }
 
-    updateViewMatrix() {
-        this.target.copy(this.position).add(this.direction);
-        this.viewMatrix.lookAt(this.position, this.target, this.up);
-        this.matrixWorldInverse.copy(this.viewMatrix).invert();
-        this.rightDirection.set([this.viewMatrix[0], this.viewMatrix[1], this.viewMatrix[2]]);
-        this.projectionViewMatrix.multiplyMatrices(this.projectionMatrix, this.viewMatrix);
+    updateMatrixWorld(fromParent: boolean = false) {
+        super.updateMatrixWorld(fromParent);
+        this.matrixWorldInverse.copy(this.matrixWorld).invert();
     }
+
 
     updateProjectionMatrix() {
         // Implemented in subclasses
-    }
-
-    updateMatrixWorld(fromParent: boolean = false) {
-        super.updateMatrixWorld(fromParent);
-        this.updateViewMatrix();
     }
 
 }

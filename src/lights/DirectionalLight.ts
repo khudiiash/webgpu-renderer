@@ -10,20 +10,18 @@ export interface DirectionalLightOptions extends LightOptions {
 
 class DirectionalLight extends Light {
     public uniforms: UniformData;
-    public direction: Vector3;
     static uniformSize = align4(4 + 3 + 1);
 
     constructor(options: DirectionalLightOptions = {}) {
         super(options);
         this.isDirectionalLight = true;
-        this.direction = options.direction ?? new Vector3(0, -1, 0);
 
         this.uniforms = new UniformData(this, {
             name: 'directional_light',
             isGlobal: false,
             values: {
                 color: this.color,
-                direction: this.direction,
+                direction: this.forward,
                 intensity: this.intensity,
             }
         });

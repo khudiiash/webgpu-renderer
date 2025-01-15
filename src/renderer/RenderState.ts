@@ -144,8 +144,6 @@ export class RenderState {
     }
     
     getDepthStencil(): GPUDepthStencilState | undefined {
-        if (!this.depthTest) return undefined;
-    
         return {
             depthWriteEnabled: this.depthWrite,
             depthCompare: this.depthCompare,

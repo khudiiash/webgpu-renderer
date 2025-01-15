@@ -30,7 +30,23 @@ export class PerspectiveCamera extends Camera {
     }
   
     updateProjectionMatrix() {
-        this.projectionMatrix.setPerspective(this.fov * DEG2RAD, this.aspect, this.near, this.far);
+        const near = this.near;
+        let top = near * Math.tan(DEG2RAD * 0.5 * this.fov) / this.zoom;
+        let height = 2 * top;
+        let width = this.aspect * height;
+        let left = -0.5 * width;
+
+        if (this.view !== null && this.view.enabled) {
+            const fullWidth = this.view.fullWidth;
+            const fullHeight = this.view.fullHeight;
+
+            left += this.view.offsetX * width / fullWidth;
+            top -= this.view.offsetY * height / fullHeight;
+            width *= this.view.width / fullWidth;
+            height *= this.view.height / fullHeight;
+        }
+
+        this.projectionMatrix.setPerspective(left, left + width, top, top - height, near, this.far);
         this.projectionViewMatrix.multiplyMatrices(this.projectionMatrix, this.viewMatrix);
         this.updateFrustum();
     }

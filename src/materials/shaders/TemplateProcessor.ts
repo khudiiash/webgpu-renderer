@@ -112,7 +112,7 @@ export class TemplateProcessor {
             let featureEnd = template.indexOf('{', featureStart);
             const feature = template.slice(featureStart, featureEnd).trim();
             
-            // find matching closing brace
+            // find matching closing brace for if block
             let braceCount = 1;
             let contentStart = featureEnd + 1;
             let contentEnd = contentStart;
@@ -126,13 +126,38 @@ export class TemplateProcessor {
                 contentEnd++;
             }
             
-            const content = template.slice(contentStart, contentEnd - 1);
+            const ifContent = template.slice(contentStart, contentEnd - 1);
+            let elseContent = '';
+            let finalPos = contentEnd;
             
-            if (defines[feature] === true) {
-                result += content;
+            // Check for else block
+            const elseStart = template.indexOf('else', contentEnd);
+            if (elseStart !== -1 && template.slice(contentEnd, elseStart).trim() === '') {
+                const elseOpenBrace = template.indexOf('{', elseStart);
+                braceCount = 1;
+                let elseContentStart = elseOpenBrace + 1;
+                let elseContentEnd = elseContentStart;
+                
+                while (braceCount > 0 && elseContentEnd < template.length) {
+                    if (template[elseContentEnd] === '{') {
+                        braceCount++;
+                    } else if (template[elseContentEnd] === '}') {
+                        braceCount--;
+                    }
+                    elseContentEnd++;
+                }
+                
+                elseContent = template.slice(elseContentStart, elseContentEnd - 1);
+                finalPos = elseContentEnd;
             }
             
-            pos = contentEnd;
+            if (defines[feature] === true) {
+                result += ifContent;
+            } else if (elseContent) {
+                result += elseContent;
+            }
+            
+            pos = finalPos;
         }
         
         return result;
