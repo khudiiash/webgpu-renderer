@@ -25,6 +25,9 @@ export class Renderer extends EventEmitter {
     public aspect: number = 0;
     resources!: ResourceManager;
     private renderGraph!: RenderGraph;
+    private presentPipeline!: GPURenderPipeline;
+    private presentBindGroupLayout!: GPUBindGroupLayout;
+    private presentSampler!: GPUSampler;
 
     static #instance: Renderer;
 
@@ -80,6 +83,81 @@ export class Renderer extends EventEmitter {
             alphaMode: 'premultiplied',
         });
 
+        // Create presentation pipeline
+        const presentationShaderModule = this.device.createShaderModule({
+            label: 'Present Shader',
+            code: `
+                @vertex
+                fn vertexMain(@builtin(vertex_index) vertexIndex : u32) -> @builtin(position) vec4<f32> {
+                    var pos = array<vec2<f32>, 4>(
+                        vec2<f32>(-1.0, -1.0),
+                        vec2<f32>( 1.0, -1.0),
+                        vec2<f32>(-1.0,  1.0),
+                        vec2<f32>( 1.0,  1.0)
+                    );
+                    return vec4<f32>(pos[vertexIndex], 0.0, 1.0);
+                }
+
+                @group(0) @binding(0) var inputTexture: texture_2d<f32>;
+                @group(0) @binding(1) var texSampler: sampler;
+
+                @fragment
+                fn fragmentMain(@builtin(position) pos: vec4<f32>) -> @location(0) vec4<f32> {
+                    let texCoord = vec2<f32>(pos.xy) / vec2<f32>(textureDimensions(inputTexture));
+                    return textureSample(inputTexture, texSampler, texCoord);
+                }
+            `
+        });
+
+        // Create bind group layout for presentation
+        const presentBindGroupLayout = this.device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: {}
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: {}
+                }
+            ]
+        });
+
+        // Create presentation pipeline
+        const presentPipeline = this.device.createRenderPipeline({
+            layout: this.device.createPipelineLayout({
+                bindGroupLayouts: [presentBindGroupLayout]
+            }),
+            vertex: {
+                module: presentationShaderModule,
+                entryPoint: 'vertexMain'
+            },
+            fragment: {
+                module: presentationShaderModule,
+                entryPoint: 'fragmentMain',
+                targets: [{
+                    format: this.format
+                }]
+            },
+            primitive: {
+                topology: 'triangle-strip',
+                stripIndexFormat: 'uint32'
+            }
+        });
+
+        // Create sampler for presentation
+        const presentSampler = this.device.createSampler({
+            magFilter: 'linear',
+            minFilter: 'linear'
+        });
+
+        // Store these for use in presentation pass
+        this.presentPipeline = presentPipeline;
+        this.presentBindGroupLayout = presentBindGroupLayout;
+        this.presentSampler = presentSampler;
+
         this.renderGraph = new RenderGraph(this.device);
 
         this.renderGraph.addTexture({
@@ -87,8 +165,18 @@ export class Renderer extends EventEmitter {
             format: this.format,
             width: this.width,
             height: this.height,
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
         });
+
+        this.renderGraph.addTexture({
+            name: 'presentationTarget',
+            format: this.format,
+            width: this.width,
+            height: this.height,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST
+        });
+
+
 
         this.renderGraph.addTexture({
             name: 'depth',
@@ -191,18 +279,17 @@ export class Renderer extends EventEmitter {
                 }
             });
     
-            // Draw scene using existing draw method
             this.draw(scene, camera, renderPass);
             renderPass.end();
         });
-    
-        // Add presentation pass
+
         this.renderGraph.addPass({
             name: 'presentPass',
             colorAttachments: [{
-                texture: 'mainColor',
-                loadOp: 'load',
-                storeOp: 'store'
+                texture: 'presentationTarget',
+                loadOp: 'clear',
+                storeOp: 'store',
+                clearValue: { r: 0, g: 0, b: 0, a: 1 }
             }]
         }, (encoder: GPUCommandEncoder, resources: Map<string, GPUTextureView>) => {
             const mainColorView = resources.get('mainColor');
@@ -211,15 +298,35 @@ export class Renderer extends EventEmitter {
                 return;
             }
         
+            // Create bind group for this frame
+            const presentBindGroup = this.device.createBindGroup({
+                layout: this.presentBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: mainColorView
+                    },
+                    {
+                        binding: 1,
+                        resource: this.presentSampler
+                    }
+                ]
+            });
+        
             const renderPass = encoder.beginRenderPass({
                 colorAttachments: [{
                     view: this.context.getCurrentTexture().createView(),
+                    clearValue: { r: 0, g: 0, b: 0, a: 1 },
                     loadOp: 'clear',
-                    storeOp: 'store',
-                    clearValue: { r: 0, g: 0, b: 0, a: 1 }
+                    storeOp: 'store'
                 }]
             });
+        
+            renderPass.setPipeline(this.presentPipeline);
+            renderPass.setBindGroup(0, presentBindGroup);
+            renderPass.draw(4, 1, 0, 0);  // Draw fullscreen quad
             renderPass.end();
+        
         });
         
         this.renderGraph.execute();

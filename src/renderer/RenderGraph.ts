@@ -161,12 +161,13 @@ export class RenderGraph {
             this.log('Computing execution order');
             this.computeExecutionOrder();
         }
-
+    
+        // Only create/update textures if they don't exist or need resizing
         this.createOrUpdateTextures();
         
         const commandEncoder = this.device.createCommandEncoder();
         this.log(`Executing passes in order: ${this.executionOrder.join(' -> ')}`);
-
+    
         for (const passName of this.executionOrder) {
             this.log(`Executing pass: ${passName}`);
             const pass = this.passes.get(passName)!;
@@ -177,12 +178,15 @@ export class RenderGraph {
             
             this.log(`Pass ${passName} completed in ${(endTime - startTime).toFixed(2)}ms`);
         }
-
+    
         const commandBuffer = commandEncoder.finish();
         this.device.queue.submit([commandBuffer]);
         
         this.log('Frame execution completed');
-        //this.cleanupTransientResources();
+    
+        // Clear passes but keep textures
+        this.passes.clear();
+        this.executionOrder = [];
     }
 
     private computeExecutionOrder() {
@@ -234,19 +238,9 @@ export class RenderGraph {
     }
 
     clear() {
-        this.log('Clearing all resources');
-        
-        // Destroy all textures
-        for (const [name, texture] of this.textures.entries()) {
-            this.log(`Destroying texture: ${name}`);
-            texture.destroy();
-        }
-        
-        this.textures.clear();
-        this.textureViews.clear();
+        this.log('Clearing render graph');
         this.passes.clear();
         this.executionOrder = [];
-        // Don't clear textureDescriptors as we might need them for recreation
     }
 
     getStats() {
