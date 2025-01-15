@@ -1,84 +1,140 @@
-fn fresnelSchlick(cosTheta: f32, F0: vec3<f32>) -> vec3<f32> {
-    return F0 + (vec3<f32>(1.0) - F0) * pow(1.0 - cosTheta, 5.0);
+fn fresnelSchlick(cosTheta: f32, F0: vec3f) -> vec3f {
+    return F0 + (vec3f(1.0) - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-fn distributionGGX(N: vec3<f32>, H: vec3<f32>, roughness: f32) -> f32 {
-    let a: f32 = roughness * roughness;
-    let a2: f32 = a * a;
-    let NdotH: f32 = max(dot(N, H), 0.0);
-    let NdotH2: f32 = NdotH * NdotH;
+// Normal Distribution Function (GGX)
+fn NDF_GGX(N: vec3f, H: vec3f, roughness: f32) -> f32 {
+    let a = roughness * roughness;
+    let a2 = a * a;
+    let NdotH = max(dot(N, H), 0.0);
+    let NdotH2 = NdotH * NdotH;
 
-    let num: f32 = a2;
-    let denom: f32 = (NdotH2 * (a2 - 1.0) + 1.0);
-    return num / (PI * denom * denom);
+    let denom = NdotH2 * (a2 - 1.0) + 1.0;
+    return a2 / (PI * denom * denom);
 }
 
-fn geometrySchlickGGX(NdotV: f32, roughness: f32) -> f32 {
-    let r: f32 = (roughness + 1.0);
-    let k: f32 = (r * r) / 8.0;
+// Geometry Function (Smith GGX)
+fn G_Smith(N: vec3f, V: vec3f, L: vec3f, roughness: f32) -> f32 {
+    let k = (roughness + 1.0) * (roughness + 1.0) / 8.0; // UE4 style
 
-    let num: f32 = NdotV;
-    let denom: f32 = NdotV * (1.0 - k) + k;
-    return num / denom;
-}
+    let NdotV = max(dot(N, V), 0.0);
+    let NdotL = max(dot(N, L), 0.0);
 
-fn geometrySmith(N: vec3<f32>, V: vec3<f32>, L: vec3<f32>, roughness: f32) -> f32 {
-    let NdotV: f32 = max(dot(N, V), 0.0);
-    let NdotL: f32 = max(dot(N, L), 0.0);
-    let ggx2: f32 = geometrySchlickGGX(NdotV, roughness);
-    let ggx1: f32 = geometrySchlickGGX(NdotL, roughness);
-    return ggx1 * ggx2;
-}
+    let G_V = NdotV / (NdotV * (1.0 - k) + k);
+    let G_L = NdotL / (NdotL * (1.0 - k) + k);
 
-fn pbr(N: vec3<f32>, V: vec3<f32>, L: vec3<f32>, albedo: vec3<f32>, metallic: f32, roughness: f32, ao: f32) -> vec3<f32> {
-    let H: vec3<f32> = normalize(V + L);
-    let radiance: vec3<f32> = vec3<f32>(1.0); // Assume white light for simplicity
-
-    let F0: vec3<f32> = mix(vec3<f32>(0.04), albedo, metallic);
-    let F: vec3<f32> = fresnelSchlick(max(dot(H, V), 0.0), F0);
-
-    let NDF: f32 = distributionGGX(N, H, roughness);
-    let G: f32 = geometrySmith(N, V, L, roughness);
-
-    let numerator: vec3<f32> = NDF * G * F;
-    let denominator: f32 = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001;
-    let specular: vec3<f32> = numerator / vec3<f32>(denominator);
-
-    let kS: vec3<f32> = F;
-    let kD: vec3<f32> = vec3<f32>(1.0) - kS;
-    kD *= 1.0 - metallic;
-
-    let NdotL: f32 = max(dot(N, L), 0.0);
-    let Lo: vec3<f32> = (kD * albedo / PI + specular) * radiance * NdotL;
-
-    let ambient: vec3<f32> = vec3<f32>(0.03) * albedo * ao;
-    let color: vec3<f32> = ambient + Lo;
-
-    return color;
+    return G_V * G_L;
 }
 
 @fragment() {{
-    // PBR lighting model
-    let N: vec3<f32> = normalize(input.vNormalW);
-    let V: vec3<f32> = normalize(-input.vPositionW);
-    let albedo: vec3<f32> = material.albedo;
-    let metallic: f32 = material.metallic;
-    let roughness: f32 = material.roughness;
-    let ao: f32 = material.ao;
+    #if USE_LIGHT {
+        let DIR_NUM : u32 = u32(scene.directionalLightsNum);
+        let POINT_NUM : u32 = u32(scene.pointLightsNum);
 
-    let color: vec3<f32> = vec3<f32>(0.0);
-    for (var i = 0u; i < MAX_LIGHTS; i = i + 1u) {
-        let light = scene.lights[i];
-        let lightDir = normalize(light.position - input.vPositionW);
-        let lightColor = light.color;
+        // Base color (albedo)
+        let albedo = color.rgb; // Assume you have this parameter
+        let roughness = material.roughness;
+        let metallic = material.metalness;
 
-        // Calculate the PBR lighting model
-        color += pbr(N, V, lightDir, albedo, metallic, roughness, ao) * lightColor;
+        // Calculate reflectance at normal incidence (F0)
+        var F0 = vec3f(0.04); // Default reflectance for dielectrics
+
+        // If metallic, use albedo as F0
+        F0 = mix(F0, albedo, metallic);
+
+        var N = normalize(input.vNormalW);
+        var V = normalize(camera.position - input.vPositionW);
+
+        var Lo = vec3f(0.0);
+
+        // Accumulate light contributions
+        for (var i = 0u; i < DIR_NUM; i++) {
+            let light = scene.directionalLights[i];
+            let L = normalize(-light.direction); // Light direction towards surface
+            let H = normalize(V + L);
+
+            let NdotL = max(dot(N, L), 0.0);
+
+            if (NdotL > 0.0) {
+                // Calculate the Fresnel term
+                let F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+                // Calculate the NDF
+                let D = NDF_GGX(N, H, roughness);
+
+                // Calculate the Geometry function
+                let G = G_Smith(N, V, L, roughness);
+
+                // Cook-Torrance BRDF
+                let numerator = D * F * G;
+                let denominator = 4.0 * max(dot(N, V), 0.0) * NdotL + 0.001; // Add small epsilon to prevent division by zero
+                let specular = numerator / denominator;
+
+                // kS is equal to Fresnel term
+                let kS = F;
+                // kD is diffuse component and is (1 - kS) * (1 - metallic)
+                let kD = (vec3f(1.0) - kS) * (1.0 - metallic);
+
+                // Lambertian diffuse
+                let diffuse = kD * albedo / PI;
+
+                // Add to outgoing radiance Lo
+                let radiance = light.intensity * light.color.rgb; // You may need to scale with light.intensity
+
+                Lo += (diffuse + specular) * radiance * NdotL;
+            }
+        }
+
+        // Similar loop for point lights
+        for (var i = 0u; i < POINT_NUM; i++) {
+            let light = scene.pointLights[i];
+            let L = normalize(light.position - input.vPositionW);
+            let H = normalize(V + L);
+
+            let distance = length(light.position - input.vPositionW);
+            let attenuation = 1.0 / (distance * distance); // Inverse square falloff
+
+            let NdotL = max(dot(N, L), material.transmission);
+
+            if (NdotL > 0.0) {
+                // Calculate the Fresnel term
+                let F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+                // Calculate the NDF
+                let D = NDF_GGX(N, H, roughness);
+
+                // Calculate the Geometry function
+                let G = G_Smith(N, V, L, roughness);
+
+                // Cook-Torrance BRDF
+                let numerator = D * F * G;
+                let denominator = 4.0 * max(dot(N, V), 0.0) * NdotL + 0.001;
+                let specular = numerator / denominator;
+
+                // kS is equal to Fresnel term
+                let kS = F;
+                // kD is diffuse component and is (1 - kS) * (1 - metallic)
+                let kD = (vec3f(1.0) - kS) * (1.0 - metallic);
+
+                // Lambertian diffuse
+                let diffuse = kD * albedo / PI;
+
+                // Add to outgoing radiance Lo
+                let radiance = attenuation * light.intensity * light.color.rgb; // Attenuate radiance
+
+                Lo += (diffuse + specular) * radiance * NdotL;
+            }
+        }
+
+        // Ambient lighting (Image-Based Lighting could be used here)
+        let ambient = scene.ambientColor.rgb * albedo * (1.0 - metallic);
+
+        var finalColor = ambient + Lo;
+
+        // Apply gamma correction
+        finalColor = pow(finalColor, vec3f(1.0 / 2.2));
+
+        color = vec4f(finalColor, color.a);
     }
 
-    // Apply gamma correction
-    color = pow(color, vec3<f32>(1.0 / 2.2));
-
-    // Output the final color
-    output.color = vec4(color, material.alpha);
 }}

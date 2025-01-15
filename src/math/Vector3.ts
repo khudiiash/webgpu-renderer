@@ -140,6 +140,18 @@ export class Vector3 extends BufferData {
         return this;
     }
 
+    crossVectors(a: Vector3, b: Vector3): this {
+        if (!this.locked) {
+            const ax = a[0], ay = a[1], az = a[2];
+            const bx = b[0], by = b[1], bz = b[2];
+
+            this[0] = ay * bz - az * by;
+            this[1] = az * bx - ax * bz;
+            this[2] = ax * by - ay * bx;
+        }
+        return this;
+    }
+
     dot(v: Vector3): number {
         return this[0] * v[0] + this[1] * v[1] + this[2] * v[2];
     }
@@ -191,6 +203,14 @@ export class Vector3 extends BufferData {
 
     setXYZ(x: number, y: number, z: number): this {
         this.set([x, y, z]);
+        return this;
+    }
+
+    setFromSphericalCoords(radius: number, phi: number, theta: number): this {
+        const sinPhiRadius = Math.sin(phi) * radius;
+        this[0] = sinPhiRadius * Math.sin(theta);
+        this[1] = Math.cos(phi) * radius;
+        this[2] = sinPhiRadius * Math.cos(theta);
         return this;
     }
 

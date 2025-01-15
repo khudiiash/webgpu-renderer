@@ -7,7 +7,6 @@ import { Texture } from "@/data/Texture";
 import { RenderState } from "@/renderer/RenderState";
 import { EventEmitter } from "@/core/EventEmitter";
 import { ObjectMonitor } from "@/data/ObjectMonitor";
-import { clamp } from "@/util";
 
 export type MaterialOptions = {
     name?: string;
@@ -34,7 +33,7 @@ export class Material extends EventEmitter {
             USE_LIGHT: false,
             USE_SHADOW: false,
             USE_FOG: false,
-            MAX_INSTANCES: 1,
+            USE_BILLBOARD: false,
         }).onChange(() => {
             this.createShader();
         });

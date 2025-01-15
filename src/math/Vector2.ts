@@ -15,9 +15,21 @@ export class Vector2 extends BufferData {
         return this;
     }
 
+    addVectors(a: Vector2, b: Vector2): this {
+        this[0] = a[0] + b[0];
+        this[1] = a[1] + b[1];
+        return this;
+    }
+
     sub(v: Vector2): this {
         this[0] -= v[0];
         this[1] -= v[1];
+        return this;
+    }
+
+    subVectors(a: Vector2, b: Vector2): this {
+        this[0] = a[0] - b[0];
+        this[1] = a[1] - b[1];
         return this;
     }
 
@@ -37,16 +49,6 @@ export class Vector2 extends BufferData {
         return this[0] * v[0] + this[1] * v[1];
     }
 
-    toArray(array?: number[], offset?: number): number[] {
-        if (array === undefined) array = [];
-        if (offset === undefined) offset = 0;
-
-        array[offset] = this[0];
-        array[offset + 1] = this[1];
-
-        return array;
-    }
-
     clone(): this {
         return new Vector2(this[0], this[1]) as this;
     }
@@ -61,12 +63,6 @@ export class Vector2 extends BufferData {
         return this[0] === v[0] && this[1] === v[1];
     }
 
-    set(array: ArrayLike<number>, offset: number = 0): this {
-        this[0] = array[offset];
-        this[1] = array[offset + 1];
-        return this;
-    }
-
     setX(x: number): this {
         this[0] = x;
         return this;
@@ -74,6 +70,26 @@ export class Vector2 extends BufferData {
 
     setY(y: number): this {
         this[1] = y;
+        return this;
+    }
+
+    setXY(x: number, y: number): this {
+        this[0] = x;
+        this[1] = y;
+        return this;
+    }
+
+    scale(x: Vector2 | number, y?: number): this {
+        if (x instanceof Vector2) {
+            this[0] *= x[0];
+            this[1] *= x[1];
+        } else if (y == undefined) {
+            this[0] *= x;
+            this[1] *= x;
+        } else {
+            this[0] *= x;
+            this[1] *= y!;
+        }
         return this;
     }
 
