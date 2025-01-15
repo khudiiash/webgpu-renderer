@@ -112,11 +112,10 @@ export class Object3D extends EventEmitter {
 
         if (this.isLight || this.isCamera) {
             this.forward.set([ -this.matrixWorld[8], -this.matrixWorld[9], -this.matrixWorld[10] ]).normalize();
-            this.right.set([ -this.matrixWorld[0], -this.matrixWorld[1], -this.matrixWorld[2] ]).normalize();
         }  else {
             this.forward.set([ this.matrixWorld[8], this.matrixWorld[9], this.matrixWorld[10] ]).normalize();
-            this.right.set([ this.matrixWorld[0], this.matrixWorld[1], this.matrixWorld[2] ]).normalize();
         }
+        this.right.set([ this.matrixWorld[0], this.matrixWorld[1], this.matrixWorld[2] ]).normalize();
 
         this.matrixUpdateInProgress = false;
     }

@@ -17,6 +17,7 @@ import { Vector3 } from '@/math';
 import { Geometry, PlaneGeometry, SphereGeometry } from '@/geometry';
 import { ShaderChunk } from '@/materials';
 import { GLTFLoader } from '@/util/loaders/GLTFLoader';
+import { FirstPersonControls, OrbitControls } from '@/camera';
 
 export class Engine extends EventEmitter {
     static #instance: Engine;
@@ -106,7 +107,7 @@ export class Engine extends EventEmitter {
         scene.fog.end = 2000;
 
         // GRASS MATERIAL (EXTENDED STANDARD MATERIAL)
-        const grassMat = new StandardMaterial({ diffuse: '#aaaa00', metalness: 0.1, roughness: 0.1,  transmission: 1.0, cullMode: 'back' });
+        const grassMat = new StandardMaterial({ diffuse: '#aaaa00', metalness: 0.1, roughness: 0.1,  transmission: 1.0, useBillboard: true, cullMode: 'back' });
         const grassChunk = new ShaderChunk('grass', `
             @vertex(before:model) {{
             if (input.vertex_index == 2) {
@@ -199,6 +200,7 @@ export class Engine extends EventEmitter {
         particles.setAllScales(rand(0.2, 1));
         particles.setAllRotations(Array.from({ length: particles.count }, (_, i) => [0, -Math.PI / 2, 0]).flat());
         scene.add(particles);
+        const controls = new OrbitControls(camera, this.settings.canvas as HTMLCanvasElement);
 
 
         // LOOP
@@ -213,9 +215,9 @@ export class Engine extends EventEmitter {
             point.position.x = Math.cos(elapsed * 0.3) * 200;
             const distance = 1;
             const speed = 1;
-            camera.position.x = Math.sin(elapsed * 0.3) * 200;
             redCube.rotation.x += delta;
             redCube.rotation.z += delta;
+            controls.update(delta);
 
             const translations = []
             for (let i = 0; i < particles.count; i++) {
