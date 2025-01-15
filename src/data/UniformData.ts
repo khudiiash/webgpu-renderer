@@ -1,7 +1,7 @@
 import { align16, align4, uuid } from '@/util/general';
 import { BufferData } from './BufferData';
 import { Texture } from './Texture';
-import { M } from 'vitest/dist/chunks/environment.LoooBwUu.js';
+import { UniformDataArray } from './UniformDataArray';
 
 export type UniformDataType = BufferData | Texture | number;
 export type UniformDataValues = Record<string, UniformDataType>;
@@ -14,7 +14,9 @@ export type UniformDataConfig = {
     values: Record<string, UniformDataType>;
 }
 
-export type UniformChangeCallback = (id: string, name: string, value: any) => void;
+const BIG_BUFFER_SIZE = 1024 * 1024;
+
+export type UniformChangeCallback = (id: string, start: number, end: number) => void;
 export type UniformRebuildCallback = (id: string) => void;
 
 export class UniformData {
@@ -64,6 +66,7 @@ export class UniformData {
     private rebuildCallbacks: UniformRebuildCallback[];
     public data!: Float32Array;
     public textures: Map<string, Texture>;
+    public parentOffset: number = 0;
     
   
     constructor(parent: any, config: UniformDataConfig) {
@@ -173,22 +176,35 @@ export class UniformData {
         });
       } else if (value instanceof BufferData) {
         const { offset } = layout;
+        if (value instanceof UniformDataArray) {
+          value.parentOffset = offset;
+        }
 
-        value.onChange(() => {
+        // scene {
+        //   ...
+        //   pointLights: array(64)(offset:144) {
+        //        position: vec3(0)
+        //        color: vec3(12)
+        //   }
+        //}
+
+        value.onChange((data, start, end) => {
           this.data.set(value as BufferData, offset);
-          this.changeCallbacks.forEach(cb => cb(this.id, name, value));
+          const from = this.layout[name].offset + start;
+          const to = this.layout[name].offset + end;
+          this.changeCallbacks.forEach(cb => cb(this.id, from, to));
         })
 
         Object.defineProperty(this.parent, name, {
           get: () => value,
           set: (newValue: BufferData) => {
             if (newValue !== value) {
-              newValue.onChange(() => {
+              newValue.onChange((data, start, end) => {
                 this.data.set(newValue, offset);
-                this.changeCallbacks.forEach(cb => cb(this.id, name, newValue));
+                this.changeCallbacks.forEach(cb => cb(this.id, this.layout[name].offset + start, this.layout[name].offset + end));
               });
 
-              this.changeCallbacks.forEach(cb => cb(this.id, name, newValue));
+              this.changeCallbacks.forEach(cb => cb(this.id, this.layout[name].offset, this.layout[name].offset + this.layout[name].size));
               value = newValue;
               this.parent[name] = newValue;
             }
@@ -203,7 +219,7 @@ export class UniformData {
           set: (newValue: number) => {
             if (this.data[layout.offset] === newValue) return;
             this.data[layout.offset] = newValue;
-            this.changeCallbacks.forEach(cb => cb(this.id, name, newValue));
+            this.changeCallbacks.forEach(cb => cb(this.id, layout.offset, layout.offset + 1));
           },
           enumerable: true,
           configurable: true
@@ -342,14 +358,14 @@ export class UniformData {
       return this;
     }
   
-    offChange(callback: Function) {
+    offChange(callback: UniformChangeCallback) {
       const index = this.changeCallbacks.indexOf(callback);
       if (index !== -1) {
         this.changeCallbacks.splice(index, 1);
       }
     }
   
-    offRebuild(callback: Function) {
+    offRebuild(callback: UniformRebuildCallback) {
       const index = this.rebuildCallbacks.indexOf(callback);
       if (index !== -1) {
         this.rebuildCallbacks.splice(index, 1);

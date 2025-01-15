@@ -1,27 +1,36 @@
 import { arraysEqual } from '@/util/general';
 import { DataMonitor } from './DataMonitor';
 
-export type ChangeCallback = (instance: any, data: BufferData) => void;
+export type ChangeCallback = (data: ArrayLike<number>, start: number, end: number) => void;
+const _buffers: any = {};
 
 export class BufferData extends Float32Array {
     [index: number]: number;
     monitor!: DataMonitor;
+    arrayStride: number;
+    static count = 0;
 
     onChange(callback: ChangeCallback): this { return this; }
     offChange(callback?: ChangeCallback): this { return this; }
 
-    constructor(arg: ArrayLike<number> | ArrayBuffer | number) {
+    constructor(arg: ArrayLike<number> | number, arrayStride: number = typeof arg === 'number' ? 1 : arg.length) {
         if (typeof arg === 'number') {
-            super(arg);
+            super(arg * arrayStride);
         } else {
             super(arg);
         }
-        this.monitor = new DataMonitor(this, this);
+        if (!_buffers[this.constructor.name]) {
+            _buffers[this.constructor.name] = 1;
+        } else {
+            _buffers[this.constructor.name]++;
+        }
+        this.arrayStride = arrayStride;
+        this.monitor = new DataMonitor(this, this, arrayStride);
     }
 
     set(array: ArrayLike<number> | BufferData, offset: number = 0): this {
         super.set(array, offset);
-        this.monitor.check();
+        this.monitor.check(offset, offset + array.length);
         return this;
     }
 
@@ -46,8 +55,8 @@ export class BufferData extends Float32Array {
         return new (this.constructor as any)(...this) as this;
     }
 
-    equals(data: BufferData, precision: number = 1e-6): boolean {
-        return arraysEqual(this, data, precision);
+    equals(data: BufferData): boolean {
+        return arraysEqual(this, data, 0, this.length);
     }
 
     fromArray(array: ArrayLike<number> | BufferData, start: number = 0, end: number = array.length - 1): this {

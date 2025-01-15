@@ -29,7 +29,7 @@ fn shadow_pcf(shadowPos: vec3<f32>, shadowMap: texture_depth_2d, shadowSampler: 
     return shadow / 9.0;
 }
 
-@fragment {{
+@fragment() {{
     let shadowPos = project(input.vPositionW, camera.view, camera.projection);
     let shadow = shadow_pcf(shadowPos, shadowMap, samplerComparison);
     

@@ -81,6 +81,7 @@ class Shader {
 
     static create(options: ShaderConfig, defines: TemplateDefines = {}) {
         const shader = new Shader(options.name || 'unnamed');
+        const chunks = options.chunks || [];
         const bindings = shader.bindings;
         
         if (options.attributes) {
@@ -118,6 +119,7 @@ class Shader {
 
                     ${options.vertexTemplate}`,
                     defines,
+                    chunks,
                     bindings)
                 );
             if (!shader.verify(shader.vertexSource)) {
@@ -141,6 +143,7 @@ class Shader {
                     ${options.fragmentTemplate}
                     `,
                     defines,
+                    chunks,
                     bindings,
                 )
             );

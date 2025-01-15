@@ -20,4 +20,5 @@ export class Light extends Object3D {
         this.color = new Color(options.color || 0xffffff);
         this.intensity = options.intensity ?? this.intensity;
     }
+
 }

@@ -1,4 +1,5 @@
 import { arraysEqual, num } from "@/util/general";
+import { ChangeCallback } from "./BufferData";
 
 class DataMonitor {
     parent: any;
@@ -17,7 +18,11 @@ class DataMonitor {
                 const original = proto[prop] as Function;
                 instance[prop] = function(this: typeof instance, ...args: unknown[]): unknown {
                     const result = original.apply(this, args);
-                    monitor.check();
+                    if (prop === 'set') {
+                        monitor.check(args[1] as number || 0, (args[0] as ArrayLike<number>).length); 
+                    } else {
+                        monitor.check();
+                    }
                     return result;
                 };
             }
@@ -25,18 +30,18 @@ class DataMonitor {
 
         if (instance.onChange) {
             const original = instance.onChange;
-            instance.onChange = function(callback: Function) {
+            instance.onChange = function(callback: ChangeCallback) {
                 monitor.add(callback);
                 return original.call(instance, callback);
             }
-            instance.offChange = function(callback?: Function) {
+            instance.offChange = function(callback?: ChangeCallback) {
                 monitor.remove(callback);
                 return instance;
             }
         } else {
             Object.defineProperties(instance, {
                 onChange: {
-                    value: function(callback: Function) {
+                    value: function(callback: ChangeCallback) {
                         monitor.add(callback);
                         return instance;
                     },
@@ -44,7 +49,7 @@ class DataMonitor {
                 },
                 
                 offChange: {
-                    value: function(callback: Function) {
+                    value: function(callback: ChangeCallback) {
                         monitor.remove(callback);
                         return instance;
                     },
@@ -58,28 +63,31 @@ class DataMonitor {
         return instance;
     }
 
-    private callbacks: Function[];
+    private callbacks: ChangeCallback[];
     private data: Float32Array;
     private lastData: Float32Array;
+    private arrayStride: number;
 
-    constructor(parent: any, data: Float32Array) {
+    constructor(parent: any, data: Float32Array, arrayStride?: number) {
         this.callbacks = [];
         this.data = data;
         this.parent = parent;
         this.lastData = new Float32Array([...data]);
+        this.arrayStride = arrayStride || data.length;
         DataMonitor.extendWithDataMonitor(this, parent);
     }
 
-    check() {
-        if (!this.callbacks.length) return;
-        const shouldDispatch = !arraysEqual(this.lastData, this.data);
+    check(start: number = 0, end: number = this.data.length): boolean {
+        if (!this.callbacks.length) return false;
+        const shouldDispatch = !arraysEqual(this.lastData, this.data, start, end);
         this.lastData.set(this.data);
         if (shouldDispatch) {
-            this.dispatch();
+            this.dispatch(start, end);
         }
+        return shouldDispatch;
     }
 
-    add(callback: Function) {
+    add(callback: ChangeCallback) {
         if (callback === undefined) {
             throw new Error('Callback is undefined');
         }
@@ -88,7 +96,7 @@ class DataMonitor {
         }
     }
 
-    remove(callback?: Function) {
+    remove(callback?: ChangeCallback) {
         if (callback === undefined) {
             this.callbacks = [];
             return;
@@ -99,9 +107,9 @@ class DataMonitor {
         }
     }
 
-    dispatch() {
+    dispatch(start: number, end: number) {
         for (let i = 0; i < this.callbacks.length; i++) {
-            this.callbacks[i](this.data);
+            this.callbacks[i](this.data, start, end);
         }
     }
 }

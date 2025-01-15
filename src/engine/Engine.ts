@@ -181,6 +181,9 @@ export class Engine extends EventEmitter {
         await this.initializeCore();
         this.setupScene();
 
+
+
+        // LOOP
         let last = performance.now();
         let elapsed = 0;
 

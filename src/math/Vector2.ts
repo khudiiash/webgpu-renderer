@@ -84,6 +84,6 @@ export class Vector2 extends BufferData {
     get x() { return this[0]; }
     get y() { return this[1]; }
 
-    set x(value) { this[0] = value; this.monitor.check(); }
-    set y(value) { this[1] = value; this.monitor.check(); }
+    set x(value) { this[0] = value; this.monitor.check(0); }
+    set y(value) { this[1] = value; this.monitor.check(1); }
 }

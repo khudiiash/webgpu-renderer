@@ -2,7 +2,8 @@ import { Float32BufferAttribute } from './BufferAttribute';
 import { Vector3 } from '@/math/Vector3';
 import { BoundingBox } from '@/math/BoundingBox';
 import { BoundingSphere } from '@/math/BoundingSphere';
-import { uuid } from '@/util/general';
+import { alignArray, autobind, uuid } from '@/util/general';
+import { BufferData } from '@/data';
 
 const _tempVec3 = new Vector3();
 
@@ -17,16 +18,10 @@ export class Geometry {
     isIndexed: boolean;
     indexFormat?: GPUIndexFormat;
     packed!: Float32Array | null;
-    positions: any;
-    normals: any;
-    uvs: any;
     indices: any;
-    joints: any;
-    weights: any;
-    tangents: any;
-    bitangents: any;
 
     constructor() {
+        autobind(this);
         this.attributes = {
             position: new Float32BufferAttribute([], 3),
         }
@@ -167,27 +162,15 @@ export class Geometry {
         return this;
     }
 
-    setFromArrays({
-        positions, 
-        indices, 
-        normals, 
-        uvs, 
-        joints, 
-        weights, 
-        tangents, 
-        bitangents
-    }: {
-        positions: ArrayLike<number>, 
-        indices?: Uint16Array<ArrayBufferLike> | Uint32Array<ArrayBufferLike> | ArrayLike<number> | Uint8Array<ArrayBufferLike>, 
-        normals?: ArrayLike<number>, 
-        uvs?: ArrayLike<number>, 
-        joints?: ArrayLike<number>, 
-        weights?: ArrayLike<number>, 
-        tangents?: number[], 
-        bitangents?: number[]
-    }) {
-        const vertexCount = positions.length / 3;
+    pack() {
         let vertexSize = 0;
+        const positions = this.attributes.position?.data;
+        const normals = this.attributes.normal?.data;   
+        const uvs = this.attributes.uv?.data;
+        const joints = this.attributes.joints?.data;
+        const weights = this.attributes.weights?.data;
+        const tangents = this.attributes.tangents?.data;
+        const bitangents = this.attributes.bitangents?.data;
         if (positions) vertexSize += 3;
         if (normals) vertexSize += 3;
         if (uvs) vertexSize += 2;
@@ -196,19 +179,13 @@ export class Geometry {
         if (tangents) vertexSize += 3;
         if (bitangents) vertexSize += 3;
 
-        const size = vertexCount * vertexSize;
-        this.positions = positions;
-        this.normals = normals;
-        this.uvs = uvs;
-        this.indices = indices;
-        this.joints = joints;
-        this.weights = weights;
-        this.tangents = tangents;
-        this.bitangents = bitangents;
+        const size = this.vertexCount * vertexSize;
 
-        this.packed = new Float32Array(size);
+        if (!this.packed) {
+            this.packed = new BufferData(this.vertexCount, vertexSize).onChange(this.pack);
+        }
 
-        for (let i = 0; i < vertexCount; i++) {
+        for (let i = 0; i < this.vertexCount; i++) {
             const vi = i * 3; // vertex index
             const ni = i * 3; // normal index
             const uvi = i * 2; // uv index
@@ -260,13 +237,44 @@ export class Geometry {
                 this.packed[offset + 21] = bitangents[bi + 2];
             }
         }
-        
-        if (positions) this.setAttribute('position', new Float32BufferAttribute(positions, 3));
-        if (normals) this.setAttribute('normal', new Float32BufferAttribute(normals, 3));
-        if (uvs) this.setAttribute('uv', new Float32BufferAttribute(uvs, 2));
-        if (joints) this.setAttribute('joints', new Float32BufferAttribute(joints, 4));
-        if (weights) this.setAttribute('weights', new Float32BufferAttribute(weights, 4));
-        if (indices) this.setIndices(indices);
+
+        return this;
+    }
+
+    getPacked() {
+        if (!this.packed) {
+            this.pack();
+        }
+        return this.packed;
+    }
+
+    setFromArrays({
+        positions, 
+        indices, 
+        normals, 
+        uvs, 
+        joints, 
+        weights, 
+        tangents, 
+        bitangents
+    }: {
+        positions: ArrayLike<number>, 
+        indices?: Uint16Array<ArrayBufferLike> | Uint32Array<ArrayBufferLike> | ArrayLike<number> | Uint8Array<ArrayBufferLike>, 
+        normals?: ArrayLike<number>, 
+        uvs?: ArrayLike<number>, 
+        joints?: ArrayLike<number>, 
+        weights?: ArrayLike<number>, 
+        tangents?: number[], 
+        bitangents?: number[]
+    }) {
+        if (positions) this.setAttribute('position', new Float32BufferAttribute(alignArray(positions), 3));
+        if (normals) this.setAttribute('normal', new Float32BufferAttribute(alignArray(normals), 3));
+        if (uvs) this.setAttribute('uv', new Float32BufferAttribute(alignArray(uvs), 2));
+        if (joints) this.setAttribute('joints', new Float32BufferAttribute(alignArray(joints), 4));
+        if (weights) this.setAttribute('weights', new Float32BufferAttribute(alignArray(weights), 4));
+        if (indices) this.setIndices(alignArray(indices));
+
+        this.pack();
         this.computeBoundingBox();
         this.computeBoundingSphere();
         return this;

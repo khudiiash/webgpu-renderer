@@ -57,7 +57,7 @@ fn pbr(N: vec3<f32>, V: vec3<f32>, L: vec3<f32>, albedo: vec3<f32>, metallic: f3
     return color;
 }
 
-@fragment {{
+@fragment() {{
     // PBR lighting model
     let N: vec3<f32> = normalize(input.vNormalW);
     let V: vec3<f32> = normalize(-input.vPositionW);

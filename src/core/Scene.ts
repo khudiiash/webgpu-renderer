@@ -29,6 +29,12 @@ class Scene extends Object3D {
     public directionalLightsNum!: number;
     public pointLightsNum!: number;
     public fog!: Fog;
+    public time: number = 0;
+    public frame: number = 0;
+
+    private _time: number = 0;
+    private _frame: number = 0;
+    private _last: number = performance.now();
 
     // Add cache for type queries
     private typeCache: Map<new (...args: any[]) => any, Object3D[]> = new Map();
@@ -47,22 +53,30 @@ class Scene extends Object3D {
         const backgroundColor = new Color(config.backgroundColor || '#111111');
         const ambientColor = new Color(config.ambientColor || '#111111');
         const MAX_DIRECTIONAL_LIGHTS = 8;
-        const MAX_POINT_LIGHTS = 32;
+        const MAX_POINT_LIGHTS = 64;
 
         const directionalLights = new UniformDataArray(
             MAX_DIRECTIONAL_LIGHTS,
             DirectionalLight.uniformSize, 
-        ).onChange(() => { this.directionalLightsNum = directionalLights.size; });
+        ).onChange(() => { 
+            if (directionalLights.size !== this.directionalLightsNum) {
+                this.directionalLightsNum = directionalLights.size; 
+            }
+        });
 
         const pointLights = new UniformDataArray(
             MAX_POINT_LIGHTS,
             PointLight.uniformSize,
-        ).onChange(() => { this.pointLightsNum = pointLights.size; });
+        ).onChange(() => { 
+            if (pointLights.size !== this.pointLightsNum) {
+                this.pointLightsNum = pointLights.size; 
+            }
+        });
 
         const fog = new Fog({
             color: backgroundColor,
-            start: 20,
-            end: 100,
+            start: 500, 
+            end: 3000,
             density: 0.01,
             type: Fog.LINEAR
         });
@@ -71,13 +85,13 @@ class Scene extends Object3D {
             name: 'scene',
             isGlobal: true,
             values: {
-                fog,
-                ambientColor,
-                backgroundColor,
-                time: 0,
-                frame: 0,
-                directionalLightsNum: 0,
-                pointLightsNum: 0,
+                fog, // offset: 0
+                ambientColor, // offset: 8
+                backgroundColor, // offset: 12
+                time: 0, // offset: 16
+                frame: 0, // offset: 17 
+                directionalLightsNum: 0, // offset: 24
+                pointLightsNum: 0, // offset: 28
                 directionalLights,
                 pointLights
             }
@@ -164,6 +178,14 @@ class Scene extends Object3D {
         }
         
         return objects;
+    }
+
+    update() {
+        const now = performance.now();
+        this._time += (now - this._last) / 1000;
+        this._last = now;
+
+        this.time = this._time;
     }
 }
 

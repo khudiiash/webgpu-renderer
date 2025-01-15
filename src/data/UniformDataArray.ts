@@ -9,6 +9,7 @@ export class UniformDataArray extends BufferData {
     maxItems: number;
     items: UniformData[];
     monitor: DataMonitor;
+    parentOffset: number = 0;
     /**
      * @param {number} maxItems  maximum number of items
      * @param {number} itemSize  length of item's data
@@ -21,7 +22,7 @@ export class UniformDataArray extends BufferData {
         this.itemSize = itemSize;
         this.maxItems = maxItems;
         this.items = [];
-        this.monitor = new DataMonitor(this, this);
+        this.monitor = new DataMonitor(this, this, itemSize);
     }
 
     /**
@@ -37,9 +38,9 @@ export class UniformDataArray extends BufferData {
             return;
         }
         const index = this.size * this.itemSize;
-        item.onChange(() => {
-            this.set(item.data, index)
-            this.monitor.dispatch();
+        item.parentOffset = this.parentOffset + index;
+        item.onChange((id, start, end) => { // start and end are in uniform scope
+            this.set(item.data.subarray(start, end), index + start);
         })
         this.items.push(item);
         this.set(item.data, index);

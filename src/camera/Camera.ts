@@ -49,7 +49,7 @@ export class Camera extends Object3D {
                 direction: this.target.clone().sub(this.position).normalize(),
             }
         };
-        this.uniforms = new UniformData(this, uniformConfig).onChange(() => {
+        this.uniforms = new UniformData(this, uniformConfig).onChange((data) => {
             ResourceManager.updateBuffer(this.uniforms.id);
         });
 
@@ -77,17 +77,8 @@ export class Camera extends Object3D {
         return this;
     }
 
-    setPosition(x: number | Vector3, y: number = 0, z: number = 0) {
-        if (x instanceof Vector3) {
-            this.target.add(_vector.copy(x).sub(this.position));
-        } else {
-            const diff = _vector.set([x - this.position.x, y - this.position.y, z - this.position.z]);
-            this.target.add(diff);
-        }
-        super.setPosition(x, y, z);
-    }
-
     updateViewMatrix() {
+        this.target.copy(this.position).add(this.direction);
         this.viewMatrix.lookAt(this.position, this.target, this.up);
         this.matrixWorldInverse.copy(this.viewMatrix).invert();
         this.rightDirection.set([this.viewMatrix[0], this.viewMatrix[1], this.viewMatrix[2]]);
@@ -103,9 +94,5 @@ export class Camera extends Object3D {
         this.updateViewMatrix();
     }
 
-    // clone() {
-    //     return new this.constructor().copy(this);
-    // }
 }
 const _projScreenMatrix = new Matrix4();
-const _vector = new Vector3();
