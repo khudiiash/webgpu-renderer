@@ -230,11 +230,9 @@ export class Object3D extends EventEmitter {
 				this.add( child.clone() );
 
 			}
-
 		}
 
 		return this;
-
 	}
 
 

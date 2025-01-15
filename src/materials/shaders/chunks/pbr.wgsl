@@ -130,10 +130,6 @@ fn G_Smith(N: vec3f, V: vec3f, L: vec3f, roughness: f32) -> f32 {
         let ambient = scene.ambientColor.rgb * albedo * (1.0 - metallic);
 
         var finalColor = ambient + Lo;
-
-        // Apply gamma correction
-        finalColor = pow(finalColor, vec3f(1.0 / 2.2));
-
         color = vec4f(finalColor, color.a);
     }
 
