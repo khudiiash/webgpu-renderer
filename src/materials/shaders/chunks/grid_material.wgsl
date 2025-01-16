@@ -49,18 +49,16 @@ fn getScale(model: mat4x4f) -> vec3f {
     let world_pos = input.vPositionW;
     let normal = normalize(input.vNormal);
     
-    // Project position based on uvMode instead of normal
     var grid_pos: vec2<f32>;
     
     let mode = material.grid_uv_mode;
-    if (mode == 1.0) { // WorldX
+    if (mode == 1.0) {
         grid_pos = world_pos.yz;
-    } else if (mode == 2.0) { // WorldZ
+    } else if (mode == 2.0) {
         grid_pos = world_pos.xy;
-    } else if (mode == 3.0) { // WorldY
+    } else if (mode == 3.0) {
         grid_pos = world_pos.xz;
     } else { 
-        // MeshUV - fallback to normal-based
         let abs_normal = abs(normal);
         if (abs_normal.x > abs_normal.y && abs_normal.x > abs_normal.z) {
             grid_pos = world_pos.yz;
@@ -73,21 +71,12 @@ fn getScale(model: mat4x4f) -> vec3f {
 
     grid_pos += material.grid_offset;
 
-    // Calculate grid coordinates
     let cell_coords = grid_pos / material.grid_cell_size;
-    
-    // Calculate distances to nearest grid lines
     let grid_x = abs(fract(cell_coords.x) - 0.5);
     let grid_y = abs(fract(cell_coords.y) - 0.5);
-    
-    // Create sharp grid lines with proper thickness
     let line_x = step(grid_x, material.grid_line_width);
     let line_y = step(grid_y, material.grid_line_width);
-    
-    // Combine lines to form grid
     let grid_factor = line_x + line_y;
-    
-    // Mix colors based on grid factor and apply opacity
     color = mix(material.grid_base_color, material.grid_line_color, min(grid_factor, 1.0));
     color.a *= material.opacity;
 }}

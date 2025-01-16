@@ -56,7 +56,7 @@ export class OrbitControls extends EventEmitter {
   // Control parameters
   rotateSpeed: number = 1.0;
   zoomSpeed: number = 1.01;
-  panSpeed: number = 0.3;
+  panSpeed: number = 1.0;
   minDistance: number = 0;
   maxDistance: number = Infinity;
 
