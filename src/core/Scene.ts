@@ -22,7 +22,6 @@ class Scene extends Object3D {
     public instances: Map<unknown, unknown>;
     public uniforms: UniformData;
 
-
     public ambientColor!: Color;
     public backgroundColor!: Color;
     public pointLights!: UniformDataArray;
@@ -36,6 +35,10 @@ class Scene extends Object3D {
     private _time: number = 0;
     private _frame: number = 0;
     private _last: number = performance.now();
+
+    // Add cache for type queries
+    private typeCache: Map<new (...args: any[]) => any, Object3D[]> = new Map();
+    private isDirty: boolean = true;
 
     constructor(config: SceneConfig = {}) {
         super();
@@ -92,7 +95,7 @@ class Scene extends Object3D {
                 directionalLights,
                 pointLights
             }
-        })
+        });
     }
 
     public add(object: Object3D): this {
@@ -114,6 +117,9 @@ class Scene extends Object3D {
             this.camera = object;
         }
         return this;
+
+        // Invalidate type cache when objects are added
+        this.isDirty = true;
     }
 
     public remove(object: Object3D): this {
@@ -133,7 +139,46 @@ class Scene extends Object3D {
         if (object.isCamera) {
             this.camera = undefined;
         }
-        return this;
+
+        // Invalidate type cache when objects are removed
+        this.isDirty = true;
+    }
+
+    /**
+     * Get all objects of a specific type in the scene
+     * @template T Type of object to find (must extend Object3D)
+     * @param type Constructor of the type to find
+     * @returns Array of objects of the specified type
+     */
+    public getObjectsByType<T extends Object3D>(type: new (...args: any[]) => T): T[] {
+        // Return cached result if valid
+        if (!this.isDirty && this.typeCache.has(type)) {
+            return this.typeCache.get(type) as T[];
+        }
+
+        const objects: T[] = [];
+        
+        // Recursive function to traverse scene graph
+        const traverse = (object: Object3D) => {
+            if (object instanceof type) {
+                objects.push(object as T);
+            }
+            
+            for (const child of object.children) {
+                traverse(child);
+            }
+        };
+
+        // Start traversal from scene root
+        traverse(this);
+        
+        // Cache the results
+        this.typeCache.set(type, objects);
+        if (objects.length > 0) {
+            this.isDirty = false;
+        }
+        
+        return objects;
     }
 
     update() {

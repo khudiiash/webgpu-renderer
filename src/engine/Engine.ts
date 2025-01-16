@@ -10,20 +10,18 @@ import { PipelineManager } from './PipelineManager';
 import { ResourceManager } from './ResourceManager';
 import { PerspectiveCamera } from '@/camera/PerspectiveCamera';
 import { EventCallback, EventEmitter } from '@/core/EventEmitter';
-import { DirectionalLight } from '@/lights/DirectionalLight';
 import { PointLight } from '@/lights/PointLight';
-import { rand } from '@/util';
 import { Vector3 } from '@/math';
-import { Geometry, PlaneGeometry, SphereGeometry } from '@/geometry';
-import { ShaderChunk } from '@/materials';
-import { GLTFLoader } from '@/util/loaders/GLTFLoader';
+import { SphereGeometry } from '@/geometry';
+import { rand } from '@/util';
 
 export class Engine extends EventEmitter {
     static #instance: Engine;
-
     public settings: EngineSettings = { ...EngineDefaultSettings };
     public device!: GPUDevice;
-
+    private renderer!: Renderer;
+    private scene!: Scene;
+    private camera!: PerspectiveCamera;
 
     static get settings() { return Engine.#instance?.settings || { ...EngineDefaultSettings }; }
     static get device() { return Engine.#instance?.device; }
@@ -32,7 +30,7 @@ export class Engine extends EventEmitter {
         if (!Engine.#instance) {
             Engine.#instance = new Engine(settings);
         }
-        return Engine.#instance
+        return Engine.#instance;
     }
 
     static on(event: string, listener: EventCallback, context?: any) {
@@ -46,7 +44,6 @@ export class Engine extends EventEmitter {
     static fire(event: string, data: any) {
         Engine.#instance?.fire(event, data);
     }
-
 
     constructor(settings: EngineSettingsConfig = {}) {
         if (Engine.#instance) {
@@ -72,7 +69,7 @@ export class Engine extends EventEmitter {
             const width = fullscreen ? '100%' : `${this.settings.width}px`;
             const height = fullscreen ? '100%' : `${this.settings.height}px`;
             canvas = document.createElement('canvas');
-            canvas.style.width =  width;
+            canvas.style.width = width;
             canvas.style.height = height;
             canvas.width = this.settings.width;
             canvas.height = this.settings.height;
@@ -82,160 +79,143 @@ export class Engine extends EventEmitter {
         return canvas;
     }
 
-    async init() {
-        const renderer = await new Renderer(this.getOrCreateCanvas()).init();
-        this.device = renderer.device;
+    private async initializeCore() {
+
+        // Initialize core
+        this.renderer = await new Renderer(this.getOrCreateCanvas()).init();
+        this.device = this.renderer.device;
+        
+        // Initialize managers
         ShaderLibrary.init();
         TextureLoader.init(Engine.device);
-        GLTFLoader.init(Engine.device);
         PipelineManager.init(Engine.device);
         ResourceManager.init(Engine.device);
 
-        renderer.setResources(ResourceManager.getInstance());
+        this.renderer.setResources(ResourceManager.getInstance());
+    }
 
-        const scene = new Scene();
-        const camera = new PerspectiveCamera(40, this.settings.width / this.settings.height, 0.1, 1000);
-        camera.lookAt(Vector3.left);
-        camera.position.setXYZ(100, 30, 0);
+    private setupScene() {
 
-        scene.add(camera);
-        scene.backgroundColor.setHex(0x111111);
-        scene.ambientColor.set([0.05, 0.05, 0.05, 1]);
-        scene.fog.color.setHex(0x111111);
-        scene.fog.start = 300;
-        scene.fog.end = 2000;
+        // Create scene
+        this.scene = new Scene();
+        this.scene.backgroundColor.setHex(0x111111);
+        this.scene.fog.color.setHex(0x111111);
 
-        // GRASS MATERIAL (EXTENDED STANDARD MATERIAL)
-        const grassMat = new StandardMaterial({ diffuse: '#aaaa00', metalness: 0.1, roughness: 0.1,  transmission: 1.0, cullMode: 'back' });
-        const grassChunk = new ShaderChunk('grass', `
-            @vertex(before:model) {{
-            if (input.vertex_index == 2) {
-                // animate only the top vertex
-                let model = model[input.instance_index];
-                var worldPosition = getWorldPosition(position, model);
-                let time = scene.time;
+        // Setup camera
+        this.camera = new PerspectiveCamera(45, this.settings.width / this.settings.height, 0.1, 500);
+        this.camera.position.setXYZ(2, 10, 40);
+        this.scene.add(this.camera);
 
-                // noise patches
-                let noise = perlinNoise(worldPosition.xz * 0.1) * 0.5 + 0.5;
-                position.y = noise * 2.0;
+        // Add floor
+        const floor = new Mesh(
+            new BoxGeometry(100, 0.1, 100), 
+            new StandardMaterial({ diffuse: '#333333' })
+        );
+        this.scene.add(floor);
 
-                // wind animation
-                let wind = perlinNoise(worldPosition.xz * 0.005) * 0.5 + 0.5;
-                let windStrength = sin(time * 2.0 + wind * 100.0);
-                position.x += windStrength;
-                position.z += windStrength;
-            }
-            }}
-            @fragment(before:gamma) {{
-                color = vec4(color.rgb * input.vUv.y, 1.0);
-            }}
-        `);
+        this.createBuildings();
+
+        this.createLights();
+    }
+
+    private createBuildings() {
+        const box = new Mesh(
+            new BoxGeometry(1, 1, 1), 
+            new StandardMaterial({ diffuse: '#ffffff' }), 
+            10000
+        );
         
-        grassMat.addChunk(grassChunk);
-
-        // GRASS GEOMETRY
-        const triangleGeometry = new Geometry();
-        triangleGeometry.setFromArrays({
-            positions: [ -1, 0, 0, 1, 0, 0, 0, 1, 0, ],
-            normals: [ 0, 0, -1, 0, 0, -1, 0, 0, -1 ],
-            uvs: [ 0, 0, 1, 0, 0.5, 1 ],
-            indices: [0, 2, 1]
-        });
-
-        // GRASS MESH
-        const grass = new Mesh(triangleGeometry, grassMat, 100_000);
-
-        // GRASS TRANSFORMS
-        const rangeX = 280;
-        const rangeZ = 50;
-        grass.setAllPositions(Array.from({ length: grass.count }, (_, i) => [rand(-rangeX, rangeX), 0, rand(-rangeZ, rangeZ)]).flat());
-        grass.setAllScales(Array.from({ length: grass.count }, (_, i) => [rand(0.3, 0.5), rand(1, 4), 1]).flat());
-        grass.setAllRotations(Array.from({ length: grass.count }, (_, i) => [0, -Math.PI / 2, 0]).flat());
-        scene.add(grass);
-        grass.setPositionAt(128, 0, 0, 0);
-
-        // SPONZA
-        const sponza = await GLTFLoader.loadMesh('assets/models/sponza.glb');
-        if (sponza) {
-            sponza.setScale(0.2);
-            sponza.position.z = 7;
-            scene.add(sponza);
+        const positions = [];
+        const scales = [];
+        const range = 50;
+        
+        for (let i = 0; i < box.count; i++) {
+            const x = rand(-range, range);
+            const z = rand(-range, range);
+            const scaleX = rand(1, 2);
+            const scaleY = rand(1, 4);
+            const scaleZ = rand(1, 3);
+            const y = scaleY / 2;
+            scales.push(scaleX, scaleY, scaleZ);
+            positions.push(x, y, z);
         }
 
-        // LIGHTS
-        const point = new PointLight({ intensity: 10000, range: 2000 });
-        scene.add(point);
-        point.position.setXYZ(-100, 20, 0);
-        const bulb = new Mesh(new SphereGeometry(2), new StandardMaterial({ emissive: '#ffffff', emissive_factor: 100 }));
-        point.add(bulb);
+        box.setAllPositions(positions);
+        box.setAllScales(scales);
+        this.scene.add(box);
+    }
 
-        // const directional = new DirectionalLight({ intensity: 5 });
-        // directional.rotation.set([0, Math.PI / 4, 0]);
-        // scene.add(directional);
+    private createLights() {
+        // Create point lights with bulbs
+        const createPointLightWithBulb = (color: string, position: Vector3) => {
+            const bulb = new Mesh(
+                new SphereGeometry(1), 
+                new StandardMaterial({ 
+                    diffuse: color, 
+                    emissive: color, 
+                    emissive_factor: 40, 
+                    useLight: false, 
+                    useFog: false 
+                })
+            );
+            
+            const pointLight = new PointLight({ 
+                color: color, 
+                intensity: 5, 
+                range: 30 
+            });
+            
+            pointLight.setPosition(position.x, position.y, position.z);
+            pointLight.add(bulb);
+            return pointLight;
+        };
 
-        const particleGeometry = new PlaneGeometry(1, 1);
-        const particleMaterial = new StandardMaterial({ emissive: '#ff0000', transmission: 1, blending: 'additive', transparent: true });
-        particleMaterial.addChunk(new ShaderChunk('particle', `
-            @fragment(last) {{
-                let dist = distance(input.vUv, vec2(0.5));
-                if (dist > 0.5) {
-                    discard;
-                } else {
-                    color = vec4(color.rgb * (0.5 - dist), 0.5 - dist);
-                    let edge = smoothstep(0.0, 0.1, dist);
-                    color.a *= edge;
-                }
-            }}
-        `));
+        const pointLight1 = createPointLightWithBulb('#ffff00', new Vector3(10, 5, 10));
+        const pointLight2 = createPointLightWithBulb('#00aaff', new Vector3(-10, 5, -10));
 
-        const redCube = new PointLight({ intensity: 10000, range: 200, color: '#ff0000' });
-        const redCubeMesh = new Mesh(new BoxGeometry(10, 10, 10), new StandardMaterial({ emissive: '#ff3333', emissive_factor: 5 }));
-        redCube.add(redCubeMesh);
-        redCube.position.setXYZ(-180, 60, 0);
-        scene.add(redCube);
+        this.scene.add(pointLight1);
+        this.scene.add(pointLight2);
+    }
 
-        const particles = new Mesh(particleGeometry, particleMaterial, 500);
-        particles.setAllPositions(Array.from({ length: particles.count }, (_, i) => [rand(-rangeX, rangeX), rand(0, 100), rand(-rangeZ, rangeZ)]).flat());
-        particles.setAllScales(rand(0.2, 1));
-        particles.setAllRotations(Array.from({ length: particles.count }, (_, i) => [0, -Math.PI / 2, 0]).flat());
-        scene.add(particles);
+    async init() {
+        await this.initializeCore();
+        this.setupScene();
+
 
 
         // LOOP
         let last = performance.now();
         let elapsed = 0;
 
-        const loop = () => {
+        const animate = () => {
             const now = performance.now();
             const delta = (now - last) / 1000;
             last = now;
             elapsed += delta;
-            point.position.x = Math.cos(elapsed * 0.3) * 200;
-            const distance = 1;
-            const speed = 1;
-            camera.position.x = Math.sin(elapsed * 0.3) * 200;
-            redCube.rotation.x += delta;
-            redCube.rotation.z += delta;
 
-            const translations = []
-            for (let i = 0; i < particles.count; i++) {
-                translations.push(
-                    Math.sin((elapsed + i) * speed) * distance * delta, 
-                    Math.cos((elapsed + i) * speed) * distance * delta, 
-                    Math.sin((elapsed + i) * speed) * distance * delta,
+            // Animate lights
+            const lightObjects = this.scene.getObjectsByType(PointLight);
+            if (lightObjects.length >= 2) {
+                const [light1, light2] = lightObjects;
+                light1.setPosition(
+                    10 * Math.sin(elapsed * 0.3), 
+                    5, 
+                    10 * Math.cos(elapsed * 0.3)
+                );
+                light2.setPosition(
+                    10 * Math.sin(elapsed * 0.3 + Math.PI), 
+                    5, 
+                    10 * Math.cos(elapsed * 0.3 + Math.PI)
                 );
             }
-            particles.translateAll(translations);
-            renderer.render(scene, camera);
-            requestAnimationFrame(loop);
-        }
 
-        requestAnimationFrame(loop);
+            // Render scene using RenderGraph
+            this.renderer.render(this.scene, this.camera);
+            
+            requestAnimationFrame(animate);
+        };
 
+        requestAnimationFrame(animate);
         return this;
-    }
-
-    public start() {
-
     }
 }

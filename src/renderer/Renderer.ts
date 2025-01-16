@@ -6,6 +6,7 @@ import { Camera } from "@/camera/Camera";
 import { ResourceManager } from "@/engine/ResourceManager";
 import { EventCallback, EventEmitter } from "@/core/EventEmitter";
 import { Color } from "@/math/Color";
+import { RenderGraph } from './RenderGraph';
 
 interface RenderPassDescriptor extends GPURenderPassDescriptor {
     colorAttachments: GPURenderPassColorAttachment[];
@@ -18,25 +19,13 @@ export class Renderer extends EventEmitter {
     public format!: GPUTextureFormat;
     public canvas: HTMLCanvasElement;
     private renderables: WeakMap<Object3D, Renderable> = new WeakMap();
-    private renderPassDescriptor!: RenderPassDescriptor;
     public width: number = 0;
     public height: number = 0;
     public aspect: number = 0;
     resources!: ResourceManager;
+    private renderGraph!: RenderGraph;
 
     static #instance: Renderer;
-
-    static on(event: string, listener: EventCallback, context?: any) {
-        Renderer.#instance?.on(event, listener, context);
-    }
-
-    static off(event: string, listener: EventCallback) {
-        Renderer.#instance?.off(event, listener);
-    }
-
-    static fire(event: string, data: any) {
-        Renderer.#instance?.fire(event, data);
-    }
 
     static getInstance(): Renderer | null {
         if (!Renderer.#instance) {
@@ -65,12 +54,11 @@ export class Renderer extends EventEmitter {
             throw new Error("Failed to get GPU device.");
         }
 
-        const canvas = this.canvas;
-        this.width = canvas.width;
-        this.height = canvas.height;
+        this.width = this.canvas.width;
+        this.height = this.canvas.height;
         this.aspect = this.width / this.height;
 
-        this.context = canvas.getContext('webgpu') as GPUCanvasContext;
+        this.context = this.canvas.getContext('webgpu') as GPUCanvasContext;
         this.format = navigator.gpu.getPreferredCanvasFormat();
         this.context.configure({
             device: this.device,
@@ -78,37 +66,58 @@ export class Renderer extends EventEmitter {
             alphaMode: 'premultiplied',
         });
 
+        this.renderGraph = new RenderGraph(this.device, this.context);
+
+        // Add render targets
+        this.renderGraph.addTexture({
+            name: 'mainColor',
+            format: this.format,
+            width: this.width,
+            height: this.height,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+        });
+
+        this.renderGraph.addTexture({
+            name: 'depth',
+            format: 'depth32float',
+            width: this.width,
+            height: this.height,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+        });
+
+        this.setupResizeObserver();
+        return this;
+    }
+
+    private setupResizeObserver() {
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 const { inlineSize, blockSize } = entry.contentBoxSize[0];
-                const target = entry.target as HTMLCanvasElement;
-                target.width = inlineSize * Math.min(window.devicePixelRatio, 2);
-                target.height = blockSize * Math.min(window.devicePixelRatio, 2);
-                target.width = Math.max(1, Math.min(target.width, this.device.limits.maxTextureDimension2D));
-                target.height = Math.max(1, Math.min(target.height, this.device.limits.maxTextureDimension2D));
-                this.width = target.width;
-                this.height = target.height;
+                const dpr = Math.min(window.devicePixelRatio, 2);
+                
+                this.width = Math.min(inlineSize * dpr, this.device.limits.maxTextureDimension2D);
+                this.height = Math.min(blockSize * dpr, this.device.limits.maxTextureDimension2D);
+                this.canvas.width = Math.max(1, this.width);
+                this.canvas.height = Math.max(1, this.height);
                 this.aspect = this.width / this.height;
+
+                this.renderGraph.resize(this.width, this.height);
                 this.fire('resize', { width: this.width, height: this.height, aspect: this.aspect });
-                this.onResize();
             }
         });
         
         observer.observe(this.canvas);
-        return this;
     }
 
     onResize() {
         this.resources.createDepthTexture('depth', this.width, this.height);
-        this.initRenderPassDescriptor();
     }
 
     setResources(resources: ResourceManager) {
         this.resources = resources;
-        this.resources.createDepthTexture('depth', this.canvas.width, this.canvas.height);
     }
 
-    draw(object: Object3D, camera: Camera, pass: GPURenderPassEncoder) {
+    private draw(object: Object3D, camera: Camera, pass: GPURenderPassEncoder) {
         if (object instanceof Mesh) {
             let renderable = this.renderables.get(object) ?? new Renderable(object);
             !this.renderables.has(object) && this.renderables.set(object, renderable);
@@ -119,51 +128,58 @@ export class Renderer extends EventEmitter {
             this.draw(child, camera, pass);
         }
     }
-    private initRenderPassDescriptor() {
-        this.renderPassDescriptor = {
-            colorAttachments: [
-                {
-                    // @ts-ignore
-                    view: undefined, // Will be set later
-                    clearValue: [0.4, 0.5, 0.5, 1],
-                    loadOp: 'clear' as GPULoadOp,
-                    storeOp: 'store' as GPUStoreOp,
-                }
-            ],
-            depthStencilAttachment: {
-                view: this.resources.getTextureView('depth') as GPUTextureView,
-                depthClearValue: 1.0,
-                depthLoadOp: 'clear' as GPULoadOp,
-                depthStoreOp: 'store' as GPUStoreOp,
-            }
-        };
-    }
-
-    updateTextureView(textureView: GPUTextureView) {
-        this.renderPassDescriptor.colorAttachments[0].view = textureView;
-    }
-
-    updateClearValue(color: Color) {
-        this.renderPassDescriptor.colorAttachments[0].clearValue = color;
-    }
-
 
     public render(scene: Scene, camera: Camera) {
-        const commandEncoder = this.device.createCommandEncoder();
-        const textureView = this.context.getCurrentTexture().createView();
-        scene.update();
-
-        if (!this.renderPassDescriptor) {
-            this.initRenderPassDescriptor();
+        if (!this.renderGraph.verifyRequiredTextures(['mainColor', 'depth'])) {
+            return;
         }
+        
+        this.renderGraph.clear();
+    
+        // Main render pass
+        this.renderGraph.addPass({
+            name: 'mainPass',
+            colorAttachments: [{
+                texture: 'mainColor',
+                loadOp: 'clear',
+                storeOp: 'store',
+                clearValue: scene.backgroundColor
+            }],
+            depthStencilAttachment: {
+                texture: 'depth',
+                depthLoadOp: 'clear',
+                depthStoreOp: 'store',
+                depthClearValue: 1.0
+            }
+        }, (encoder: GPUCommandEncoder, resources: Map<string, GPUTextureView>) => {
+            const mainColorView = resources.get('mainColor');
+            const depthView = resources.get('depth');
+    
+            if (!mainColorView || !depthView) return;
+    
+            const renderPass = encoder.beginRenderPass({
+                colorAttachments: [{
+                    view: mainColorView,
+                    clearValue: scene.backgroundColor,
+                    loadOp: 'clear',
+                    storeOp: 'store',
+                }],
+                depthStencilAttachment: {
+                    view: depthView,
+                    depthClearValue: 1.0,
+                    depthLoadOp: 'clear',
+                    depthStoreOp: 'store',
+                }
+            });
+    
+            this.draw(scene, camera, renderPass);
+            renderPass.end();
+        });
 
-        this.updateTextureView(textureView);
-        this.updateClearValue(scene.backgroundColor);
-
-        const pass = commandEncoder.beginRenderPass(this.renderPassDescriptor);
-        this.draw(scene, camera, pass);
-        pass.end();
-
-        this.device.queue.submit([commandEncoder.finish()]);
+        // Add presentation pass
+        this.renderGraph.addPresentationPass('mainColor');
+        
+        // Execute the frame
+        this.renderGraph.execute();
     }
 }
