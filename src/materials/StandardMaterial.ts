@@ -6,6 +6,8 @@ import { UniformData } from "@/data/UniformData";
 import { RenderState, RenderStateOptions } from "@/renderer/RenderState";
 import { Texture2D } from "@/data/Texture2D";
 import { ObjectMonitor } from '@/data/ObjectMonitor';
+import { GPUStruct } from '@/types';
+import { Struct } from '@/data/Struct';
 
 
 export interface StandardMaterialOptions extends RenderStateOptions {
@@ -32,6 +34,21 @@ export interface StandardMaterialOptions extends RenderStateOptions {
 }
 
 class StandardMaterial extends Material {
+
+    static struct = new Struct('StandardMaterial', {
+        ambient: 'vec4f',
+        diffuse: 'vec4f',
+        specular: 'vec4f',
+        emissive: 'vec4f',
+        sheen: 'vec4f',
+        opacity: 'f32',
+        metalness: 'f32',
+        roughness: 'f32',
+        emissive_factor: 'f32',
+        specular_factor: 'f32',
+        alpha_test: 'f32',
+        transmission: 'f32',
+    })
 
     ambient!: Color;
     diffuse!: Color;
@@ -61,7 +78,8 @@ class StandardMaterial extends Material {
 		}); 
 
         this.uniforms = new UniformData(this, {
-            name: 'material',
+            name: 'standard_material',
+            struct: StandardMaterial.struct,
             isGlobal: false,
             values: {
                 ambient: new Color(options.ambient),

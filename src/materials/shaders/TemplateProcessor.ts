@@ -1,6 +1,8 @@
+import { UniformData } from '@/data';
 import { Shader } from './Shader';
 import { ShaderChunk } from './ShaderChunk';
 import { ShaderLibrary, ShaderDefines } from './ShaderLibrary';
+import { Struct } from '@/data/Struct';
 
 export type TemplateBinding = {
     group: number;
@@ -51,6 +53,7 @@ export class TemplateProcessor {
         processed = this.processIncludes(processed, includeNames);
         processed = this.processFunctions(processed);
         processed = this.processIfBlocks(processed, defines);
+        processed = this.processStructs(processed);
         processed = this.processVars(processed, defines);
         this.processBindings(processed, bindings);
         return processed;
@@ -79,6 +82,7 @@ export class TemplateProcessor {
                 template = addition + template;
             }
         }
+
         return template;
     }
 
@@ -93,6 +97,17 @@ export class TemplateProcessor {
         }
 
         return template;
+    }
+
+    processStructs(template: string) {
+        const structRegex = /#struct\(([\w]+)\)/g;
+        const result = template.replace(structRegex, (_, name) => {
+            const struct = Struct.get(name);
+            if (!struct) { return ''; }
+            const structString = struct.toString();
+            return structString;
+        });
+        return result;
     }
 
     processIfBlocks(template: string, defines: ShaderDefines) {

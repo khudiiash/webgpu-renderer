@@ -10,7 +10,6 @@ import { PipelineManager } from './PipelineManager';
 import { ResourceManager } from './ResourceManager';
 import { PerspectiveCamera } from '@/camera/PerspectiveCamera';
 import { EventCallback, EventEmitter } from '@/core/EventEmitter';
-import { DirectionalLight } from '@/lights/DirectionalLight';
 import { PointLight } from '@/lights/PointLight';
 import { rand } from '@/util';
 import { Vector3 } from '@/math';
@@ -133,7 +132,7 @@ export class Engine extends EventEmitter {
         
         grassMat.addChunk(grassChunk);
 
-        // GRASS GEOMETRY
+        // // GRASS GEOMETRY
         const triangleGeometry = new Geometry();
         triangleGeometry.setFromArrays({
             positions: [ -1, 0, 0, 1, 0, 0, 0, 1, 0, ],
@@ -152,7 +151,6 @@ export class Engine extends EventEmitter {
         grass.setAllScales(Array.from({ length: grass.count }, (_, i) => [rand(0.3, 0.5), rand(1, 4), 1]).flat());
         grass.setAllRotations(Array.from({ length: grass.count }, (_, i) => [0, -Math.PI / 2, 0]).flat());
         scene.add(grass);
-        grass.setPositionAt(128, 0, 0, 0);
 
         // SPONZA
         const sponza = await GLTFLoader.loadMesh('assets/models/sponza.glb');
@@ -163,15 +161,18 @@ export class Engine extends EventEmitter {
         }
 
         // LIGHTS
-        const point = new PointLight({ intensity: 10000, range: 2000 });
+        const point = new PointLight({ intensity: 10000, range: 2000, color: '#ffff88' });
         scene.add(point);
         point.position.setXYZ(-100, 20, 0);
         const bulb = new Mesh(new SphereGeometry(2), new StandardMaterial({ emissive: '#ffffff', emissive_factor: 100 }));
         point.add(bulb);
 
-        // const directional = new DirectionalLight({ intensity: 5 });
-        // directional.rotation.set([0, Math.PI / 4, 0]);
-        // scene.add(directional);
+
+        const redCube = new PointLight({ intensity: 10000, range: 200, color: '#ff0000' });
+        const redCubeMesh = new Mesh(new BoxGeometry(10, 10, 10), new StandardMaterial({ emissive: '#ff3333', emissive_factor: 5 }));
+        redCube.add(redCubeMesh);
+        redCube.position.setXYZ(-180, 60, 0);
+        scene.add(redCube);
 
         const particleGeometry = new PlaneGeometry(1, 1);
         const particleMaterial = new StandardMaterial({ emissive: '#ff0000', transmission: 1, blending: 'additive', transparent: true });
@@ -188,18 +189,11 @@ export class Engine extends EventEmitter {
             }}
         `));
 
-        const redCube = new PointLight({ intensity: 10000, range: 200, color: '#ff0000' });
-        const redCubeMesh = new Mesh(new BoxGeometry(10, 10, 10), new StandardMaterial({ emissive: '#ff3333', emissive_factor: 5 }));
-        redCube.add(redCubeMesh);
-        redCube.position.setXYZ(-180, 60, 0);
-        scene.add(redCube);
-
         const particles = new Mesh(particleGeometry, particleMaterial, 500);
         particles.setAllPositions(Array.from({ length: particles.count }, (_, i) => [rand(-rangeX, rangeX), rand(0, 100), rand(-rangeZ, rangeZ)]).flat());
         particles.setAllScales(rand(0.2, 1));
         particles.setAllRotations(Array.from({ length: particles.count }, (_, i) => [0, -Math.PI / 2, 0]).flat());
         scene.add(particles);
-
 
         // LOOP
         let last = performance.now();

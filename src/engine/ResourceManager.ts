@@ -410,8 +410,10 @@ export class ResourceManager extends EventEmitter {
         }) {
         if (this.buffers.has(id)) {
             const buffer = this.buffers.get(id) as GPUBuffer;
-            this.device.queue.writeBuffer(buffer, 0, data);
             return buffer;
+        }
+        if (!data) {
+            debugger
         }
         const buffer = this.device.createBuffer({
             label: name,
@@ -499,25 +501,25 @@ export class ResourceManager extends EventEmitter {
         const uniformData = UniformData.getByID(dataID);
         if (!uniformData) return;
 
-        if (uniformData.data.byteLength >= ResourceManager.LARGE_BUFFER_THRESHOLD) {
-            await this.updateBufferStaged(dataID, uniformData.data, start, end);
+        if (uniformData.getBuffer().byteLength >= ResourceManager.LARGE_BUFFER_THRESHOLD) {
+            await this.updateBufferStaged(dataID, uniformData.getBuffer(), start, end);
         } else {
             // Small buffer - use direct write
             if (start !== undefined && end !== undefined) {
                 this.device.queue.writeBuffer(
                     buffer,
                     start * 4,
-                    uniformData.data.buffer,
+                    uniformData.getBuffer(),
                     start * 4,
                     (end - start) * 4
                 );
             } else {
-                this.device.queue.writeBuffer(buffer, 0, uniformData.data);
+                this.device.queue.writeBuffer(buffer, 0, uniformData.getBuffer());
             }
         }
     }
 
-    private async updateBufferStaged(dataID: string, data: Float32Array, start?: number, end?: number) {
+    private async updateBufferStaged(dataID: string, data: ArrayBuffer, start?: number, end?: number) {
         const targetBuffer = this.buffers.get(dataID)!;
         let stagingBuffer: GPUBuffer | undefined;
 
@@ -543,7 +545,7 @@ export class ResourceManager extends EventEmitter {
         const updateSize = updateEnd - updateStart;
 
         // Copy data into the mapped staging buffer
-        new Uint8Array(arrayBuffer).set(new Uint8Array(data.buffer, data.byteOffset + updateStart, updateSize));
+        new Uint8Array(arrayBuffer).set(new Uint8Array(data, updateStart, updateSize));
 
         // Unmap the buffer so it can be used in copyBufferToBuffer
         stagingBuffer.unmap();

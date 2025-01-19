@@ -1,28 +1,23 @@
-//import { BufferData, UniformData, DataMonitor } from "@/data";
-import { isAlign4 } from "@/util";
 import { BufferData } from "./BufferData";
 import { DataMonitor } from "./DataMonitor";
 import { UniformData } from "./UniformData";
+import { Struct } from "./Struct";
 
 export class UniformDataArray extends BufferData {
     itemSize: number;
     maxItems: number;
     items: UniformData[];
     monitor: DataMonitor;
-    parentOffset: number = 0;
-    /**
-     * @param {number} maxItems  maximum number of items
-     * @param {number} itemSize  length of item's data
-     */
-    constructor(maxItems: number, itemSize: number) {
-        if (!isAlign4(itemSize)) {
-            throw new Error('Item size must be aligned to 4, got ' + itemSize);
-        }
+    struct: Struct;
+
+    constructor(struct: Struct, maxItems: number) {
+        const itemSize = struct.size / 4;
         super(maxItems * itemSize);
         this.itemSize = itemSize;
+        this.struct = struct;
         this.maxItems = maxItems;
         this.items = [];
-        this.monitor = new DataMonitor(this, this, itemSize);
+        this.monitor = new DataMonitor(this, this);
     }
 
     /**
@@ -38,12 +33,11 @@ export class UniformDataArray extends BufferData {
             return;
         }
         const index = this.size * this.itemSize;
-        item.parentOffset = this.parentOffset + index;
         item.onChange((id, start, end) => { // start and end are in uniform scope
-            this.set(item.data.subarray(start, end), index + start);
+            this.set(item.subarray(start, end), index + start);
         })
         this.items.push(item);
-        this.set(item.data, index);
+        this.set(item.subarray(), index);
     }
 
     /**

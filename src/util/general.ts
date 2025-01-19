@@ -1,8 +1,5 @@
 import { BufferData } from "@/data/BufferData";
 
-function isTypedArray(arr: any): arr is Float32Array | BufferData {
-    return arr instanceof Float32Array || arr instanceof BufferData;
-}
 
 const weakMap = new WeakMap();
 
@@ -59,22 +56,6 @@ export function num(...args: any[]): boolean {
     return true;
 }
 
-export function align16(value: number): number {
-    return Math.ceil(value / 16) * 16;
-}
-
-export function align4(value: number): number {
-    return Math.ceil(value / 4) * 4;
-}
-
-export function isAlign16(value: number): boolean {
-    return value % 16 === 0;
-}
-
-export function isAlign4(value: number): boolean {
-    return value % 4 === 0;
-}
-
 export function autobind(context: any) {
     Object.getOwnPropertyNames(Object.getPrototypeOf(context))
         .filter((key) => {
@@ -86,9 +67,7 @@ export function autobind(context: any) {
         });
 }
 
-export function alignArray(array: ArrayLike<number>): Float32Array {
-    const len = array.length;
-    const aligned = new Float32Array(align4(len));
-    aligned.set(array);
-    return aligned;
+export function capString(str: string): string {
+    return str.charAt(0).toUpperCase() + str.slice(1);
 }
+

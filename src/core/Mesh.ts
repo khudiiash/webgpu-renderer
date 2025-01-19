@@ -47,7 +47,7 @@ export class Mesh extends Object3D {
             isGlobal: false,
             type: 'storage',
             values: {
-                transforms: this.instanceMatrices
+                model: this.instanceMatrices
             }
         })
     }

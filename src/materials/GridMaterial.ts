@@ -4,6 +4,7 @@ import { ObjectMonitor } from '@/data/ObjectMonitor';
 import { StandardMaterial, StandardMaterialOptions } from './StandardMaterial';
 import { Vector2 } from '@/math/Vector2';
 import { Texture2D, UniformData } from '@/data';
+import { GPUStruct } from '@/types';
 
 
 interface GridMaterialOptions extends StandardMaterialOptions {
@@ -16,6 +17,30 @@ interface GridMaterialOptions extends StandardMaterialOptions {
 }
 
 export class GridMaterial extends StandardMaterial{
+    static struct: GPUStruct = {
+        name: 'GridMaterial',
+        layout: {
+            ambient: 'vec4f',
+            diffuse: 'vec4f',
+            specular: 'vec4f',
+            emissive: 'vec4f',
+            sheen: 'vec4f',
+            grid_base_color: 'vec4f',
+            grid_line_color: 'vec4f',
+            grid_offset: 'f32',
+            grid_cell_size: 'f32',
+            grid_line_width: 'f32',
+            grid_uv_mode: 'i32',
+            opacity: 'f32',
+            metalness: 'f32',
+            roughness: 'f32',
+            emissive_factor: 'f32',
+            specular_factor: 'f32',
+            alpha_test: 'f32',
+            transmission: 'f32'
+        }
+    }
+
     constructor(options: GridMaterialOptions = {}) {
         super(options);
 
