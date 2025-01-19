@@ -2,7 +2,8 @@ import { Float32BufferAttribute } from './BufferAttribute';
 import { Vector3 } from '@/math/Vector3';
 import { BoundingBox } from '@/math/BoundingBox';
 import { BoundingSphere } from '@/math/BoundingSphere';
-import { alignArray, autobind, uuid } from '@/util/general';
+import { autobind, uuid } from '@/util/general';
+import { alignArray } from '@/util/webgpu';
 import { BufferData } from '@/data';
 
 const _tempVec3 = new Vector3();
@@ -179,7 +180,6 @@ export class Geometry {
         if (tangents) vertexSize += 3;
         if (bitangents) vertexSize += 3;
 
-        const size = this.vertexCount * vertexSize;
 
         if (!this.packed) {
             this.packed = new BufferData(this.vertexCount, vertexSize).onChange(this.pack);
@@ -267,12 +267,17 @@ export class Geometry {
         tangents?: number[], 
         bitangents?: number[]
     }) {
-        if (positions) this.setAttribute('position', new Float32BufferAttribute(alignArray(positions), 3));
-        if (normals) this.setAttribute('normal', new Float32BufferAttribute(alignArray(normals), 3));
-        if (uvs) this.setAttribute('uv', new Float32BufferAttribute(alignArray(uvs), 2));
-        if (joints) this.setAttribute('joints', new Float32BufferAttribute(alignArray(joints), 4));
-        if (weights) this.setAttribute('weights', new Float32BufferAttribute(alignArray(weights), 4));
+        if (positions) this.setAttribute('position', new Float32BufferAttribute(positions, 3));
+        if (normals) this.setAttribute('normal', new Float32BufferAttribute(normals, 3));
+        if (uvs) this.setAttribute('uv', new Float32BufferAttribute(uvs, 2));
+        if (joints) this.setAttribute('joints', new Float32BufferAttribute(joints, 4));
+        if (weights) this.setAttribute('weights', new Float32BufferAttribute(weights, 4));
         if (indices) this.setIndices(alignArray(indices));
+        if (!Number.isInteger(this.attributes.position.count)) {
+
+            debugger
+        }
+
 
         this.pack();
         this.computeBoundingBox();

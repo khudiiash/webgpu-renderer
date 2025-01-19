@@ -1,4 +1,6 @@
 import { Material } from "@/materials/Material";
+import { Shader } from "@/materials/shaders/Shader";
+import { RenderState } from "@/renderer/RenderState";
 import { b } from "vitest/dist/chunks/suite.B2jumIFP.js";
 
 type ShaderConfig = {
@@ -84,13 +86,13 @@ type ShaderConfig = {
     };
   };
   
-  function hashPipelineState(material: Material): string {
+  function hashPipelineState(shader: Shader, renderState: RenderState): string {
     return JSON.stringify({
-      vertex: material.shader.vertexSource,
-      fragment: material.shader.fragmentSource,
-      primitive: material.renderState.getPrimitive(),
-      depthStencil: material.renderState.getDepthStencil(),
-      blend: material.renderState.getBlendState(),
+      vertex: shader.vertexSource,
+      fragment: shader.fragmentSource,
+      primitive: renderState.getPrimitive(),
+      depthStencil: renderState.getDepthStencil(),
+      blend: renderState.getBlendState(),
     });
   }
   
@@ -286,13 +288,21 @@ export class PipelineManager {
     }
   
     createRenderPipeline(params: {
-      material: Material;
+      shader: Shader,
+      renderState: RenderState,
       layout?: GPUPipelineLayout;
       vertexBuffers?: GPUVertexBufferLayout[];
+      format?: GPUTextureFormat
     }): GPURenderPipeline {
-      const { material, layout, vertexBuffers } = params;
-      const shader = material.shader;
-      const hash = hashPipelineState(material);
+      const { 
+        shader, 
+        layout, 
+        renderState = new RenderState(), 
+        vertexBuffers = [],
+        format = navigator.gpu.getPreferredCanvasFormat()
+      } = params;
+
+      const hash = hashPipelineState(shader, renderState);
   
       if (this.pipelineCache.has(hash)) {
         return this.pipelineCache.get(hash)!;
@@ -308,19 +318,17 @@ export class PipelineManager {
         layout: layout || 'auto',
         vertex: {
           module: vertexModule,
-          entryPoint: 'main',
           buffers: vertexBuffers || [],
         },
         fragment: fragmentModule ? {
           module: fragmentModule,
-          entryPoint: 'main',
           targets: [{ 
-            format: navigator.gpu.getPreferredCanvasFormat(),
-            blend: material.renderState.getBlendState()
+            format: format,
+            blend: renderState.getBlendState()
           }],
         } : undefined,
-        primitive: material.renderState.getPrimitive(),
-        depthStencil: material.renderState.getDepthStencil(),
+        primitive: renderState.getPrimitive(),
+        depthStencil: renderState.getDepthStencil(),
       };
   
       const pipeline = this.device.createRenderPipeline(pipelineDescriptor);

@@ -66,7 +66,8 @@ export class Renderable {
         const pipelineLayout = this.pipelineManager.createPipelineLayout(this.getBindGroupLayouts());
         
         this.pipeline = this.pipelineManager.createRenderPipeline({
-            material: this.material,
+            shader: this.material.shader,
+            renderState: this.material.renderState,
             layout: pipelineLayout,
             vertexBuffers: [this.geometry.getVertexAttributesLayout()],
         });
@@ -77,7 +78,8 @@ export class Renderable {
         const pipelineLayout = this.pipelineManager.createPipelineLayout(this.getBindGroupLayouts());
         
         this.pipeline = this.pipelineManager.createRenderPipeline({
-            material: this.material,
+            shader: this.material.shader,
+            renderState: this.material.renderState,
             layout: pipelineLayout,
             vertexBuffers: [this.geometry.getVertexAttributesLayout()],
         });

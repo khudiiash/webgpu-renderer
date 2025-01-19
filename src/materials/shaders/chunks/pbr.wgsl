@@ -28,18 +28,11 @@ fn G_Smith(N: vec3f, V: vec3f, L: vec3f, roughness: f32) -> f32 {
 
 @fragment() {{
     #if USE_LIGHT {
-        let DIR_NUM : u32 = u32(scene.directionalLightsNum);
-        let POINT_NUM : u32 = u32(scene.pointLightsNum);
-
-        // Base color (albedo)
-        let albedo = color.rgb; // Assume you have this parameter
+        let albedo = color.rgb;
         let roughness = material.roughness;
         let metallic = material.metalness;
 
-        // Calculate reflectance at normal incidence (F0)
-        var F0 = vec3f(0.04); // Default reflectance for dielectrics
-
-        // If metallic, use albedo as F0
+        var F0 = vec3f(0.04);
         F0 = mix(F0, albedo, metallic);
 
         var N = normalize(input.vNormalW);
@@ -47,90 +40,62 @@ fn G_Smith(N: vec3f, V: vec3f, L: vec3f, roughness: f32) -> f32 {
 
         var Lo = vec3f(0.0);
 
-        // Accumulate light contributions
-        for (var i = 0u; i < DIR_NUM; i++) {
+        for (var i = 0u; i < scene.directionalLightsNum; i++) {
             let light = scene.directionalLights[i];
-            let L = normalize(-light.direction); // Light direction towards surface
+            let L = normalize(-light.direction); 
             let H = normalize(V + L);
 
             let NdotL = max(dot(N, L), 0.0);
 
             if (NdotL > 0.0) {
-                // Calculate the Fresnel term
                 let F = fresnelSchlick(max(dot(H, V), 0.0), F0);
-
-                // Calculate the NDF
                 let D = NDF_GGX(N, H, roughness);
-
-                // Calculate the Geometry function
                 let G = G_Smith(N, V, L, roughness);
 
-                // Cook-Torrance BRDF
                 let numerator = D * F * G;
-                let denominator = 4.0 * max(dot(N, V), 0.0) * NdotL + 0.001; // Add small epsilon to prevent division by zero
+                let denominator = 4.0 * max(dot(N, V), 0.0) * NdotL + EPSILON;
                 let specular = numerator / denominator;
 
-                // kS is equal to Fresnel term
                 let kS = F;
-                // kD is diffuse component and is (1 - kS) * (1 - metallic)
                 let kD = (vec3f(1.0) - kS) * (1.0 - metallic);
-
-                // Lambertian diffuse
                 let diffuse = kD * albedo / PI;
-
-                // Add to outgoing radiance Lo
-                let radiance = light.intensity * light.color.rgb; // You may need to scale with light.intensity
+                let radiance = light.intensity * light.color.rgb;
 
                 Lo += (diffuse + specular) * radiance * NdotL;
             }
         }
 
-        // Similar loop for point lights
-        for (var i = 0u; i < POINT_NUM; i++) {
+        for (var i = 0u; i < scene.pointLightsNum; i++) {
             let light = scene.pointLights[i];
             let L = normalize(light.position - input.vPositionW);
             let H = normalize(V + L);
 
             let distance = length(light.position - input.vPositionW);
-            let attenuation = 1.0 / (distance * distance); // Inverse square falloff
+            let attenuation = 1.0 / (distance * distance);
 
             let NdotL = max(dot(N, L), material.transmission);
 
             if (NdotL > 0.0) {
-                // Calculate the Fresnel term
                 let F = fresnelSchlick(max(dot(H, V), 0.0), F0);
-
-                // Calculate the NDF
                 let D = NDF_GGX(N, H, roughness);
-
-                // Calculate the Geometry function
                 let G = G_Smith(N, V, L, roughness);
 
-                // Cook-Torrance BRDF
                 let numerator = D * F * G;
                 let denominator = 4.0 * max(dot(N, V), 0.0) * NdotL + 0.001;
                 let specular = numerator / denominator;
 
-                // kS is equal to Fresnel term
                 let kS = F;
-                // kD is diffuse component and is (1 - kS) * (1 - metallic)
                 let kD = (vec3f(1.0) - kS) * (1.0 - metallic);
 
-                // Lambertian diffuse
                 let diffuse = kD * albedo / PI;
-
-                // Add to outgoing radiance Lo
-                let radiance = attenuation * light.intensity * light.color.rgb; // Attenuate radiance
-
+                let radiance = attenuation * light.intensity * light.color.rgb;
                 Lo += (diffuse + specular) * radiance * NdotL;
             }
         }
 
-        // Ambient lighting (Image-Based Lighting could be used here)
         let ambient = scene.ambientColor.rgb * albedo * (1.0 - metallic);
 
         var finalColor = ambient + Lo;
         color = vec4f(finalColor, color.a);
     }
-
 }}

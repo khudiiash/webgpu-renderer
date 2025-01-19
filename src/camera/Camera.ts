@@ -7,6 +7,7 @@ import { UniformData, UniformDataConfig } from '@/data/UniformData';
 import { uuid } from '@/util/general';
 import { Renderer } from '@/renderer/Renderer';
 import { ResourceManager } from '@/engine/ResourceManager';
+import { Struct } from '@/data/Struct';
 
 
 export class Camera extends Object3D {
@@ -22,7 +23,14 @@ export class Camera extends Object3D {
     public rightDirection: Vector3;
     public frustum: Frustum;
     public uniforms: UniformData;
-    public aspect: number;
+    public aspect: number = 1;
+
+    static struct = new Struct('Camera', {
+        view: 'mat4x4f',
+        projection: 'mat4x4f',
+        position: 'vec3f',
+        direction: 'vec3f',
+    });
 
     constructor() {
         super();
@@ -42,6 +50,7 @@ export class Camera extends Object3D {
         const uniformConfig: UniformDataConfig = {
             name: 'camera',
             isGlobal: true,
+            struct: Camera.struct,
             values: {
                 projection: this.projectionMatrix,
                 view: this.matrixWorldInverse,
@@ -52,8 +61,6 @@ export class Camera extends Object3D {
         this.uniforms = new UniformData(this, uniformConfig).onChange((data) => {
             ResourceManager.updateBuffer(this.uniforms.id);
         });
-
-        this.aspect = 1; // Default aspect ratio
 
         Renderer.on('resize', this._onResize, this);
     }
@@ -66,7 +73,6 @@ export class Camera extends Object3D {
     _onResize({ aspect }: { aspect: number }) {
         if (this.aspect === aspect) return;
         this.aspect = aspect;
-        console.log('Camera aspect ratio updated:', this.aspect);
         this.updateProjectionMatrix();
     }
 
