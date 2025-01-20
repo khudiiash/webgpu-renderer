@@ -1,21 +1,8 @@
-import { UniformData } from "@/data";
 import { BindGroupLayout } from "@/data/BindGroupLayout";
 import { Binding } from "@/data/Binding";
 import { Shader } from "@/materials/shaders/Shader";
 import { RenderState } from "@/renderer/RenderState";
 import { hashPipelineState } from "@/util/webgpu";
-
-interface BindGroupInfo {
-  group: number;
-  layout: GPUBindGroupLayout;
-  bindings: Record<string, {
-    binding: number;
-    type: string;
-    name: string;
-    visibility: GPUShaderStageFlags;
-    buffer: 'uniform' | 'storage' | 'read-only-storage';
-  }>;
-}
 
 export class PipelineManager {
   static init(device: GPUDevice) { PipelineManager.#instance = new PipelineManager(device); }
@@ -26,7 +13,6 @@ export class PipelineManager {
   private device!: GPUDevice;
   private shaderModule!: Map<string, GPUShaderModule>;
   private pipelineCache!: Map<string, GPURenderPipeline>;
-  private bindGroupLayoutCache!: Map<string, GPUBindGroupLayout>;
   private pipelineLayoutCache!: Map<string, GPUPipelineLayout>;
   private layouts: Map<string, GPUBindGroupLayout> = new Map();
   private layoutDescriptors: Map<string, BindGroupLayout> = new Map();
@@ -39,7 +25,6 @@ export class PipelineManager {
     this.device = device;
     this.shaderModule = new Map();
     this.pipelineCache = new Map();
-    this.bindGroupLayoutCache = new Map();
     this.pipelineLayoutCache = new Map();
     PipelineManager.#instance = this;
     this.createDefaultLayouts();

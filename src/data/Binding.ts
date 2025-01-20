@@ -1,6 +1,5 @@
 import { BufferBindGroupLayoutDescriptor, GPUAccess, SamplerBindGroupLayoutDescriptor, StorageTextureBindGroupLayoutDescriptor, TextureBindGroupLayoutDescriptor } from "@/types";
 import { BindGroupLayout } from "./BindGroupLayout";
-import { ResourceManager } from "@/engine";
 
 
 

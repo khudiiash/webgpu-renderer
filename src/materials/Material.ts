@@ -1,12 +1,9 @@
 import { Mesh } from "@/core/Mesh";
 import { autobind, uuid } from "@/util/general";
-import { BufferData } from "@/data/BufferData";
 import { Shader, ShaderChunk, ShaderConfig } from "@/materials/shaders"
 import { UniformData } from "@/data/UniformData";
-import { Texture } from "@/data/Texture";
 import { RenderState } from "@/renderer/RenderState";
 import { EventEmitter } from "@/core/EventEmitter";
-import { ObjectMonitor } from "@/data/ObjectMonitor";
 
 export type MaterialOptions = {
     name?: string;

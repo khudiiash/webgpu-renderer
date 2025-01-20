@@ -29,7 +29,6 @@ export type ShaderConfig = {
 
 export class ShaderLibrary {
     static init() {
-        const lib = new ShaderLibrary();
         for (const [name, code] of Object.entries(chunks)) {
             new ShaderChunk(name, code);
         }

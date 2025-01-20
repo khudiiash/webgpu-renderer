@@ -16,7 +16,6 @@ import { Vector3 } from '@/math';
 import { Geometry, PlaneGeometry, SphereGeometry } from '@/geometry';
 import { ShaderChunk } from '@/materials';
 import { GLTFLoader } from '@/util/loaders/GLTFLoader';
-import { OrbitControls } from '@/camera';
 
 export class Engine extends EventEmitter {
     static #instance: Engine;
