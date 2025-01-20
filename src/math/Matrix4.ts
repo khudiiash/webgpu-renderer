@@ -3,6 +3,7 @@ import { Vector3 } from "./Vector3";
 import { Quaternion } from "./Quaternion";
 import { Euler } from "./Euler";
 import { Matrix3 } from "./Matrix3";
+import { num } from "@/util/general";
 
 export class Matrix4 extends BufferData {
     readonly length: number = 16;
@@ -661,11 +662,11 @@ export class Matrix4 extends BufferData {
         return this.set([
             x, 0, 0, 0,
             0, y, 0, 0,
-            0, 0, c, -1,
-            a, b, d, 0
+            a, b, c, -1,
+            0, 0, d, 0
         ]);
     }
-    setPosition( x: Vector3 | number, y: number, z: number ) {
+    setPosition( x: Vector3 | number, y?: number, z?: number ) {
 		const te = this;
 
 		if ( x instanceof Vector3 ) {
@@ -673,10 +674,10 @@ export class Matrix4 extends BufferData {
 			te[ 13 ] = x.y;
 			te[ 14 ] = x.z;
 
-		} else {
-			te[12] = x;
-			te[13] = y;
-			te[14] = z;
+		} else if (num(x, y, z)) {
+			te[12] = x as number;
+			te[13] = y as number;
+			te[14] = z as number;
 		}
 
 		return this;
@@ -743,7 +744,7 @@ export class Matrix4 extends BufferData {
 
     toString() {
         const te = this;
-        return `${te[0]} ${te[4]} ${te[8]} ${te[12]}\n${te[1]} ${te[5]} ${te[9]} ${te[13]}\n${te[2]} ${te[6]} ${te[10]} ${te[14]}\n${te[3]} ${te[7]} ${te[11]} ${te[15]}`;
+        return `${te[0]} ${te[1]} ${te[2]} ${te[3]}\n${te[4]} ${te[5]} ${te[6]} ${te[7]}\n${te[8]} ${te[9]} ${te[10]} ${te[11]}\n${te[12]} ${te[13]} ${te[14]} ${te[15]}`;
     }
 }
 const _zero = new Vector3();

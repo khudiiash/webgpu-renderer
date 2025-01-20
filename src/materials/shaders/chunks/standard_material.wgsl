@@ -35,6 +35,9 @@
     
     // maps
     color *= sampleColor(diffuse_map, diffuse_map_sampler, input.vUv, color);
+    if (color.a < material.alpha_test) {
+        discard;
+    }
 
     // lighting
     if (material.useLight == 1) {

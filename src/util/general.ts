@@ -3,8 +3,10 @@ import { BufferData } from "@/data/BufferData";
 
 const weakMap = new WeakMap();
 
-export function arraysEqual(a: BufferData | Float32Array | ArrayLike<number>, b: BufferData | Float32Array | ArrayLike<number>, start: number, end: number): boolean {
+export function arraysEqual(a: BufferData | Float32Array | ArrayLike<number>, b: BufferData | Float32Array | ArrayLike<number>, start: number, end: number, precision?: number = 1e-6): boolean {
     // Early returns for obvious cases
+    // 1e-6 is the default precision (0.000001)
+
     if (a === b) return true;
     if (!a || !b) return false;
     
@@ -12,13 +14,13 @@ export function arraysEqual(a: BufferData | Float32Array | ArrayLike<number>, b:
     if (len !== b.length) return false;
     if (weakMap.has(a)) {
         const i = weakMap.get(a);
-        if (a[i] !== b[i]) {
+        if (Math.abs(a[i] - b[i]) > precision) {
             return false;
         }
     }
 
     for (let i = start; i < end; i++) {
-        if (a[i] !== b[i]) {
+        if (Math.abs(a[i] - b[i]) > precision) {
             weakMap.set(a, i);
             return false;
         }

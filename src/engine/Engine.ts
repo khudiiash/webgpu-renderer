@@ -191,9 +191,9 @@ export class Engine extends EventEmitter {
             }}
         `));
 
-        const particles = new Mesh(particleGeometry, particleMaterial, 500);
+        const particles = new Mesh(particleGeometry, particleMaterial, 3_000);
         particles.setAllPositions(Array.from({ length: particles.count }, (_, i) => [rand(-rangeX, rangeX), rand(0, 100), rand(-rangeZ, rangeZ)]).flat());
-        particles.setAllScales(rand(0.2, 1));
+        particles.setAllScales(rand(0.15, 0.3));
         particles.setAllRotations(Array.from({ length: particles.count }, (_, i) => [0, -Math.PI / 2, 0]).flat());
         scene.add(particles);
 
@@ -212,6 +212,8 @@ export class Engine extends EventEmitter {
             camera.position.x = Math.sin(elapsed * 0.3) * 200;
             redCube.rotation.x += delta;
             redCube.rotation.z += delta;
+            camera.fov = Math.cos(elapsed * 0.3) * 30 + 30 + 30;
+            camera.updateProjectionMatrix();
 
             const translations = []
             for (let i = 0; i < particles.count; i++) {
