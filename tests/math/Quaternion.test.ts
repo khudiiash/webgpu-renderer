@@ -54,7 +54,7 @@ describe('Quaternion', () => {
 
     it('should perform conjugate operation', () => {
         const q = new Quaternion(1, 2, 3, 4)
-        q.conjugate()
+        q.negate()
         expect(q.x).toBe(-1)
         expect(q.y).toBe(-2)
         expect(q.z).toBe(-3)

@@ -30,7 +30,6 @@ export class PerspectiveCamera extends Camera {
     }
   
     updateProjectionMatrix() {
-        console.log('updateProjectionMatrix');  
         const near = this.near;
         let top = near * Math.tan(DEG2RAD * 0.5 * this.fov) / this.zoom;
         let height = 2 * top;

@@ -45,6 +45,9 @@ export class ShaderLibrary {
     }
 
     static addChunk(chunk: ShaderChunk) {
+        if (!this.#instance) {
+            this.#instance = new ShaderLibrary();
+        }
         this.#instance.addChunk(chunk);
     }
 
