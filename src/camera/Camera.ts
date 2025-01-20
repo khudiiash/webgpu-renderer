@@ -22,7 +22,6 @@ export class Camera extends Object3D {
     public projectionViewMatrix: Matrix4;
     public rightDirection: Vector3;
     public frustum: Frustum;
-    public uniforms: UniformData;
     public aspect: number = 1;
 
     static struct = new Struct('Camera', {
@@ -47,20 +46,19 @@ export class Camera extends Object3D {
         this.rightDirection = new Vector3();
         this.frustum = new Frustum();
 
-        const uniformConfig: UniformDataConfig = {
-            name: 'camera',
-            isGlobal: true,
-            struct: Camera.struct,
-            values: {
-                projection: this.projectionMatrix,
-                view: this.matrixWorldInverse,
-                position: this.position,
-                direction: this.forward,
-            }
-        };
-        this.uniforms = new UniformData(this, uniformConfig).onChange((data) => {
-            ResourceManager.updateBuffer(this.uniforms.id);
-        });
+        this.uniforms = new Map<string, UniformData>();
+        this.uniforms.set('Camera', new UniformData(this, {
+                name: 'Camera',
+                isGlobal: true,
+                struct: Camera.struct,
+                values: {
+                    projection: this.projectionMatrix,
+                    view: this.matrixWorldInverse,
+                    position: this.position,
+                    direction: this.forward,
+                }
+            }),
+        );
 
         Renderer.on('resize', this._onResize, this);
     }

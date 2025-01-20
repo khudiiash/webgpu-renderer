@@ -39,3 +39,25 @@ export interface TypedArrayConstructorLike<T extends TypedArray> {
     new(buffer: ArrayBuffer, byteOffset?: number, length?: number): T;
     BYTES_PER_ELEMENT: number;
 }
+
+export type BufferBindGroupLayoutDescriptor = {
+    hasDynamicOffset?: boolean;
+    minBindingSize?: number;
+    type?: GPUBufferBindingType
+}
+
+export type TextureBindGroupLayoutDescriptor = {
+    multisampled?: boolean; 
+    sampleType?: GPUTextureSampleType;
+    viewDimension?: GPUTextureViewDimension;
+}
+
+export type StorageTextureBindGroupLayoutDescriptor = {
+    access?: GPUStorageTextureAccess;
+    format?: GPUTextureFormat;
+    viewDimension?: GPUTextureViewDimension;
+}
+
+export type SamplerBindGroupLayoutDescriptor = {
+    type?: GPUSamplerBindingType;
+}

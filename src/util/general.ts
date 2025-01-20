@@ -27,6 +27,24 @@ export function arraysEqual(a: BufferData | Float32Array | ArrayLike<number>, b:
     return true;
 }
 
+export function snakeCase(str: string): string {
+    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+}
+
+export function capCase(str: string): string {
+    return str.replace(/_./g, (match) => match.charAt(1).toUpperCase());
+}
+
+export function camelCase(str: string): string {
+    return str.replace(/_./g, (match) => match.charAt(1).toUpperCase());
+}
+
+export function boolToNum(value: any, defaultValue: number = 0): number {
+    if (value === undefined) {
+        return defaultValue;
+    }
+    return value === true ? 1 : 0;
+}
 
 export function objectsEqual(a: { [key: string]: any }, b: { [key: string]: any }): boolean {
     if (a === b) return true;

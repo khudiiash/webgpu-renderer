@@ -6,19 +6,23 @@ import { Material } from '@/materials/Material';
 import { uuid } from '@/util/general';
 import { BufferData } from '@/data/BufferData';
 import { Euler, Quaternion, Vector3 } from '@/math';
+import { Struct } from '@/data/Struct';
 
 export class Mesh extends Object3D {
     public geometry!: Geometry;
     public material!: Material;
     public id: string = uuid('mesh');
-    public uniforms: UniformData;
     public count = 1;
     public instanceMatrices: BufferData;
 
     public isMesh: boolean = true;
     public isInstanced: boolean = false;
     public type: string = 'mesh';
-    localInstanceMatrices: BufferData;
+    public localInstanceMatrices: BufferData;
+
+    static struct = new Struct('MeshOptions', {
+        useBillboard: 'u32',
+    })
 
     constructor(geometry?: Geometry, material?: Material, count: number = 1) {
         super();
@@ -42,14 +46,26 @@ export class Mesh extends Object3D {
             this.instanceMatrices.set(Matrix4.IDENTITY, i * 16);
         }
 
-        this.uniforms = new UniformData(this, {
-            name: 'model',
-            isGlobal: false,
-            type: 'storage',
-            values: {
-                model: this.instanceMatrices
-            }
-        })
+        this.uniforms = new Map<string, UniformData>();
+        this.uniforms.set('MeshInstances', new UniformData(this, {
+                name: 'MeshInstances',
+                isGlobal: false,
+                type: 'storage',
+                values: {
+                    instances: this.instanceMatrices,
+                }
+            }),
+        );
+
+        this.uniforms.set('MeshOptions', new UniformData(this, {
+                name: 'MeshOptions',
+                isGlobal: false,
+                struct: Mesh.struct,
+                values: {
+                    useBillboard: 0,
+                }
+            }),
+        );
     }
 
     getMatrixAt(index = 0, matrix = Matrix4.instance): Matrix4 {
@@ -169,8 +185,6 @@ export class Mesh extends Object3D {
         return _mat.getPosition(vector);
     }
 
-
-
     private updateInstanceWorldMatrix(index: number) {
         const localMatrix = this.getLocalMatrixAt(index, _mat);
         const worldMatrix = Matrix4.instance.multiplyMatrices(this.matrixWorld, localMatrix);
@@ -208,8 +222,6 @@ export class Mesh extends Object3D {
         this.updateAllInstanceWorldMatrices();
     }
 
-
-
     getLocalMatrixAt(index: number, matrix = Matrix4.instance): Matrix4 {
         matrix.fromArraySilent(this.localInstanceMatrices, index * 16);
         return matrix;
@@ -228,14 +240,10 @@ export class Mesh extends Object3D {
         this.material = source.material;
         this.count = source.count;
         super.copy(source);
-        this.uniforms.rebuild();
+        this.uniforms.notifyRebuild();
         return this;
     }
 }
 
 const _vec1 = new Vector3();
-const _vec2 = new Vector3();
-const _vec3 = new Vector3();
 const _mat = new Matrix4();
-const _rotMat = new Matrix4();
-const _quat = new Quaternion();
