@@ -240,7 +240,8 @@ export class Mesh extends Object3D {
         this.material = source.material;
         this.count = source.count;
         super.copy(source);
-        this.uniforms.notifyRebuild();
+        this.uniforms.get('MeshInstances')!.notifyRebuild();
+        this.uniforms.get('MeshOptions')!.notifyRebuild();
         return this;
     }
 }

@@ -3,8 +3,7 @@ import { BufferData } from './BufferData';
 import { Texture } from './Texture';
 import { Struct, StructValue } from './Struct';
 import { GPUPlainType, TypedArray } from '@/types';
-import { alignTo, getArrayTypeAlignment, getNumElements, getTypeAlignment, getViewType, isArrayType, isBufferView, isPlainType, isRecord } from '@/util/webgpu';
-import { UniformDataArray } from './UniformDataArray';
+import { alignTo, getArrayTypeAlignment, getTypeAlignment, getViewType, isArrayType, isBufferView, isPlainType, isRecord } from '@/util/webgpu';
 import { Binding } from './Binding';
 
 export type UniformDataType = BufferData | Texture | number;
@@ -122,7 +121,6 @@ export class UniformData {
         console.error(`Binding not found for uniform data "${this.name}"`);
         return;
       }
-      const type = binding.bufferType;
 
       let offset = 0;
       for (const [key, value] of this.items.entries()) {
@@ -172,7 +170,7 @@ export class UniformData {
           } else {
             // Create views for primitive types
             const viewConstructor = getViewType(elementType as GPUPlainType);
-            views[key].push(new viewConstructor(buffer, elementOffset, entry.size / 4));
+            (views as unknown as Record<string, TypedArray[]>)[key].push(new viewConstructor(buffer, elementOffset, entry.size / 4) as TypedArray);
           }
         }
       } else if (type instanceof Struct) {
@@ -352,13 +350,13 @@ export class UniformData {
       } else if (value instanceof BufferData) {
         this.defineBufferProperty(key, value);
       } else if (typeof value === 'number' || Array.isArray(value) || typeof value === 'object') {
-        this.defineValueProperty(key, value);
+        this.defineValueProperty(key);
       }
     }
   }
 
   /** Defines a property on the parent for a scalar, array, or object value */
-  private defineValueProperty(name: string, initialValue: UniformDataType): void {
+  private defineValueProperty(name: string): void {
     Object.defineProperty(this.parent, name, {
       get: () => this.get(name),
       set: (newValue: UniformDataType) => {
@@ -400,7 +398,7 @@ private defineBufferProperty(name: string, bufferData: BufferData): void {
     this.setValue(name, bufferData, start, end);
     this.notifyChange(offset + start, offset + end);
   }
-  bufferData.onChange((data, start, end) => updateBufferData(start, end));
+  bufferData.onChange((_, start, end) => updateBufferData(start, end));
 
   updateBufferData();
 
@@ -411,7 +409,7 @@ private defineBufferProperty(name: string, bufferData: BufferData): void {
         if (newValue === bufferData) return;
         bufferData.offChange();
         bufferData = newValue;
-        bufferData.onChange((data, start, end) => updateBufferData(start, end));
+        bufferData.onChange((_, start, end) => updateBufferData(start, end));
         updateBufferData();
       } else {
         console.warn(`Value assigned to BufferData property "${name}" is not a BufferData instance.`);

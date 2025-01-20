@@ -5,34 +5,6 @@ import { Shader } from "@/materials/shaders/Shader";
 import { RenderState } from "@/renderer/RenderState";
 import { hashPipelineState } from "@/util/webgpu";
 
-type GPUBindGroupEntry = {
-  binding: number;
-  visibility: GPUShaderStageFlags;
-  buffer?: {
-    type: 'uniform' | 'storage' | 'read-only-storage';
-    hasDynamicOffset?: boolean;
-    minBindingSize?: number;
-  };
-  sampler?: {
-    type: 'filtering' | 'non-filtering' | 'comparison';
-  };
-  texture?: {
-    sampleType: 'float' | 'depth';
-    viewDimension: '1d' | '2d' | '2d-array' | '3d' | 'cube' | 'cube-array';
-    multisampled: boolean;
-  };
-  storageTexture?: {
-    access: 'read-only' | 'writeonly';
-    format: GPUTextureFormat;
-    viewDimension: '1d' | '2d' | '2d-array' | '3d';
-  };
-};
-
-type BindGroupLayoutDescriptor = {
-  label?: string;
-  entries: GPUBindGroupEntry[];
-};
-
 interface BindGroupInfo {
   group: number;
   layout: GPUBindGroupLayout;
@@ -56,7 +28,6 @@ export class PipelineManager {
   private pipelineCache!: Map<string, GPURenderPipeline>;
   private bindGroupLayoutCache!: Map<string, GPUBindGroupLayout>;
   private pipelineLayoutCache!: Map<string, GPUPipelineLayout>;
-  private groupInfo: Map<string, BindGroupInfo> = new Map();
   private layouts: Map<string, GPUBindGroupLayout> = new Map();
   private layoutDescriptors: Map<string, BindGroupLayout> = new Map();
 
@@ -76,14 +47,9 @@ export class PipelineManager {
 
   private createDefaultLayouts() {
     this.layouts = new Map();
-    this.groupInfo = new Map();
     this.createGlobalLayout();
     this.createMeshLayout();
     this.createStandardMaterialLayout();
-  }
-
-  static getBindingInfo(group: string): BindGroupInfo | undefined {
-    return this.getInstance().groupInfo.get(group);
   }
 
   private createGlobalLayout(): void {
@@ -216,21 +182,11 @@ export class PipelineManager {
     return pipeline;
   }
 
-  createComputePipeline(desc: {
+  createComputePipeline(_: {
     code: string;
     entryPoint: string;
     bindGroups?: GPUBindGroupLayout[];
-  }): GPUComputePipeline {
-    const module = this.createShaderModule('compute', desc.code);
-
-    return this.device.createComputePipeline({
-      layout: desc.bindGroups
-        ? this.createPipelineLayout(desc.bindGroups)
-        : 'auto',
-      compute: {
-        module,
-        entryPoint: desc.entryPoint
-      }
-    });
+  }): void {
+    // TODO
   }
 }
