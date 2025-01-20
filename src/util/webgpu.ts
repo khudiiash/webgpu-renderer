@@ -1,5 +1,6 @@
+import { Shader } from "@/materials";
+import { RenderState } from "@/renderer/RenderState";
 import { GPUPlainType, TypedArray, TypedArrayConstructorLike, } from "@/types";
-import { T } from "vitest/dist/chunks/environment.LoooBwUu.js";
 
 export function align16(value: number): number {
     return Math.ceil(value / 16) * 16;
@@ -82,6 +83,10 @@ export function getNumElements(type: GPUPlainType): number {
 
 export function isPlainType(type: any): type is GPUPlainType {
     return Object.keys(TYPE_SIZES).includes(type);
+}
+
+export function isArrayType(type: any): boolean {
+   return type.includes('array');
 }
 
 export function isBufferView(type: any): boolean {
@@ -190,4 +195,35 @@ export function getTypeSize(type: GPUPlainType): number {
 // Get the alignment of a type in bytes
 export function getTypeAlignment(type: GPUPlainType): number {
     return TYPE_ALIGNMENTS[type as keyof typeof TYPE_ALIGNMENTS] || 0;
+}
+
+export function getArrayTypeAlignment(type: string): number {
+   const match = type.match(/([a-z][a-z\d]+)(?=,|>)/);
+   if (!match) {
+       return 0;
+   }
+  return getTypeAlignment(match[1] as GPUPlainType);
+}
+
+export function usageToString(usage: GPUBufferUsageFlags): string {
+    const names = [];
+    if (usage & GPUBufferUsage.COPY_SRC) names.push('COPY_SRC');
+    if (usage & GPUBufferUsage.COPY_DST) names.push('COPY_DST');
+    if (usage & GPUBufferUsage.INDEX) names.push('INDEX');
+    if (usage & GPUBufferUsage.VERTEX) names.push('VERTEX');
+    if (usage & GPUBufferUsage.UNIFORM) names.push('UNIFORM');
+    if (usage & GPUBufferUsage.STORAGE) names.push('STORAGE');
+    if (usage & GPUBufferUsage.INDIRECT) names.push('INDIRECT');
+    if (usage & GPUBufferUsage.QUERY_RESOLVE) names.push('QUERY_RESOLVE');
+    return names.join(' | ');
+}
+
+export function hashPipelineState(shader: Shader, renderState: RenderState): string {
+  return JSON.stringify({
+    vertex: shader.vertexSource,
+    fragment: shader.fragmentSource,
+    primitive: renderState.getPrimitive(),
+    depthStencil: renderState.getDepthStencil(),
+    blend: renderState.getBlendState(),
+  });
 }

@@ -75,7 +75,7 @@ export class ShaderLibrary {
                 { name: 'vNormalW', type: 'vec3f' },
                 { name: 'vUv', type: 'vec2f' },
             ],
-            chunks: ['common', 'noise', 'scene', 'camera', 'model', 'diffuse', 'diffuse_map', 'standard_material', 'pbr', 'gamma', 'emission', 'fog'],
+            chunks: ['Mesh', 'StandardMaterial'],
             vertexTemplate: `
                 @vertex(input) -> output {
                     var position: vec3f = input.position;

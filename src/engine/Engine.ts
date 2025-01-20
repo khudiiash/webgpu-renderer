@@ -16,6 +16,7 @@ import { Vector3 } from '@/math';
 import { Geometry, PlaneGeometry, SphereGeometry } from '@/geometry';
 import { ShaderChunk } from '@/materials';
 import { GLTFLoader } from '@/util/loaders/GLTFLoader';
+import { OrbitControls } from '@/camera';
 
 export class Engine extends EventEmitter {
     static #instance: Engine;
@@ -84,11 +85,11 @@ export class Engine extends EventEmitter {
     async init() {
         const renderer = await new Renderer(this.getOrCreateCanvas()).init();
         this.device = renderer.device;
+        PipelineManager.init(Engine.device);
+        ResourceManager.init(Engine.device);
         ShaderLibrary.init();
         TextureLoader.init(Engine.device);
         GLTFLoader.init(Engine.device);
-        PipelineManager.init(Engine.device);
-        ResourceManager.init(Engine.device);
 
         renderer.setResources(ResourceManager.getInstance());
 
@@ -104,26 +105,28 @@ export class Engine extends EventEmitter {
         scene.fog.start = 300;
         scene.fog.end = 2000;
 
+        scene.add(camera);
+
         // GRASS MATERIAL (EXTENDED STANDARD MATERIAL)
         const grassMat = new StandardMaterial({ diffuse: '#aaaa00', metalness: 0.1, roughness: 0.1,  transmission: 1.0, cullMode: 'back' });
-        const grassChunk = new ShaderChunk('grass', `
-            @vertex(before:model) {{
-            if (input.vertex_index == 2) {
-                // animate only the top vertex
-                let model = model[input.instance_index];
-                var worldPosition = getWorldPosition(position, model);
-                let time = scene.time;
 
-                // noise patches
-                let noise = perlinNoise(worldPosition.xz * 0.1) * 0.5 + 0.5;
-                position.y = noise * 2.0;
+        const grassChunk = new ShaderChunk('Grass', `
+            @group(Global) @binding(Scene)
+            @include(Noise)
 
-                // wind animation
-                let wind = perlinNoise(worldPosition.xz * 0.005) * 0.5 + 0.5;
-                let windStrength = sin(time * 2.0 + wind * 100.0);
-                position.x += windStrength;
-                position.z += windStrength;
-            }
+            @vertex(after:world_position) {{
+                if (input.vertex_index == 2) {
+                    // noise patches
+                    worldPosition = getWorldPosition(position, model);
+                    let noise = perlinNoise(worldPosition.xz * 0.1) * 0.5 + 0.5;
+                    position.y = noise * 2.0;
+
+                    // wind animation
+                    let wind = perlinNoise(worldPosition.xz * 0.005) * 0.5 + 0.5;
+                    let windStrength = sin(scene.time * 2.0 + wind * 100.0);
+                    position.x += windStrength;
+                    position.z += windStrength;
+                }
             }}
             @fragment(before:gamma) {{
                 color = vec4(color.rgb * input.vUv.y, 1.0);
@@ -132,7 +135,7 @@ export class Engine extends EventEmitter {
         
         grassMat.addChunk(grassChunk);
 
-        // // GRASS GEOMETRY
+        // GRASS GEOMETRY
         const triangleGeometry = new Geometry();
         triangleGeometry.setFromArrays({
             positions: [ -1, 0, 0, 1, 0, 0, 0, 1, 0, ],
@@ -160,16 +163,16 @@ export class Engine extends EventEmitter {
             scene.add(sponza);
         }
 
-        // LIGHTS
+        // // LIGHTS
         const point = new PointLight({ intensity: 10000, range: 2000, color: '#ffff88' });
         scene.add(point);
         point.position.setXYZ(-100, 20, 0);
-        const bulb = new Mesh(new SphereGeometry(2), new StandardMaterial({ emissive: '#ffffff', emissive_factor: 100 }));
+        const bulb = new Mesh(new SphereGeometry(2), new StandardMaterial({ emissive: '#ffffff', emissive_factor: 10 }));
         point.add(bulb);
 
 
         const redCube = new PointLight({ intensity: 10000, range: 200, color: '#ff0000' });
-        const redCubeMesh = new Mesh(new BoxGeometry(10, 10, 10), new StandardMaterial({ emissive: '#ff3333', emissive_factor: 5 }));
+        const redCubeMesh = new Mesh(new BoxGeometry(10, 10, 10), new StandardMaterial({ emissive: '#ff3333' }));
         redCube.add(redCubeMesh);
         redCube.position.setXYZ(-180, 60, 0);
         scene.add(redCube);

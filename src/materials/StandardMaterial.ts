@@ -1,13 +1,12 @@
-import { ShaderLibrary, ShaderDefines } from './shaders/ShaderLibrary';
+import { ShaderLibrary } from './shaders/ShaderLibrary';
 import { Material } from "./Material";
 import { Color } from "../math/Color";
 import { Texture } from "@/data/Texture";
 import { UniformData } from "@/data/UniformData";
 import { RenderState, RenderStateOptions } from "@/renderer/RenderState";
 import { Texture2D } from "@/data/Texture2D";
-import { ObjectMonitor } from '@/data/ObjectMonitor';
-import { GPUStruct } from '@/types';
 import { Struct } from '@/data/Struct';
+import { boolToNum } from '@/util/general';
 
 
 export interface StandardMaterialOptions extends RenderStateOptions {
@@ -16,6 +15,7 @@ export interface StandardMaterialOptions extends RenderStateOptions {
     specular?: string | number;
     emissive?: string | number;
     sheen?: string | number;
+    ao?: string | number;
     opacity?: number;
     metalness?: number;
     roughness?: number;
@@ -25,12 +25,22 @@ export interface StandardMaterialOptions extends RenderStateOptions {
     transmission?: number;
 
     diffuse_map?: Texture;
+    normal_map?: Texture;
+    ao_map?: Texture;
+    height_map?: Texture;
+    specular_map?: Texture;
+    emissive_map?: Texture;
+    sheen_map?: Texture;
+    metalness_map?: Texture;
+    roughness_map?: Texture;
+    alpha_map?: Texture;
+    transmission_map?: Texture;
 
     useLight?: boolean;
-    useShadow?: boolean;
-    useFog?: boolean;
+    usePBR?: boolean;
     useGamma?: boolean;
-    useBillboard?: boolean;
+    useFog?: boolean;
+    useEmissive?: boolean;
 }
 
 class StandardMaterial extends Material {
@@ -41,6 +51,7 @@ class StandardMaterial extends Material {
         specular: 'vec4f',
         emissive: 'vec4f',
         sheen: 'vec4f',
+        ao: 'vec4f',
         opacity: 'f32',
         metalness: 'f32',
         roughness: 'f32',
@@ -48,7 +59,13 @@ class StandardMaterial extends Material {
         specular_factor: 'f32',
         alpha_test: 'f32',
         transmission: 'f32',
-    })
+
+        useLight: 'u32',
+        usePBR: 'u32',
+        useEmissive: 'u32',
+        useGamma: 'u32',
+        useFog: 'u32',
+    });
 
     ambient!: Color;
     diffuse!: Color;
@@ -61,7 +78,18 @@ class StandardMaterial extends Material {
     emissive_factor!: number;
     specular_factor!: number;
     alpha_test!: number;
+
     diffuse_map!: Texture;
+    normal_map!: Texture;
+    ao_map!: Texture;
+    height_map!: Texture;
+    specular_map!: Texture;
+    emissive_map!: Texture;
+    sheen_map!: Texture;
+    metalness_map!: Texture;
+    roughness_map!: Texture;
+    alpha_map!: Texture;
+    transmission_map!: Texture;
 
     constructor(options: StandardMaterialOptions = {}) {
         super();
@@ -77,37 +105,45 @@ class StandardMaterial extends Material {
             frontFace: options.frontFace || 'ccw',
 		}); 
 
-        this.uniforms = new UniformData(this, {
-            name: 'standard_material',
-            struct: StandardMaterial.struct,
-            isGlobal: false,
-            values: {
-                ambient: new Color(options.ambient),
-                diffuse: new Color(options.diffuse),
-                specular: new Color(options.specular),
-				emissive: new Color(options.emissive),
-                sheen: new Color(options.sheen),
-                opacity: options.opacity || 1.0,
-                metalness: options.metalness || 0.0,
-                roughness: options.roughness || 0.5,
-                emissive_factor: options.emissive_factor || 1.0,
-                specular_factor: options.specular_factor || 1.0,
-                alpha_test: options.alpha_test || 0.0,
-                transmission: options.transmission || 0.0,
+        this.uniforms.set('StandardMaterial', new UniformData(this, { 
+                name: 'StandardMaterial',
+                struct: StandardMaterial.struct,
+                isGlobal: false,
+                values: {
+                    ambient: new Color(options.ambient),
+                    diffuse: new Color(options.diffuse),
+                    specular: new Color(options.specular),
+                    emissive: new Color(options.emissive || '#000000'),
+                    sheen: new Color(options.sheen),
+                    ao: new Color(options.ao),
+                    opacity: options.opacity || 1.0,
+                    metalness: options.metalness || 0.0,
+                    roughness: options.roughness || 0.5,
+                    emissive_factor: options.emissive_factor || 1.0,
+                    specular_factor: options.specular_factor || 1.0,
+                    alpha_test: options.alpha_test || 0.5,
+                    transmission: options.transmission || 0.0,
 
-                diffuse_map: options.diffuse_map || Texture2D.DEFAULT,
-            }
-        });
+                    useLight: boolToNum(options.useLight, 1),
+                    usePBR: boolToNum(options.usePBR, 1),
+                    useEmissive: boolToNum(options.useEmissive, 1),
+                    useGamma: boolToNum(options.useGamma, 1),
+                    useFog: boolToNum(options.useFog, 1),
 
-        this.defines = new ObjectMonitor({
-            USE_LIGHT: options.useLight ?? true,
-            USE_SHADOW: options.useShadow ?? true,
-            USE_FOG: options.useFog ?? true,
-            USE_GAMMA: options.useGamma ?? true,
-            USE_BILLBOARD: options.useBillboard ?? false,
-        }).onChange(() => {
-            this.createShader();
-        });
+                    diffuse_map: options.diffuse_map || Texture2D.DEFAULT,
+                    normal_map: options.normal_map || Texture2D.DEFAULT,
+                    ao_map: options.ao_map || Texture2D.DEFAULT,
+                    height_map: options.height_map || Texture2D.DEFAULT,
+                    specular_map: options.specular_map || Texture2D.DEFAULT,
+                    emissive_map: options.emissive_map || Texture2D.DEFAULT,
+                    sheen_map: options.sheen_map || Texture2D.DEFAULT,
+                    metalness_map: options.metalness_map || Texture2D.DEFAULT,
+                    roughness_map: options.roughness_map || Texture2D.DEFAULT,
+                    alpha_map: options.alpha_map || Texture2D.DEFAULT,
+                    transmission_map: options.transmission_map || Texture2D.DEFAULT,
+                }
+            })
+        );
 
         this.createShader(ShaderLibrary.STANDARD);
     }

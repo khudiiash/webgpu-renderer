@@ -18,9 +18,8 @@ export class Material extends EventEmitter {
     public id: string = uuid('material');
     public shader!: Shader;
     public meshes: Mesh[] = [];
-    public uniforms!: UniformData;
+    public uniforms: Map<string, UniformData> = new Map();
     public renderState: RenderState;
-    public defines: ObjectMonitor;
     private _shaderConfig!: ShaderConfig;
 
     constructor(options: MaterialOptions = {}) {
@@ -28,15 +27,6 @@ export class Material extends EventEmitter {
         autobind(this);
         this.name = options.name ?? this.name;
         this.renderState = new RenderState();
-
-        this.defines = new ObjectMonitor({
-            USE_LIGHT: false,
-            USE_SHADOW: false,
-            USE_FOG: false,
-            USE_BILLBOARD: false,
-        }).onChange(() => {
-            this.createShader();
-        });
     }
 
     get shaderConfig() {
@@ -47,17 +37,10 @@ export class Material extends EventEmitter {
         this.createShader(config);
     }
   
-    setParameter(name: string, value: BufferData | Texture) {
-        this.uniforms.set(name, value);
-    }
-
-    getParameter(name: string) {
-        return this.uniforms.get(name);
-    }
 
     createShader(config: ShaderConfig = this._shaderConfig) {
         this._shaderConfig = config;
-        this.shader = Shader.create(this._shaderConfig, this.defines);
+        this.shader = Shader.create(this._shaderConfig);
         this.fire('rebuild', this);
     }
 

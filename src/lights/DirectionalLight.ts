@@ -10,7 +10,6 @@ export interface DirectionalLightOptions extends LightOptions {
 
 
 class DirectionalLight extends Light {
-    public uniforms: UniformData;
     public isDirectionalLight: boolean = true;
 
     static struct = new Struct('DirectionalLight', {
@@ -21,15 +20,17 @@ class DirectionalLight extends Light {
 
     constructor(options: DirectionalLightOptions = {}) {
         super(options);
-        this.uniforms = new UniformData(this, {
-            name: 'directional_light',
-            isGlobal: false,
-            values: {
-                color: this.color,
-                direction: this.forward,
-                intensity: this.intensity,
-            }
-        });
+        this.uniforms.set('DirectionalLight', new UniformData(this, {
+                name: 'DirectionalLight',
+                isGlobal: false,
+                struct: DirectionalLight.struct,
+                values: {
+                    color: this.color,
+                    direction: this.forward,
+                    intensity: this.intensity,
+                }
+            })
+        );
     }
 }
 

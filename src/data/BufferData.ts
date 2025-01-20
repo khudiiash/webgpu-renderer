@@ -8,7 +8,7 @@ export type ChangeCallback = (data: BufferData | Float32Array, start: number, en
 export class BufferData extends Float32Array {
     [index: number]: number;
     monitor!: DataMonitor;
-    arrayStride: number;
+    protected arrayStride: number;
     static count = 0;
 
     onChange(callback: ChangeCallback): this { return this; }

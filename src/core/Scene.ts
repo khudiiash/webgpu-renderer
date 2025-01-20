@@ -22,6 +22,7 @@ class Scene extends Object3D {
         fog: Fog.struct,
         ambientColor: 'vec4f',
         backgroundColor: 'vec4f',
+
         directionalLightsNum: 'u32',
         pointLightsNum: 'u32',
         time: 'f32',
@@ -34,9 +35,6 @@ class Scene extends Object3D {
     public camera?: Object3D;
     public lights: Object3D[];
     public instances: Map<unknown, unknown>;
-    public uniforms: UniformData;
-
-
 
     public ambientColor!: Color;
     public backgroundColor!: Color;
@@ -78,21 +76,22 @@ class Scene extends Object3D {
             type: Fog.LINEAR
         });
 
-        this.uniforms = new UniformData(this, {
-            name: 'scene',
-            isGlobal: true,
-            struct: Scene.struct,
-            values: {
-                fog,
-                ambientColor,
-                backgroundColor,
-                time: 0,
-                directionalLightsNum: 0,
-                pointLightsNum: 0,
-                directionalLights,
-                pointLights
-            }
-        })
+        this.uniforms.set('Scene', new UniformData(this, {
+                name: 'Scene',
+                isGlobal: true,
+                struct: Scene.struct,
+                values: {
+                    fog,
+                    ambientColor,
+                    backgroundColor,
+                    time: 0,
+                    directionalLightsNum: 0,
+                    pointLightsNum: 0,
+                    directionalLights,
+                    pointLights
+                }
+            })
+        );
     }
 
     public add(object: Object3D): this {
@@ -101,15 +100,17 @@ class Scene extends Object3D {
         if (object.isMesh) {
             this.meshes.push(object);
         }
+
         if (object.isLight) {
             if (object.isDirectionalLight) {
-                this.directionalLights.add(object.uniforms);
+                this.directionalLights.add((object as DirectionalLight).uniforms.get('DirectionalLight') as UniformData);
             }
             if (object.isPointLight) {
-                this.pointLights.add(object.uniforms);
+                this.pointLights.add((object as PointLight).uniforms.get('PointLight') as UniformData);
             }
             this.lights.push(object);
         }
+
         if (object.isCamera) {
             this.camera = object;
         }
@@ -117,16 +118,19 @@ class Scene extends Object3D {
     }
 
     public remove(object: Object3D): this {
-        if (!(object instanceof Object3D)) {
-            console.error('Scene.remove: object not an instance of Object3D.', object);
-            return this;
-        }
         super.remove(object);
+
         if (object.isMesh) {
             const i = this.meshes.indexOf(object);
             if (i >= 0) this.meshes.splice(i, 1);
         }
         if (object.isLight) {
+            if (object.isDirectionalLight) {
+                this.directionalLights.remove((object as DirectionalLight).uniforms);
+            }
+            if (object.isPointLight) {
+                this.pointLights.remove((object as PointLight).uniforms);
+            }
             const i = this.lights.indexOf(object);
             if (i >= 0) this.lights.splice(i, 1);
         }

@@ -33,6 +33,7 @@ export class Struct {
 
   public name: string;
   public layout: Map<string, StructLayoutEntry>;
+  public members: Record<string, StructValue>;
   /** Size of the struct in bytes */
   public size: number;
 
@@ -40,6 +41,7 @@ export class Struct {
     this.name = name;
     this.layout = new Map();
     this.size = 0;
+    this.members = members;
 
     for (const [key, value] of Object.entries(members)) {
       const entry = this.computeLayoutEntry(value);
@@ -54,7 +56,7 @@ export class Struct {
   private computeLayoutEntry(value: StructValue): Omit<StructLayoutEntry, 'offset' | 'type'> {
     let size: number;
     let alignment: number;
-    let view: StructViewType; 
+    let viewType: StructViewType; 
 
     if (Array.isArray(value)) {
       const [elementType, count] = value;
@@ -64,14 +66,14 @@ export class Struct {
       size = (byteStride * count);
       if (elementType instanceof Struct) {
         const viewDesc: Record<string, TypedArrayConstructorLike<TypedArray>> = {};
-        view = [];
+        viewType = [];
         for (const [name, type] of elementType.layout.entries()) {
-            viewDesc[name] = type.view as TypedArrayConstructorLike<TypedArray>;
+            viewDesc[name] = type.viewType as TypedArrayConstructorLike<TypedArray>;
         }
-        view.push(viewDesc);
+        viewType.push(viewDesc);
       }
       else if (isPlainType(elementType as string)) {
-        view = getViewType(elementType as GPUPlainType);
+        viewType = getViewType(elementType as GPUPlainType);
       } else {
         throw new Error(`Invalid type ${elementType}`);
       }
@@ -80,16 +82,16 @@ export class Struct {
       size = value.size;
       const viewDesc: Record<string, TypedArrayConstructorLike<TypedArray>> = {};
       for (const [name, type] of value.layout.entries()) {
-        viewDesc[name] = type.view as TypedArrayConstructorLike<TypedArray>;
+        viewDesc[name] = type.viewType as TypedArrayConstructorLike<TypedArray>;
       }
-      view = viewDesc;
+      viewType = viewDesc;
     } else {
-      view = getViewType(value as GPUPlainType) as TypedArrayConstructorLike<TypedArray>;
+      viewType = getViewType(value as GPUPlainType) as TypedArrayConstructorLike<TypedArray>;
       alignment = getTypeAlignment(value as GPUPlainType);
       size = getTypeSize(value as GPUPlainType);
     }
 
-    return { size, alignment, view };
+    return { size, alignment, viewType };
   }
 
   /** Recursively get the alignment of a type */
@@ -148,23 +150,26 @@ export class Struct {
   }
 
   /** Produces WGSL code for the struct */
-  public toString(): string {
+  public toWGSL(): string {
     let str = `struct ${this.name} {\n`;
     for (const [key, entry] of this.layout.entries()) {
-      const { type, offset, size, alignment } = entry;
+      const { type } = entry;
       if (type instanceof Struct) {
-        str = `${type.toString()}\n${str}`;
+        str = `${type.toWGSL()}\n${str}`;
       }
       if (Array.isArray(type)) {
         const [elementType] = type;
         if (elementType instanceof Struct) {
-          str = `${elementType.toString()}\n${str}`;
+          str = `${elementType.toWGSL()}\n${str}`;
         }
       }
       const typeStr = this.typeToString(type);
       str += `\t${key}: ${typeStr},\n`;
     }
     str += `}\n`;
+    if (/\[object/.test(str)) {  
+      debugger
+    }
     return str;
   }
 
