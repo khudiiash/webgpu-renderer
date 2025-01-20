@@ -3,10 +3,9 @@ import { Frustum } from '@/math/Frustum';
 import { Matrix4 } from '@/math/Matrix4';
 import { Vector3 } from '@/math/Vector3';
 
-import { UniformData, UniformDataConfig } from '@/data/UniformData';
+import { UniformData } from '@/data/UniformData';
 import { uuid } from '@/util/general';
 import { Renderer } from '@/renderer/Renderer';
-import { ResourceManager } from '@/engine/ResourceManager';
 import { Struct } from '@/data/Struct';
 
 

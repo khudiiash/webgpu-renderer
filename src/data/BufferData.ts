@@ -1,6 +1,6 @@
 import { arraysEqual } from '@/util/general';
 import { DataMonitor } from './DataMonitor';
-import { GPUPlainType, GPUStruct } from '@/types';
+import { GPUPlainType } from '@/types';
 import { Struct } from './Struct';
 
 export type ChangeCallback = (data: BufferData | Float32Array, start: number, end: number) => void;
@@ -11,8 +11,8 @@ export class BufferData extends Float32Array {
     protected arrayStride: number;
     static count = 0;
 
-    onChange(callback: ChangeCallback): this { return this; }
-    offChange(callback?: ChangeCallback): this { return this; }
+    onChange(_: ChangeCallback): this { return this; }
+    offChange(_?: ChangeCallback): this { return this; }
 
     constructor(arg: ArrayLike<number> | number, arrayStride?: number) {
         if (typeof arg === 'number') {

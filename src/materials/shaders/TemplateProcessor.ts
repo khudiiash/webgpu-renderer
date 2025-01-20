@@ -3,13 +3,6 @@ import { ShaderLibrary } from './ShaderLibrary';
 import { Struct } from '@/data/Struct';
 import { Binding } from '@/data/Binding';
 
-
-const bindingRe = /@group\(([A-Za-z]+)\) @binding\(([A-Za-z]+)\)/g;
-const includeRe = /@include\((\w+)\)/g;
-const bodyRe = /{{(vertex|fragment|compute)}}/g;
-const mainFnRe = /@([\w]+)\(([\w]+)\) -> ([\w]+) {/g;
-
-
 export class TemplateProcessor {
     static #instance: TemplateProcessor;
     private chunks = new Set<ShaderChunk>();
