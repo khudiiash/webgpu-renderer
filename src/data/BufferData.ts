@@ -32,8 +32,8 @@ export class BufferData extends Float32Array {
     }
 
     get format(): GPUPlainType | string {
-        if (this.constructor.struct as Struct) {
-            return this.constructor.struct.name;
+        if ((this.constructor as any).struct as Struct) {
+            return (this.constructor as any).struct.name;
         }
         switch (this.arrayStride) {
             case 1: return 'f32';

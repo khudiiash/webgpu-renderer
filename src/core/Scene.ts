@@ -126,10 +126,10 @@ class Scene extends Object3D {
         }
         if (object.isLight) {
             if (object.isDirectionalLight) {
-                this.directionalLights.remove((object as DirectionalLight).uniforms);
+                this.directionalLights.remove((object as DirectionalLight).uniforms.get('DirectionalLight') as UniformData);
             }
             if (object.isPointLight) {
-                this.pointLights.remove((object as PointLight).uniforms);
+                this.pointLights.remove((object as PointLight).uniforms.get('PointLight') as UniformData);
             }
             const i = this.lights.indexOf(object);
             if (i >= 0) this.lights.splice(i, 1);

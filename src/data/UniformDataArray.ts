@@ -33,7 +33,7 @@ export class UniformDataArray extends BufferData {
             return;
         }
         const index = this.size * this.itemSize;
-        item.onChange((id, start, end) => { // start and end are in uniform scope
+        item.onChange((_, start, end) => { // start and end are in uniform scope
             this.set(item.subarray(start, end), index + start);
         })
         this.items.push(item);
@@ -67,7 +67,7 @@ export class UniformDataArray extends BufferData {
         } else {
             // not at the end of the list, so need to rearrange data
             for (let i = 0; i < this.items.length; i++) {
-                this.set(this.items[i].data, i * this.itemSize);
+                this.set(this.items[i].subarray(), i * this.itemSize);
             }
         }
     }
