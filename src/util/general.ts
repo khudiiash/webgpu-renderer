@@ -3,7 +3,7 @@ import { BufferData } from "@/data/BufferData";
 
 const weakMap = new WeakMap();
 
-export function arraysEqual(a: BufferData | Float32Array | ArrayLike<number>, b: BufferData | Float32Array | ArrayLike<number>, start: number, end: number, precision?: number = 1e-6): boolean {
+export function arraysEqual(a: BufferData | Float32Array | ArrayLike<number>, b: BufferData | Float32Array | ArrayLike<number>, start: number = 0, end: number = a?.length ?? 0, precision: number = 1e-6): boolean {
     // Early returns for obvious cases
     // 1e-6 is the default precision (0.000001)
 
