@@ -1,40 +1,39 @@
+import { Struct } from '@/data/Struct';
 import { Light, LightOptions } from './Light';
 import { UniformData } from '@/data/UniformData';
-import { align4 } from '@/util';
 
 export interface PointLightOptions extends LightOptions {
     range?: number; 
 }
 
 class PointLight extends Light {
-    public uniforms: UniformData;
-    public attenuation: number;
     public range: number;
-    static uniformSize = align4(4 + 3 + 1 + 1);
+
+    static struct = new Struct('PointLight', {
+        color: 'vec4f',
+        position: 'vec3f',
+        intensity: 'f32',
+        range: 'f32',
+    })
+
 
     constructor(options: PointLightOptions = {}) {
         super(options);
         this.isPointLight = true;
-        this.attenuation = this.calculateAttenuation();
         this.range = options.range ?? 10;
 
-        this.uniforms = new UniformData(this, {
-            name: 'point_light',
-            isGlobal: false,
-            values: {
-                color: this.color, // 4
-                position: this.position, // 4
-                intensity: this.intensity, // 1
-                range: this.range, // 1
-            }
-        })
-    }
-
-    private calculateAttenuation(): number {
-        // Inverse square law: light intensity decreases with square of distance
-        // At range distance, light should be 1% of original intensity
-        this.attenuation = -Math.log(0.01) / (this.range * this.range);
-        return this.attenuation;
+        this.uniforms.set('PointLight', new UniformData(this, {
+                isGlobal: false,
+                name: 'PointLight',
+                struct: PointLight.struct,
+                values: {
+                    color: this.color,
+                    position: this.position,
+                    intensity: this.intensity,
+                    range: this.range,
+                }
+            })
+        );
     }
 }
 

@@ -1,13 +1,12 @@
 import { BufferData } from "@/data/BufferData";
 
-function isTypedArray(arr: any): arr is Float32Array | BufferData {
-    return arr instanceof Float32Array || arr instanceof BufferData;
-}
 
 const weakMap = new WeakMap();
 
-export function arraysEqual(a: BufferData | Float32Array | ArrayLike<number>, b: BufferData | Float32Array | ArrayLike<number>, start: number, end: number): boolean {
+export function arraysEqual(a: BufferData | Float32Array | ArrayLike<number>, b: BufferData | Float32Array | ArrayLike<number>, start: number = 0, end: number = a?.length ?? 0, precision: number = 1e-6): boolean {
     // Early returns for obvious cases
+    // 1e-6 is the default precision (0.000001)
+
     if (a === b) return true;
     if (!a || !b) return false;
     
@@ -15,13 +14,13 @@ export function arraysEqual(a: BufferData | Float32Array | ArrayLike<number>, b:
     if (len !== b.length) return false;
     if (weakMap.has(a)) {
         const i = weakMap.get(a);
-        if (a[i] !== b[i]) {
+        if (Math.abs(a[i] - b[i]) > precision) {
             return false;
         }
     }
 
     for (let i = start; i < end; i++) {
-        if (a[i] !== b[i]) {
+        if (Math.abs(a[i] - b[i]) > precision) {
             weakMap.set(a, i);
             return false;
         }
@@ -30,6 +29,24 @@ export function arraysEqual(a: BufferData | Float32Array | ArrayLike<number>, b:
     return true;
 }
 
+export function snakeCase(str: string): string {
+    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+}
+
+export function capCase(str: string): string {
+    return str.replace(/_./g, (match) => match.charAt(1).toUpperCase());
+}
+
+export function camelCase(str: string): string {
+    return str.replace(/_./g, (match) => match.charAt(1).toUpperCase());
+}
+
+export function boolToNum(value: any, defaultValue: number = 0): number {
+    if (value === undefined) {
+        return defaultValue;
+    }
+    return value === true ? 1 : 0;
+}
 
 export function objectsEqual(a: { [key: string]: any }, b: { [key: string]: any }): boolean {
     if (a === b) return true;
@@ -59,22 +76,6 @@ export function num(...args: any[]): boolean {
     return true;
 }
 
-export function align16(value: number): number {
-    return Math.ceil(value / 16) * 16;
-}
-
-export function align4(value: number): number {
-    return Math.ceil(value / 4) * 4;
-}
-
-export function isAlign16(value: number): boolean {
-    return value % 16 === 0;
-}
-
-export function isAlign4(value: number): boolean {
-    return value % 4 === 0;
-}
-
 export function autobind(context: any) {
     Object.getOwnPropertyNames(Object.getPrototypeOf(context))
         .filter((key) => {
@@ -86,9 +87,7 @@ export function autobind(context: any) {
         });
 }
 
-export function alignArray(array: ArrayLike<number>): Float32Array {
-    const len = array.length;
-    const aligned = new Float32Array(align4(len));
-    aligned.set(array);
-    return aligned;
+export function capString(str: string): string {
+    return str.charAt(0).toUpperCase() + str.slice(1);
 }
+

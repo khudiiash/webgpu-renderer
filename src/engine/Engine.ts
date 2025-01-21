@@ -10,7 +10,6 @@ import { PipelineManager } from './PipelineManager';
 import { ResourceManager } from './ResourceManager';
 import { PerspectiveCamera } from '@/camera/PerspectiveCamera';
 import { EventCallback, EventEmitter } from '@/core/EventEmitter';
-import { DirectionalLight } from '@/lights/DirectionalLight';
 import { PointLight } from '@/lights/PointLight';
 import { rand } from '@/util';
 import { Vector3 } from '@/math';
@@ -85,11 +84,11 @@ export class Engine extends EventEmitter {
     async init() {
         const renderer = await new Renderer(this.getOrCreateCanvas()).init();
         this.device = renderer.device;
+        PipelineManager.init(Engine.device);
+        ResourceManager.init(Engine.device);
         ShaderLibrary.init();
         TextureLoader.init(Engine.device);
         GLTFLoader.init(Engine.device);
-        PipelineManager.init(Engine.device);
-        ResourceManager.init(Engine.device);
 
         renderer.setResources(ResourceManager.getInstance());
 
@@ -105,33 +104,41 @@ export class Engine extends EventEmitter {
         scene.fog.start = 300;
         scene.fog.end = 2000;
 
+        scene.add(camera);
+
         // GRASS MATERIAL (EXTENDED STANDARD MATERIAL)
         const grassMat = new StandardMaterial({ diffuse: '#aaaa00', metalness: 0.1, roughness: 0.1,  transmission: 1.0, cullMode: 'back' });
-        const grassChunk = new ShaderChunk('grass', `
-            @vertex(before:model) {{
-            if (input.vertex_index == 2) {
-                // animate only the top vertex
-                let model = model[input.instance_index];
-                var worldPosition = getWorldPosition(position, model);
-                let time = scene.time;
 
-                // noise patches
-                let noise = perlinNoise(worldPosition.xz * 0.1) * 0.5 + 0.5;
-                position.y = noise * 2.0;
+        const grassChunk = new ShaderChunk('Grass', `
+            @group(Global) @binding(Scene)
+            @include(Noise)
 
-                // wind animation
-                let wind = perlinNoise(worldPosition.xz * 0.005) * 0.5 + 0.5;
-                let windStrength = sin(time * 2.0 + wind * 100.0);
-                position.x += windStrength;
-                position.z += windStrength;
-            }
+            @vertex(after:world_position) {{
+                if (input.vertex_index == 2) {
+                    // noise patches
+                    worldPosition = getWorldPosition(position, model);
+                    let noise = perlinNoise(worldPosition.xz * 0.15) * 0.5 + 0.5;
+                    position.y += noise;
+
+                    // wind animation
+                    let wind = perlinNoise(worldPosition.xz * 0.005) * 0.5 + 0.5;
+                    let windStrength = sin(scene.time * 2.0 + wind * 100.0) * position.y;
+                    position.x += windStrength;
+                    position.z += windStrength;
+                }
             }}
-            @fragment(before:gamma) {{
-                color = vec4(color.rgb * input.vUv.y, 1.0);
+            @fragment(after:gamma) {{
+                let colorNoise = perlinNoise(input.vPositionW.xz * 0.1) * 0.5 + 0.5;
+                let color1 = vec3(color.rgb * vec3(4.0, 4.0, 1.0));
+                let color2 = vec3(color.rgb * vec3(0.8, 0.8, 0.0));
+                let mixed = vec4f(mix(color1, color2, colorNoise), color.a);
+                color = vec4f(mix(color.rgb, mixed.rgb, colorNoise), color.a);
+                color = vec4(color.rgb * 0.5 * input.vUv.y, 1.0);
             }}
         `);
         
         grassMat.addChunk(grassChunk);
+        console.log(grassMat.shader.fragmentSource)
 
         // GRASS GEOMETRY
         const triangleGeometry = new Geometry();
@@ -152,7 +159,6 @@ export class Engine extends EventEmitter {
         grass.setAllScales(Array.from({ length: grass.count }, (_, i) => [rand(0.3, 0.5), rand(1, 4), 1]).flat());
         grass.setAllRotations(Array.from({ length: grass.count }, (_, i) => [0, -Math.PI / 2, 0]).flat());
         scene.add(grass);
-        grass.setPositionAt(128, 0, 0, 0);
 
         // SPONZA
         const sponza = await GLTFLoader.loadMesh('assets/models/sponza.glb');
@@ -162,16 +168,19 @@ export class Engine extends EventEmitter {
             scene.add(sponza);
         }
 
-        // LIGHTS
-        const point = new PointLight({ intensity: 10000, range: 2000 });
+        // // LIGHTS
+        const point = new PointLight({ intensity: 10000, range: 2000, color: '#ffff88' });
         scene.add(point);
         point.position.setXYZ(-100, 20, 0);
-        const bulb = new Mesh(new SphereGeometry(2), new StandardMaterial({ emissive: '#ffffff', emissive_factor: 100 }));
+        const bulb = new Mesh(new SphereGeometry(2), new StandardMaterial({ emissive: '#ffffff', emissive_factor: 10 }));
         point.add(bulb);
 
-        // const directional = new DirectionalLight({ intensity: 5 });
-        // directional.rotation.set([0, Math.PI / 4, 0]);
-        // scene.add(directional);
+
+        const redCube = new PointLight({ intensity: 10000, range: 200, color: '#ff0000' });
+        const redCubeMesh = new Mesh(new BoxGeometry(10, 10, 10), new StandardMaterial({ emissive: '#ff3333' }));
+        redCube.add(redCubeMesh);
+        redCube.position.setXYZ(-180, 60, 0);
+        scene.add(redCube);
 
         const particleGeometry = new PlaneGeometry(1, 1);
         const particleMaterial = new StandardMaterial({ emissive: '#ff0000', transmission: 1, blending: 'additive', transparent: true });
@@ -188,18 +197,11 @@ export class Engine extends EventEmitter {
             }}
         `));
 
-        const redCube = new PointLight({ intensity: 10000, range: 200, color: '#ff0000' });
-        const redCubeMesh = new Mesh(new BoxGeometry(10, 10, 10), new StandardMaterial({ emissive: '#ff3333', emissive_factor: 5 }));
-        redCube.add(redCubeMesh);
-        redCube.position.setXYZ(-180, 60, 0);
-        scene.add(redCube);
-
-        const particles = new Mesh(particleGeometry, particleMaterial, 500);
+        const particles = new Mesh(particleGeometry, particleMaterial, 3_000);
         particles.setAllPositions(Array.from({ length: particles.count }, (_, i) => [rand(-rangeX, rangeX), rand(0, 100), rand(-rangeZ, rangeZ)]).flat());
-        particles.setAllScales(rand(0.2, 1));
+        particles.setAllScales(rand(0.15, 0.3));
         particles.setAllRotations(Array.from({ length: particles.count }, (_, i) => [0, -Math.PI / 2, 0]).flat());
         scene.add(particles);
-
 
         // LOOP
         let last = performance.now();
@@ -216,6 +218,8 @@ export class Engine extends EventEmitter {
             camera.position.x = Math.sin(elapsed * 0.3) * 200;
             redCube.rotation.x += delta;
             redCube.rotation.z += delta;
+            camera.fov = Math.cos(elapsed * 0.3) * 30 + 30 + 30;
+            camera.updateProjectionMatrix();
 
             const translations = []
             for (let i = 0; i < particles.count; i++) {

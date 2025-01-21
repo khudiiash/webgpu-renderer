@@ -1,34 +1,12 @@
-struct GridMaterial {
-    ambient: vec4f,
-    diffuse: vec4f,
-    specular: vec4f,
-    emissive: vec4f,
-    sheen: vec4f,
-
-    grid_base_color: vec4f,
-    grid_line_color: vec4f,
-    grid_offset: f32,
-    grid_cell_size: f32,
-    grid_line_width: f32,
-    grid_uv_mode: f32,
-
-    opacity: f32,
-    metalness: f32,
-    roughness: f32,
-    emissive_factor: f32,
-    specular_factor: f32,
-    alpha_test: f32,
-    transmission: f32,
-
-}
+#struct(grid_material)
 
 @group(2) @binding(0) var<uniform> material: GridMaterial;
 
-fn fmod(x: vec2<f32>, y: f32) -> vec2<f32> {
+fn fmod(x: vec2f, y: f32) -> vec2f {
     return x - y * floor(x / y);
 }
 
-fn fmod2(x: vec2<f32>, y: vec2<f32>) -> vec2<f32> {
+fn fmod2(x: vec2f, y: vec2f) -> vec2f {
     return x - y * floor(x / y);
 }
 
@@ -49,7 +27,7 @@ fn getScale(model: mat4x4f) -> vec3f {
     let world_pos = input.vPositionW;
     let normal = normalize(input.vNormal);
     
-    var grid_pos: vec2<f32>;
+    var grid_pos: vec2f;
     
     let mode = material.grid_uv_mode;
     if (mode == 1.0) {

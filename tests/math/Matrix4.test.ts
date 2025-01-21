@@ -4,6 +4,7 @@ import { Matrix4 } from '@/math/Matrix4';
 import { Vector3 } from '@/math/Vector3';
 import { Quaternion } from '@/math/Quaternion';
 import { Euler } from '@/math/Euler';
+import { arraysEqual } from '@/util';
 
 describe('Matrix4', () => {
     test('constructor initializes with identity matrix by default', () => {
@@ -225,12 +226,17 @@ describe('Matrix4', () => {
     });
 
     test('lookAt', () => {
-        const eye = new Vector3(0,0,5);
+        const eye = new Vector3(0,5,0);
         const target = new Vector3(0,0,0);
         const up = new Vector3(0,1,0);
         const m = new Matrix4().lookAt(eye, target, up);
-        // Z should be negative in translation
-        expect(m[14]).toBeLessThan(0);
+        const expected = new Matrix4([
+            1, 0, 0, 0,
+            0, 0, -1, 0,
+            0, 1, 0, 0,
+            0, 0, 0, 1
+        ]);
+        expect(arraysEqual(m, expected, 0, 16, 0.1)).toBe(true);
     });
 
     test('setFromRotationMatrix', () => {
@@ -268,20 +274,26 @@ describe('Matrix4', () => {
 
     test('setOrthographic', () => {
         const m = new Matrix4().setOrthographic(-1,1,-1,1,1,10);
-        // W-value for translation
-        expect(Math.abs(m[12])).toBe(0);
-        expect(Math.abs(m[13])).toBe(0);
-        expect(m[14]).toBeCloseTo(-1.222, 3);
+        console.log(m.toString())
+        const expected = new Matrix4().set([
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, -0.11, 0,
+            0, 0, -0.11, 1
+        ]);
+        expect(arraysEqual(m, expected, 0, 16, 0.1)).toBe(true);
     });
 
-    test('setPerspective projection', () => {
-        const m = new Matrix4();
-        m.setPerspective(Math.PI/4, 1, 1, 100);
-        const result = Array.from(m).map(v => Math.round(v * 1000) / 1000);
-        expect(result[0]).toBeCloseTo(2.4141, 3);
-        expect(result[5]).toBeCloseTo(2.4141, 3);
-        expect(result[10]).toBeCloseTo(-1.0101, 3);
-        expect(result[14]).toBeCloseTo(-1.0101, 3);
+    test('setPerspective', () => {
+        const a = new Matrix4().setPerspective( - 1, 1, - 1, 1, 1, 100 );
+        const expected = new Matrix4().set([
+            1, 0, 0, 0,
+            0, -1, 0, 0,
+            0, -0, -1.01, -1,
+            0, 0, -1.01, 0,
+        ]);
+
+        expect(arraysEqual(a, expected, 0, 16, 0.01)).toBe(true);
     });
 
     test('transformPoint', () => {

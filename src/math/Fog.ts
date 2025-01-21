@@ -1,5 +1,6 @@
 import { Color } from '@/math/Color';
 import { BufferData } from '@/data/BufferData';
+import { Struct } from '@/data/Struct';
 
 export type FogConfig = {
     color?: Color | string | number,
@@ -10,7 +11,14 @@ export type FogConfig = {
 }
 
 export class Fog extends BufferData {
-    static size = 8;
+
+    static struct = new Struct('Fog', {
+        color: 'vec4f',
+        fogType: 'f32',
+        start: 'f32',
+        end: 'f32',
+        density: 'f32',
+    });
 
     static LINEAR: number = 0;
     static EXPONENTIAL: number = 1;

@@ -119,6 +119,7 @@ export class Renderer extends EventEmitter {
             this.draw(child, camera, pass);
         }
     }
+
     private initRenderPassDescriptor() {
         this.renderPassDescriptor = {
             colorAttachments: [

@@ -1,6 +1,8 @@
 import { ShaderConfig, ShaderVarying, ShaderAttribute } from "./ShaderLibrary";
-import { TemplateBinding, TemplateDefines, TemplateProcessor } from "./TemplateProcessor";
+import { TemplateProcessor } from "./TemplateProcessor";
 import { ShaderFormatter } from "./ShaderFormatter";
+import { Binding } from "@/data/Binding";
+import { BindGroupLayout } from "@/data/BindGroupLayout";
 
 export type ShaderBinding = {
     group: number;
@@ -15,21 +17,19 @@ class Shader {
     vertexSource!: string;
     fragmentSource!: string;
     computeSource!: string;
-    defines: TemplateDefines;
     attributes: Map<string, ShaderAttribute>;
     varyings: Map<string, ShaderVarying>;
     options: any;
-    bindings: TemplateBinding[];
+    bindings: Binding[] = [];
+    layouts: BindGroupLayout[] = [];
     
     constructor(name: string, options = {}) {
         this.name = name;
         this.formatter = new ShaderFormatter();
         this.processor = new TemplateProcessor();
-        this.defines = {};
         this.attributes = new Map();
         this.varyings = new Map();
         this.options = options;
-        this.bindings = [];
     }
 
     addVarying(varying: ShaderVarying) {
@@ -79,10 +79,10 @@ class Shader {
         return result;
     }
 
-    static create(options: ShaderConfig, defines: TemplateDefines = {}) {
+    static create(options: ShaderConfig) {
         const shader = new Shader(options.name || 'unnamed');
         const chunks = options.chunks || [];
-        const bindings = shader.bindings;
+        const bindings = new Set<Binding>();
         
         if (options.attributes) {
             for (let i = 0; i < options.attributes.length; i++) {
@@ -118,12 +118,14 @@ class Shader {
                     };
 
                     ${options.vertexTemplate}`,
-                    defines,
                     chunks,
-                    bindings)
+                    )
                 );
             if (!shader.verify(shader.vertexSource)) {
                 console.error('Vertex shader failed to compile');
+            }
+            for (const binding of TemplateProcessor.getBindings()) {
+                bindings.add(binding);
             }
         }
 
@@ -142,15 +144,18 @@ class Shader {
 
                     ${options.fragmentTemplate}
                     `,
-                    defines,
                     chunks,
-                    bindings,
                 )
             );
             if (!shader.verify(shader.fragmentSource)) {
                 console.error('Fragment shader failed to compile');
             }
+            for (const binding of TemplateProcessor.getBindings()) {
+                bindings.add(binding);
+            }
         }
+        shader.bindings = Array.from(bindings);
+        shader.layouts = [...new Set(shader.bindings.map(binding => binding.getBindGroupLayout() as BindGroupLayout))];
 
         return shader;
     }

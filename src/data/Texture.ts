@@ -20,7 +20,7 @@ export class Texture {
     private loadCbs: Function[] = []
     public device: GPUDevice;
 
-    constructor(device: GPUDevice, width: number = 1, height = 1, usage = GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT, format = 'rgba8unorm') {
+    constructor(device: GPUDevice, width: number = 1, height = 1, usage = GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT, format = 'rgba8unorm' as GPUTextureFormat) {
         this.width = width;
         this.height = height;
         this.device = device;
@@ -33,16 +33,25 @@ export class Texture {
             addressModeV: 'clamp-to-edge',
             addressModeW: 'clamp-to-edge',
         }, this).onChange(() => {
-            this.createSampler();
+            this.notifyChange();
         })
 
         this.texture = device.createTexture({
             size: { width: this.width, height: this.height },
-            format: 'rgba8unorm',
+            format,
             usage: usage,
         });
+    }
 
-        this.createSampler();
+    getSamplerDescriptor(): GPUSamplerDescriptor {
+        return {
+            magFilter: this.magFilter,
+            minFilter: this.minFilter,
+            mipmapFilter: this.mipmapFilter,
+            addressModeU: this.addressModeU,
+            addressModeV: this.addressModeV,
+            addressModeW: this.addressModeW,
+        }
     }
 
     createView(): GPUTextureView {
@@ -71,16 +80,7 @@ export class Texture {
         this.loadCbs.splice(this.loadCbs.indexOf(callback), 1);
     }
 
-    createSampler() {
-        this.sampler = this.device.createSampler({
-            magFilter: this.magFilter,
-            minFilter: this.minFilter,
-            mipmapFilter: this.mipmapFilter,
-            addressModeU: this.addressModeU,
-            addressModeV: this.addressModeV,
-            addressModeW: this.addressModeW,
-        } as GPUSamplerDescriptor);
-
+    notifyChange() {
         this.loadCbs.forEach(cb => cb(this.texture));
     }
 
@@ -90,6 +90,6 @@ export class Texture {
             return;
         }
         this.texture = texture;
-        this.loadCbs.forEach(cb => cb(this.texture));
+        this.notifyChange();
     }
 }
