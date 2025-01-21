@@ -27,3 +27,6 @@ yarn.lock
 
 # Vitest Coverage
 coverage/*
+
+# test file
+test.html
