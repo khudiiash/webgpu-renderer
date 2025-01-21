@@ -29,7 +29,6 @@ export type ShaderConfig = {
 
 export class ShaderLibrary {
     static init() {
-        const lib = new ShaderLibrary();
         for (const [name, code] of Object.entries(chunks)) {
             new ShaderChunk(name, code);
         }
@@ -46,6 +45,9 @@ export class ShaderLibrary {
     }
 
     static addChunk(chunk: ShaderChunk) {
+        if (!this.#instance) {
+            this.#instance = new ShaderLibrary();
+        }
         this.#instance.addChunk(chunk);
     }
 
@@ -75,7 +77,7 @@ export class ShaderLibrary {
                 { name: 'vNormalW', type: 'vec3f' },
                 { name: 'vUv', type: 'vec2f' },
             ],
-            chunks: ['common', 'noise', 'scene', 'camera', 'model', 'diffuse', 'diffuse_map', 'standard_material', 'pbr', 'gamma', 'emission', 'fog'],
+            chunks: ['Mesh', 'StandardMaterial'],
             vertexTemplate: `
                 @vertex(input) -> output {
                     var position: vec3f = input.position;

@@ -66,14 +66,12 @@ class DataMonitor {
     private callbacks: ChangeCallback[];
     private data: Float32Array;
     private lastData: Float32Array;
-    private arrayStride: number;
 
-    constructor(parent: any, data: Float32Array, arrayStride?: number) {
+    constructor(parent: any, data: Float32Array) {
         this.callbacks = [];
         this.data = data;
         this.parent = parent;
         this.lastData = new Float32Array([...data]);
-        this.arrayStride = arrayStride || data.length;
         DataMonitor.extendWithDataMonitor(this, parent);
     }
 

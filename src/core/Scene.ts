@@ -5,6 +5,7 @@ import { UniformData } from '@/data/UniformData';
 import { UniformDataArray } from '@/data/UniformDataArray';
 import { DirectionalLight } from "@/lights/DirectionalLight";
 import { PointLight } from "@/lights/PointLight";
+import { Struct } from "@/data/Struct";
 
 interface SceneConfig {
     backgroundColor?: string;
@@ -12,6 +13,20 @@ interface SceneConfig {
 }
 
 class Scene extends Object3D {
+    static MAX_DIRECTIONAL_LIGHTS = 4;
+    static MAX_POINT_LIGHTS = 64;
+
+    static struct = new Struct('Scene', {
+        pointLights: [PointLight.struct, Scene.MAX_POINT_LIGHTS],
+        directionalLights: [DirectionalLight.struct, Scene.MAX_DIRECTIONAL_LIGHTS],
+        fog: Fog.struct,
+        ambientColor: 'vec4f',
+        backgroundColor: 'vec4f',
+
+        directionalLightsNum: 'u32',
+        pointLightsNum: 'u32',
+        time: 'f32',
+    })
     public readonly isScene: boolean;
     public name: string;
     public type: string;
@@ -20,8 +35,6 @@ class Scene extends Object3D {
     public camera?: Object3D;
     public lights: Object3D[];
     public instances: Map<unknown, unknown>;
-    public uniforms: UniformData;
-
 
     public ambientColor!: Color;
     public backgroundColor!: Color;
@@ -31,10 +44,8 @@ class Scene extends Object3D {
     public pointLightsNum!: number;
     public fog!: Fog;
     public time: number = 0;
-    public frame: number = 0;
 
     private _time: number = 0;
-    private _frame: number = 0;
     private _last: number = performance.now();
 
     constructor(config: SceneConfig = {}) {
@@ -49,50 +60,38 @@ class Scene extends Object3D {
 
         const backgroundColor = new Color(config.backgroundColor || '#111111');
         const ambientColor = new Color(config.ambientColor || '#111111');
-        const MAX_DIRECTIONAL_LIGHTS = 8;
-        const MAX_POINT_LIGHTS = 64;
 
-        const directionalLights = new UniformDataArray(
-            MAX_DIRECTIONAL_LIGHTS,
-            DirectionalLight.uniformSize, 
-        ).onChange(() => { 
-            if (directionalLights.size !== this.directionalLightsNum) {
-                this.directionalLightsNum = directionalLights.size; 
-            }
-        });
+        const directionalLights = new UniformDataArray(DirectionalLight.struct, Scene.MAX_DIRECTIONAL_LIGHTS)
+            .onChange(() => this.directionalLightsNum = directionalLights.size);
+        
+        const pointLights = new UniformDataArray(PointLight.struct, Scene.MAX_POINT_LIGHTS)
+            .onChange(() => this.pointLightsNum = pointLights.size );
 
-        const pointLights = new UniformDataArray(
-            MAX_POINT_LIGHTS,
-            PointLight.uniformSize,
-        ).onChange(() => { 
-            if (pointLights.size !== this.pointLightsNum) {
-                this.pointLightsNum = pointLights.size; 
-            }
-        });
 
         const fog = new Fog({
             color: backgroundColor,
             start: 500, 
-            end: 3000,
+            end: 1000,
             density: 0.01,
             type: Fog.LINEAR
         });
 
-        this.uniforms = new UniformData(this, {
-            name: 'scene',
-            isGlobal: true,
-            values: {
-                fog, // offset: 0
-                ambientColor, // offset: 8
-                backgroundColor, // offset: 12
-                time: 0, // offset: 16
-                frame: 0, // offset: 17 
-                directionalLightsNum: 0, // offset: 24
-                pointLightsNum: 0, // offset: 28
-                directionalLights,
-                pointLights
-            }
-        })
+        this.uniforms.set('Scene', new UniformData(this, {
+                name: 'Scene',
+                isGlobal: true,
+                struct: Scene.struct,
+                values: {
+                    fog,
+                    ambientColor,
+                    backgroundColor,
+                    time: 0,
+                    directionalLightsNum: 0,
+                    pointLightsNum: 0,
+                    directionalLights,
+                    pointLights
+                }
+            })
+        );
     }
 
     public add(object: Object3D): this {
@@ -101,15 +100,17 @@ class Scene extends Object3D {
         if (object.isMesh) {
             this.meshes.push(object);
         }
+
         if (object.isLight) {
             if (object.isDirectionalLight) {
-                this.directionalLights.add(object.uniforms);
+                this.directionalLights.add((object as DirectionalLight).uniforms.get('DirectionalLight') as UniformData);
             }
             if (object.isPointLight) {
-                this.pointLights.add(object.uniforms);
+                this.pointLights.add((object as PointLight).uniforms.get('PointLight') as UniformData);
             }
             this.lights.push(object);
         }
+
         if (object.isCamera) {
             this.camera = object;
         }
@@ -117,16 +118,19 @@ class Scene extends Object3D {
     }
 
     public remove(object: Object3D): this {
-        if (!(object instanceof Object3D)) {
-            console.error('Scene.remove: object not an instance of Object3D.', object);
-            return this;
-        }
         super.remove(object);
+
         if (object.isMesh) {
             const i = this.meshes.indexOf(object);
             if (i >= 0) this.meshes.splice(i, 1);
         }
         if (object.isLight) {
+            if (object.isDirectionalLight) {
+                this.directionalLights.remove((object as DirectionalLight).uniforms.get('DirectionalLight') as UniformData);
+            }
+            if (object.isPointLight) {
+                this.pointLights.remove((object as PointLight).uniforms.get('PointLight') as UniformData);
+            }
             const i = this.lights.indexOf(object);
             if (i >= 0) this.lights.splice(i, 1);
         }

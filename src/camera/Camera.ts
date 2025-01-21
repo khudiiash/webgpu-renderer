@@ -3,10 +3,10 @@ import { Frustum } from '@/math/Frustum';
 import { Matrix4 } from '@/math/Matrix4';
 import { Vector3 } from '@/math/Vector3';
 
-import { UniformData, UniformDataConfig } from '@/data/UniformData';
+import { UniformData } from '@/data/UniformData';
 import { uuid } from '@/util/general';
 import { Renderer } from '@/renderer/Renderer';
-import { ResourceManager } from '@/engine/ResourceManager';
+import { Struct } from '@/data/Struct';
 
 
 export class Camera extends Object3D {
@@ -21,8 +21,14 @@ export class Camera extends Object3D {
     public projectionViewMatrix: Matrix4;
     public rightDirection: Vector3;
     public frustum: Frustum;
-    public uniforms: UniformData;
-    public aspect: number;
+    public aspect: number = 1;
+
+    static struct = new Struct('Camera', {
+        view: 'mat4x4f',
+        projection: 'mat4x4f',
+        position: 'vec3f',
+        direction: 'vec3f',
+    });
 
     constructor() {
         super();
@@ -39,21 +45,19 @@ export class Camera extends Object3D {
         this.rightDirection = new Vector3();
         this.frustum = new Frustum();
 
-        const uniformConfig: UniformDataConfig = {
-            name: 'camera',
-            isGlobal: true,
-            values: {
-                projection: this.projectionMatrix,
-                view: this.matrixWorldInverse,
-                position: this.position,
-                direction: this.forward,
-            }
-        };
-        this.uniforms = new UniformData(this, uniformConfig).onChange((data) => {
-            ResourceManager.updateBuffer(this.uniforms.id);
-        });
-
-        this.aspect = 1; // Default aspect ratio
+        this.uniforms = new Map<string, UniformData>();
+        this.uniforms.set('Camera', new UniformData(this, {
+                name: 'Camera',
+                isGlobal: true,
+                struct: Camera.struct,
+                values: {
+                    projection: this.projectionMatrix,
+                    view: this.matrixWorldInverse,
+                    position: this.position,
+                    direction: this.forward,
+                }
+            }),
+        );
 
         Renderer.on('resize', this._onResize, this);
     }
@@ -66,7 +70,6 @@ export class Camera extends Object3D {
     _onResize({ aspect }: { aspect: number }) {
         if (this.aspect === aspect) return;
         this.aspect = aspect;
-        console.log('Camera aspect ratio updated:', this.aspect);
         this.updateProjectionMatrix();
     }
 

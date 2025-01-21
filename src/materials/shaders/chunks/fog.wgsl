@@ -1,10 +1,12 @@
-@fragment() {{
-    let fogColor = scene.fog.color;
-    let fogStart = scene.fog.start;
-    let fogEnd = scene.fog.end;
-    let fogDensity = scene.fog.density;
-    let fogType = scene.fog.fogType;
-    let fogDistance = length(input.vPositionW - camera.position);
+@group(Global) @binding(Scene)
+
+fn applyFog(color: vec4f, worldPosition: vec3f, cameraPos: vec3f, fog: Fog) -> vec4f {
+    let fogColor = fog.color;
+    let fogStart = fog.start;
+    let fogEnd = fog.end;
+    let fogDensity = fog.density;
+    let fogType = fog.fogType;
+    let fogDistance = length(worldPosition - cameraPos);
     
     var fogFactor = 1.0;
     
@@ -16,5 +18,5 @@
         fogFactor = 1.0 - exp2(-fogDensity * fogDensity * fogDensity * fogDistance * fogDistance * fogDistance);
     }
     
-    color = mix(color, fogColor, fogFactor);
-}}
+    return mix(color, fogColor, fogFactor);
+}

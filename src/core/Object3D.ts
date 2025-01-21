@@ -4,6 +4,7 @@ import { Quaternion } from "@/math/Quaternion";
 import { Matrix4 } from "@/math/Matrix4";
 import { uuid, num } from "@/util/general";
 import { EventEmitter } from "./EventEmitter";
+import { UniformData } from "@/data";
 
 export class Object3D extends EventEmitter {
     public position: Vector3;
@@ -17,6 +18,7 @@ export class Object3D extends EventEmitter {
     public name: string = 'Object';
     public up: Vector3 = Vector3.UP;
     public id: string;
+    public uniforms: Map<string, UniformData> = new Map();
     readonly forward = new Vector3(0, 0, -1);
     readonly right = new Vector3(1, 0, 0);
 
@@ -121,6 +123,10 @@ export class Object3D extends EventEmitter {
     }
 
     add(child: Object3D) {
+        if (!(child instanceof Object3D)) {
+            console.error(`Object.add: object not an instance of Object3D.`, child);
+            return this;
+        }
         if (child.parent) {
             child.parent.remove(child);
         }
@@ -131,6 +137,15 @@ export class Object3D extends EventEmitter {
     }
 
     remove(child: Object3D) {
+        if (!(child instanceof Object3D)) {
+            console.error(`Object.remove: object not an instance of Object3D.`, child);
+            return this;
+        }
+        if (child.parent !== this) {
+            console.error(`Object.remove: object not a child of this.`, child);
+            return this;
+        }
+
         const index = this.children.indexOf(child);
         if (index !== -1) {
             child.parent = null;
