@@ -127,8 +127,8 @@ export class TemplateProcessor {
             if (rule.includes('before')) {
                 const [_, marker] = rule.split(':');
                 const splitBody = bodyStr.split('\n');
-                const index = bodyStr.split('\n').findIndex(line => new RegExp(`// ?${marker}`).test(line));
-                if (index) {
+                const index = splitBody.findIndex(line => new RegExp(`// ?${marker}`).test(line));
+                if (index !== -1) {
                     splitBody.splice(index, 0, chunk.code[this.type]);
                     bodyStr = splitBody.join('\n');
                 }
@@ -136,9 +136,17 @@ export class TemplateProcessor {
             if (rule.includes('after')) {
                 const [_, marker] = rule.split(':');
                 const splitBody = bodyStr.split('\n');
-                const index = bodyStr.split('\n').findIndex(line => new RegExp(`// ?${marker}`).test(line));
-                if (index) {
-                    splitBody.splice(index + 1, 0, chunk.code[this.type]);
+                const index = splitBody.findIndex(line => new RegExp(`// ?${marker}`).test(line));
+                if (index !== -1) {
+                    // find next marker
+                    const nextMarkerIndex = splitBody.slice(index + 1).findIndex(line => /\/\/\s?\w+/.test(line)) + (index + 1);
+                    if (nextMarkerIndex !== -1 && nextMarkerIndex < splitBody.length) {
+                        // insert before next marker
+                        splitBody.splice(nextMarkerIndex, 0, chunk.code[this.type]);
+                    } else {
+                        // if no next marker, insert at the end
+                        splitBody.push(chunk.code[this.type]);
+                    }
                     bodyStr = splitBody.join('\n');
                 }
             }

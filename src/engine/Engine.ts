@@ -117,22 +117,28 @@ export class Engine extends EventEmitter {
                 if (input.vertex_index == 2) {
                     // noise patches
                     worldPosition = getWorldPosition(position, model);
-                    let noise = perlinNoise(worldPosition.xz * 0.1) * 0.5 + 0.5;
-                    position.y = noise * 2.0;
+                    let noise = perlinNoise(worldPosition.xz * 0.15) * 0.5 + 0.5;
+                    position.y += noise;
 
                     // wind animation
                     let wind = perlinNoise(worldPosition.xz * 0.005) * 0.5 + 0.5;
-                    let windStrength = sin(scene.time * 2.0 + wind * 100.0);
+                    let windStrength = sin(scene.time * 2.0 + wind * 100.0) * position.y;
                     position.x += windStrength;
                     position.z += windStrength;
                 }
             }}
-            @fragment(before:gamma) {{
-                color = vec4(color.rgb * input.vUv.y, 1.0);
+            @fragment(after:gamma) {{
+                let colorNoise = perlinNoise(input.vPositionW.xz * 0.1) * 0.5 + 0.5;
+                let color1 = vec3(color.rgb * vec3(4.0, 4.0, 1.0));
+                let color2 = vec3(color.rgb * vec3(0.8, 0.8, 0.0));
+                let mixed = vec4f(mix(color1, color2, colorNoise), color.a);
+                color = vec4f(mix(color.rgb, mixed.rgb, colorNoise), color.a);
+                color = vec4(color.rgb * 0.5 * input.vUv.y, 1.0);
             }}
         `);
         
         grassMat.addChunk(grassChunk);
+        console.log(grassMat.shader.fragmentSource)
 
         // GRASS GEOMETRY
         const triangleGeometry = new Geometry();
