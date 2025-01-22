@@ -362,7 +362,7 @@ describe('Quaternion', () => {
 
     it('should correctly invert a normalized quaternion', () => {
         const q = new Quaternion(1, 2, 3, 4).normalize();
-        const result = q.inverse();
+        const result = q.negate();
 
         const expected = new Quaternion(-q.x, -q.y, -q.z, q.w).normalize();
         expect(Math.abs(result.x)).toBeCloseTo(expected.x, 5);
@@ -371,23 +371,26 @@ describe('Quaternion', () => {
         expect(Math.abs(result.w)).toBeCloseTo(expected.w, 5);
     });
 
-    it('should normalize and then invert a non-normalized quaternion', () => {
-        const q = new Quaternion(2, 3, 4, 5); // Non-normalized
-        const result = q.inverse();
-
-        // Expected result: conjugate normalized
-        const magnitude = Math.sqrt(q.x ** 2 + q.y ** 2 + q.z ** 2 + q.w ** 2);
-        const expected = new Quaternion(-q.x / magnitude, -q.y / magnitude, -q.z / magnitude, q.w / magnitude);
-
-        expect(Math.abs(result.x)).toBeCloseTo(expected.x, 5);
-        expect(Math.abs(result.y)).toBeCloseTo(expected.y, 5);
-        expect(Math.abs(result.z)).toBeCloseTo(expected.z, 5);
-        expect(Math.abs(result.w)).toBeCloseTo(expected.w, 5);
+    it('should negate a non-normalized quaternion', () => {
+        // Create a non-normalized quaternion
+        const q = new Quaternion(2, 3, 4, 5);
+        
+        // Negate the quaternion
+        const result = q.negate();
+        
+        // Expected result should just be negation without normalization
+        expect(result.x).toBeCloseTo(-2);
+        expect(result.y).toBeCloseTo(-3);
+        expect(result.z).toBeCloseTo(-4);
+        expect(result.w).toBeCloseTo(5);  // w component doesn't change
+        
+        // Verify it's the same instance
+        expect(result).toBe(q);
     });
 
     it('should handle the identity quaternion correctly', () => {
         const q = new Quaternion(0, 0, 0, 1); // Identity quaternion
-        const result = q.inverse();
+        const result = q.negate();
 
         expect(Math.abs(result.x)).toBe(0);
         expect(Math.abs(result.y)).toBe(0);
