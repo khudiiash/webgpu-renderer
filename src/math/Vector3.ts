@@ -222,7 +222,6 @@ export class Vector3 extends BufferData {
         );
     }
 
-
     setFromSphericalCoords(radius: number, phi: number, theta: number): this {
         const sinPhiRadius = Math.sin(phi) * radius;
         this[0] = sinPhiRadius * Math.sin(theta);
