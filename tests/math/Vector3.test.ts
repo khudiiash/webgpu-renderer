@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { Vector3 } from '@/math/Vector3';
 import { Matrix4 } from '@/math/Matrix4';
 
@@ -471,6 +471,60 @@ describe('Vector3', () => {
 
         v.setFromMatrixPosition(m);
         expect(v.toString()).toEqual(new Vector3(13, 14, 15).toString());
+    });
+
+    describe('Vector3.setFromSphericalCoords', () => {
+        let v: Vector3;
+    
+        beforeEach(() => {
+            v = new Vector3();
+        });
+    
+        it('should set vector from standard spherical coordinates', () => {
+            // Test case 1: Standard angles and radius
+            v.setFromSphericalCoords(1, Math.PI/2, 0);
+            expect(v.x).toBeCloseTo(0);
+            expect(v.y).toBeCloseTo(0);
+            expect(v.z).toBeCloseTo(1);
+    
+            // Test case 2: Different radius
+            v.setFromSphericalCoords(2, Math.PI/2, Math.PI/2);
+            expect(v.x).toBeCloseTo(2);
+            expect(v.y).toBeCloseTo(0);
+            expect(v.z).toBeCloseTo(0);
+    
+            // Test case 3: Different phi angle
+            v.setFromSphericalCoords(1, Math.PI/4, 0);
+            expect(v.x).toBeCloseTo(0);
+            expect(v.y).toBeCloseTo(Math.cos(Math.PI/4));
+            expect(v.z).toBeCloseTo(Math.sin(Math.PI/4));
+        });
+    
+        it('should handle edge cases', () => {
+            // Test case 4: Zero radius
+            v.setFromSphericalCoords(0, Math.PI/2, Math.PI/2);
+            expect(v.x).toBeCloseTo(0);
+            expect(v.y).toBeCloseTo(0);
+            expect(v.z).toBeCloseTo(0);
+    
+            // Test case 5: Full rotation
+            v.setFromSphericalCoords(1, Math.PI/2, 2 * Math.PI);
+            expect(v.x).toBeCloseTo(0);
+            expect(v.y).toBeCloseTo(0);
+            expect(v.z).toBeCloseTo(1);
+    
+            // Test case 6: Negative radius
+            v.setFromSphericalCoords(-1, Math.PI/2, 0);
+            expect(v.x).toBeCloseTo(0);
+            expect(v.y).toBeCloseTo(0);
+            expect(v.z).toBeCloseTo(-1);
+        });
+    
+        it('should maintain chainability', () => {
+            // Test case 7: Method chaining
+            const result = v.setFromSphericalCoords(1, Math.PI/2, 0);
+            expect(result).toBe(v);
+        });
     });
 
 });

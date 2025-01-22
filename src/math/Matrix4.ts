@@ -227,7 +227,7 @@ export class Matrix4 extends BufferData {
         ]);
     }
 
-    setTranslation(x: number | Vector3, y: number, z: number): this {
+    setTranslation(x: number | Vector3, y?: number, z?: number): this {
         if (x instanceof Vector3) {
             y = x[1];
             z = x[2];
@@ -311,6 +311,7 @@ export class Matrix4 extends BufferData {
 		return this;
 
 	}
+
     rotateX(radians: number): this {
         return this.rotateOnAxis(new Vector3(1, 0, 0), radians);
     }
@@ -437,6 +438,7 @@ export class Matrix4 extends BufferData {
 
         return this;
     }
+
     setFromRotationMatrix(m: Matrix4): this {
         const te = this;
         te.setIdentity();
@@ -696,7 +698,6 @@ export class Matrix4 extends BufferData {
 
 		return this;
 	}
-
     setScale(x: Vector3 | number, y: number, z: number): this {
         if (x instanceof Vector3) {
             y = x[1];
