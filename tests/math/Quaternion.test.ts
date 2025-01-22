@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { Quaternion } from '@/math/Quaternion';
 import { Euler } from '@/math/Euler';
 import { Vector3 } from '@/math/Vector3';
@@ -526,5 +526,69 @@ describe('Quaternion', () => {
         expect(q.y).toBeCloseTo(0, 5);  // No y component
         expect(q.z).toBeCloseTo(0.707, 3);  // z component should be around 0.707
         expect(q.w).toBeCloseTo(0.707, 3);  // w component should also be around 0.707
+    });
+
+    it('should correctly invert and normalize a quaternion', () => {
+        const q = new Quaternion(2, 3, 4, 5);
+        const spyNegate = vi.spyOn(q, 'negate');
+        const spyNormalize = vi.spyOn(q, 'normalize');
+        
+        // Call invert
+        const result = q.invert();
+        
+        // Check that both methods were called
+        expect(spyNegate).toHaveBeenCalledTimes(1);
+        expect(spyNormalize).toHaveBeenCalledTimes(1);
+        
+        // Verify it returns this for chaining
+        expect(result).toBe(q);
+        
+        // Calculate magnitude for normalization check
+        const magnitude = Math.sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
+        
+        // Verify the result is normalized (magnitude should be ~1)
+        expect(magnitude).toBeCloseTo(1);
+        
+        // Verify the signs are inverted (negated)
+        expect(q.x).toBeLessThan(0);
+        expect(q.y).toBeLessThan(0);
+        expect(q.z).toBeLessThan(0);
+        // w component should stay positive after negation and normalization
+    });
+
+    it('should handle zero magnitude quaternion', () => {
+        const q = new Quaternion(0, 0, 0, 0);
+        q.invert();
+        
+        // Should remain zero
+        expect(q.x).toBeCloseTo(0);
+        expect(q.y).toBeCloseTo(0);
+        expect(q.z).toBeCloseTo(0);
+        expect(q.w).toBeCloseTo(1);
+    });
+
+    it('should produce inverse that negates rotation', () => {
+        // Create a quaternion representing a 90-degree rotation around X axis
+        const angle = Math.PI / 2;
+        const q = new Quaternion(Math.sin(angle/2), 0, 0, Math.cos(angle/2));
+        
+        // Store original values
+        const originalX = q.x;
+        const originalY = q.y;
+        const originalZ = q.z;
+        const originalW = q.w;
+        
+        // Invert
+        q.invert();
+        
+        // Check that the rotation has been inverted
+        expect(q.x).toBeCloseTo(-originalX);
+        expect(q.y).toBeCloseTo(-originalY);
+        expect(q.z).toBeCloseTo(-originalZ);
+        expect(q.w).toBeCloseTo(originalW);
+        
+        // Magnitude should still be 1
+        const magnitude = Math.sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
+        expect(magnitude).toBeCloseTo(1);
     });
 });

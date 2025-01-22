@@ -246,7 +246,7 @@ describe('Euler', () => {
         const initialZ = euler.z;
     
         // Call setFromRotationMatrix with an unknown order
-        //euler.setFromRotationMatrix(matrix, 'INVALID_ORDER');
+        euler.setFromRotationMatrix(matrix, 'INVALID_ORDER');
     
         // Check that the Euler angles have not been modified
         expect(euler.x).toBe(initialX);
