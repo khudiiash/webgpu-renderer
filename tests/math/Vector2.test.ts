@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { Vector2 } from '@/math/Vector2';
+import { BufferData } from '@/data';
 
 describe('Vector2', () => {
     it('creates with default values', () => {
@@ -94,10 +95,10 @@ describe('Vector2', () => {
 
     it('sets from array', () => {
         const v = new Vector2();
-        const array = [5, 6, 7, 8];
-        v.set(array, 1);
-        expect(v.x).toBe(6);
-        expect(v.y).toBe(7);
+        const array = new BufferData([5, 6]);
+        v.set(array, 0);
+        expect(v.x).toBe(5);
+        expect(v.y).toBe(6);
     });
 
     it('sets individual components', () => {
@@ -127,4 +128,161 @@ describe('Vector2', () => {
         v.toArray(existingArray, 1);
         expect(existingArray).toEqual([9, 1, 2]);
     });
+
+    describe('Vector2 methods', () => {
+        let v: Vector2;
+    
+        beforeEach(() => {
+            v = new Vector2();
+        });
+    
+        describe('setXY', () => {
+            it('should set x and y components', () => {
+                v.setXY(2, 3);
+                expect(v[0]).toBeCloseTo(2);
+                expect(v[1]).toBeCloseTo(3);
+            });
+    
+            it('should handle zero values', () => {
+                v.setXY(0, 0);
+                expect(v[0]).toBeCloseTo(0);
+                expect(v[1]).toBeCloseTo(0);
+            });
+    
+            it('should handle negative values', () => {
+                v.setXY(-2, -3);
+                expect(v[0]).toBeCloseTo(-2);
+                expect(v[1]).toBeCloseTo(-3);
+            });
+    
+            it('should be chainable', () => {
+                const result = v.setXY(1, 1);
+                expect(result).toBe(v);
+            });
+        });
+    
+        describe('scale', () => {
+
+            beforeEach(() => {
+                v.setXY(2, 3);  // Set initial values
+            });
+    
+            it('should scale by Vector2', () => {
+                const scaleVec = new Vector2(2, 3);
+                v.scale(scaleVec);
+                expect(v[0]).toBeCloseTo(4);  // 2 * 2
+                expect(v[1]).toBeCloseTo(9);  // 3 * 3
+            });
+    
+            it('should scale by single number', () => {
+                v.scale(2);
+                expect(v[0]).toBeCloseTo(4);  // 2 * 2
+                expect(v[1]).toBeCloseTo(6);  // 3 * 2
+            });
+    
+            it('should scale by separate x and y values', () => {
+                v.scale(2, 3);
+                expect(v[0]).toBeCloseTo(4);  // 2 * 2
+                expect(v[1]).toBeCloseTo(9);  // 3 * 3
+            });
+    
+            it('should handle zero scaling', () => {
+                v.scale(0);
+                expect(v[0]).toBeCloseTo(0);
+                expect(v[1]).toBeCloseTo(0);
+            });
+    
+            it('should handle negative scaling', () => {
+                v.scale(-2);
+                expect(v[0]).toBeCloseTo(-4);
+                expect(v[1]).toBeCloseTo(-6);
+            });
+    
+            it('should be chainable', () => {
+                const result = v.scale(2);
+                expect(result).toBe(v);
+            });
+        });
+    
+        describe('subVectors', () => {
+            it('should subtract two vectors', () => {
+                const a = new Vector2(3, 4);
+                const b = new Vector2(1, 2);
+                v.subVectors(a, b);
+                expect(v[0]).toBeCloseTo(2);  // 3 - 1
+                expect(v[1]).toBeCloseTo(2);  // 4 - 2
+            });
+    
+            it('should handle zero subtraction', () => {
+                const a = new Vector2(1, 1);
+                const b = new Vector2(1, 1);
+                v.subVectors(a, b);
+                expect(v[0]).toBeCloseTo(0);
+                expect(v[1]).toBeCloseTo(0);
+            });
+    
+            it('should handle negative results', () => {
+                const a = new Vector2(1, 1);
+                const b = new Vector2(2, 3);
+                v.subVectors(a, b);
+                expect(v[0]).toBeCloseTo(-1);
+                expect(v[1]).toBeCloseTo(-2);
+            });
+    
+            it('should be chainable', () => {
+                const a = new Vector2();
+                const b = new Vector2();
+                const result = v.subVectors(a, b);
+                expect(result).toBe(v);
+            });
+        });
+    });
+
+    describe('Vector2 addVectors', () => {
+        let v: Vector2;
+    
+        beforeEach(() => {
+            v = new Vector2();
+        });
+    
+        it('should add two vectors with positive components', () => {
+            const a = new Vector2(3, 4);
+            const b = new Vector2(1, 2);
+            v.addVectors(a, b);
+            expect(v[0]).toBeCloseTo(4);  // 3 + 1
+            expect(v[1]).toBeCloseTo(6);  // 4 + 2
+        });
+    
+        it('should add vectors with negative components', () => {
+            const a = new Vector2(-1, -2);
+            const b = new Vector2(-3, -4);
+            v.addVectors(a, b);
+            expect(v[0]).toBeCloseTo(-4);  // -1 + -3
+            expect(v[1]).toBeCloseTo(-6);  // -2 + -4
+        });
+    
+        it('should handle zero vector addition', () => {
+            const a = new Vector2(0, 0);
+            const b = new Vector2(0, 0);
+            v.addVectors(a, b);
+            expect(v[0]).toBeCloseTo(0);
+            expect(v[1]).toBeCloseTo(0);
+        });
+    
+        it('should handle mixed positive and negative components', () => {
+            const a = new Vector2(1, -2);
+            const b = new Vector2(-3, 4);
+            v.addVectors(a, b);
+            expect(v[0]).toBeCloseTo(-2);  // 1 + -3
+            expect(v[1]).toBeCloseTo(2);   // -2 + 4
+        });
+    
+        it('should be chainable', () => {
+            const a = new Vector2();
+            const b = new Vector2();
+            const result = v.addVectors(a, b);
+            expect(result).toBe(v);
+        });
+    });
+    
 });
