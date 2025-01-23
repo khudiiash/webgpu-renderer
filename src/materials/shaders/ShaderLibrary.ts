@@ -69,6 +69,8 @@ export class ShaderLibrary {
                 { name: 'position', type: 'vec3f' },
                 { name: 'normal', type: 'vec3f' },
                 { name: 'uv', type: 'vec2f' },
+                { name: 'tangent', type: 'vec3f' },
+                { name: 'bitangent', type: 'vec3f' },
             ],
             varyings: [
                 { name: 'vPosition', type: 'vec3f' },
@@ -76,6 +78,10 @@ export class ShaderLibrary {
                 { name: 'vPositionW', type: 'vec3f' },
                 { name: 'vNormalW', type: 'vec3f' },
                 { name: 'vUv', type: 'vec2f' },
+                { name: 'vTangent', type: 'vec3f' },
+                { name: 'vBitangent', type: 'vec3f' },
+                { name: 'vTangentW', type: 'vec3f' },
+                { name: 'vBitangentW', type: 'vec3f' },
             ],
             chunks: ['Mesh', 'StandardMaterial'],
             vertexTemplate: `
@@ -83,9 +89,13 @@ export class ShaderLibrary {
                     var position: vec3f = input.position;
                     var normal: vec3f = input.normal;
                     var uv: vec2f = input.uv;
+                    var tangent: vec3f = input.tangent;
+                    var bitangent: vec3f = input.bitangent;
                     var worldPosition: vec3f;
-                    var screenPosition: vec4f;
+                    var worldTangent: vec3f;
+                    var worldBitangent: vec3f;
                     var worldNormal: vec3f;
+                    var screenPosition: vec4f;
 
                     {{vertex}}
 
@@ -95,6 +105,10 @@ export class ShaderLibrary {
                     output.vPosition = position;
                     output.vPositionW = worldPosition;
                     output.vUv = uv;
+                    output.vTangent = input.tangent;
+                    output.vBitangent = input.bitangent;
+                    output.vTangentW = worldTangent;
+                    output.vBitangentW = worldBitangent;
                     return output;
                 }
             `,

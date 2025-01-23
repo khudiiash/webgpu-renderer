@@ -9,23 +9,19 @@ fn getScreenPosition(projection: mat4x4f, view: mat4x4f, model: mat4x4f, positio
     return projection * view * model * vec4f(position, 1.0);
 }
 
-fn getWorldPosition(position: vec3f, model: mat4x4f) -> vec3f {
-    return (model * vec4f(position, 1.0)).xyz;
-}
-
-fn getWorldNormal(normal: vec3f, model: mat4x4f) -> vec3f {
-    return normalize((model * vec4f(normal, 0.0)).xyz);
-}
-
-fn transformTangent(localTangent: vec3<f32>, matrix: mat4x4f) -> vec3<f32> {
+fn transformTangent(matrix: mat4x4f, localTangent: vec3f) -> vec3<f32> {
     return normalize((matrix * vec4f(localTangent, 0.0)).xyz);
 }
 
-fn buildTBNMatrix(normal: vec3<f32>, tangent: vec3<f32>) -> mat3x3<f32> {
+fn buildTBNMatrix(normal: vec3f, tangent: vec3f) -> mat3x3<f32> {
     let N = normalize(normal);
     let T = normalize(tangent - dot(tangent, N) * N); // Gram-Schmidt orthogonalization
     let B = cross(N, T);
     return mat3x3<f32>(T, B, N);
+}
+
+fn transformPosition(matrix: mat4x4f, vector: vec3f) -> vec3f {
+    return (matrix * vec4f(vector, 1.0)).xyz;
 }
 
 fn getBillboardModelMatrix(modelMatrix: mat4x4<f32>, viewMatrix: mat4x4<f32>) -> mat4x4<f32> {
@@ -69,12 +65,9 @@ fn getBillboardModelMatrix(modelMatrix: mat4x4<f32>, viewMatrix: mat4x4<f32>) ->
 @vertex() {{
     // model
     var model = mesh_instances[input.instance_index];
-    // world_position
-    worldPosition = getWorldPosition(position, model);
-    // world_normal
-    worldNormal = getWorldNormal(normal, model);
-    // billboard
+
     if (mesh_options.useBillboard == 1) {
+        // billboard
         model = getBillboardModelMatrix(model, camera.view);
         screenPosition = getScreenPosition(camera.projection, camera.view, model, position);
     } else {
@@ -85,4 +78,13 @@ fn getBillboardModelMatrix(modelMatrix: mat4x4<f32>, viewMatrix: mat4x4<f32>) ->
     uv = input.uv;
     // normal
     normal = input.normal;
+
+    // world_tangent
+    worldTangent = transformTangent(model, input.tangent);
+    // world_bitangent
+    worldBitangent = transformTangent(model, input.bitangent);
+    // world_position
+    worldPosition = transformPosition(model, position);
+    // world_normal
+    worldNormal = transformPosition(model, normal);
 }}

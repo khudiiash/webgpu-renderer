@@ -135,9 +135,6 @@ export class OrbitControls extends EventEmitter {
     this.sphericalDelta.phi = 0;
     this.scale = 1;
     this.panOffset.set([0, 0, 0]);
-    if (isNaN(this.camera.position.x)) {
-        debugger
-    }
   }
 
   // Mouse event handlers
@@ -207,9 +204,9 @@ export class OrbitControls extends EventEmitter {
   }
 
   onMouseWheel(event: WheelEvent) {
-    if (event.deltaY < 0) {
+    if (event.deltaY > 0) {
       this.dollyOut();
-    } else if (event.deltaY > 0) {
+    } else if (event.deltaY < 0) {
       this.dollyIn();
     }
     this.update();

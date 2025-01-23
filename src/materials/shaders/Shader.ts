@@ -130,6 +130,7 @@ class Shader {
         }
 
         if (options.fragmentTemplate) {
+            console.warn(shader.name, chunks);
             shader.fragmentSource = ShaderFormatter.format(
                 TemplateProcessor.processTemplate(`
                     struct FragmentInput {
