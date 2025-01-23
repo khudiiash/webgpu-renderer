@@ -29,5 +29,5 @@
     }
 
   },
-  "include": ["src", "tests"]
+  "include": ["src", "tests", "demos"]
 }
