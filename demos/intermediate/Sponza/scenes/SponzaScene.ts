@@ -11,7 +11,7 @@ import { BoxGeometry } from '@/geometry/BoxGeometry';
 import { rand } from '@/util';
 import { Engine } from '@/engine/Engine';
 
-export class Demo1Scene {
+export class SponzaScene {
     private scene: Scene;
     private camera: PerspectiveCamera;
     private particles: Mesh;
