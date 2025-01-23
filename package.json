@@ -4,8 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 8080",
-    "dev:demos_intermediate_demo1": "vite --host 0.0.0.0 --port 8080 --config demos/intermediate/Demo1/vite.config.ts",
-    "dev:demos_advanced_demo1": "vite --host 0.0.0.0 --port 8080 --config demos/advanced/Demo1/vite.config.ts",
+    "dev:sponza": "vite --host 0.0.0.0 --port 8080 --config demos/intermediate/Sponza/vite.config.ts",
     "test": "vitest --coverage",
     "build": "tsc && vite build",
     "preview": "vite preview"
