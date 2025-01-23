@@ -227,7 +227,7 @@ export class Matrix4 extends BufferData {
         ]);
     }
 
-    setTranslation(x: number | Vector3, y: number, z: number): this {
+    setTranslation(x: number | Vector3, y?: number, z?: number): this {
         if (x instanceof Vector3) {
             y = x[1];
             z = x[2];
@@ -237,7 +237,7 @@ export class Matrix4 extends BufferData {
             1, 0, 0, 0,
             0, 1, 0, 0,
             0, 0, 1, 0,
-            x, y, z, 1
+            x, y ?? 0, z ?? 0, 1
         ]);
         return this;
     }
@@ -311,6 +311,7 @@ export class Matrix4 extends BufferData {
 		return this;
 
 	}
+
     rotateX(radians: number): this {
         return this.rotateOnAxis(new Vector3(1, 0, 0), radians);
     }
@@ -322,6 +323,20 @@ export class Matrix4 extends BufferData {
     rotateZ(radians: number): this {
         return this.rotateOnAxis(new Vector3(0, 0, 1), radians);
     }
+    
+    // Use setScaleMatrix if you need a pure scaling matrix or want to replace any existing transformations
+    setScaleMatrix(scale: Vector3): this {
+        const te = this;
+        const { x: sx, y: sy, z: sz } = scale;
+    
+        return te.set([
+            sx, 0,  0,  0,
+            0,  sy, 0,  0,
+            0,  0,  sz, 0,
+            0,  0,  0,  1
+        ]);
+    }
+
     rotateOnAxis(axis: Vector3, radians: number): this {
         const te = this;
         let x = axis[0];
@@ -423,6 +438,7 @@ export class Matrix4 extends BufferData {
 
         return this;
     }
+
     setFromRotationMatrix(m: Matrix4): this {
         const te = this;
         te.setIdentity();
@@ -682,7 +698,6 @@ export class Matrix4 extends BufferData {
 
 		return this;
 	}
-
     setScale(x: Vector3 | number, y: number, z: number): this {
         if (x instanceof Vector3) {
             y = x[1];
