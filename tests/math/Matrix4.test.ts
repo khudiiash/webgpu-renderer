@@ -1007,6 +1007,13 @@ describe('Matrix4', () => {
                 }
             });
     
+            
+            it('should handle null y and z', () => {
+                m.setTranslation(1);
+                expect(m[13]).toBeCloseTo(0);
+                expect(m[14]).toBeCloseTo(0);
+            });
+
             it('should handle negative scalar', () => {
                 m.setTranslation(1, 1, 1);
                 m.multiplyScalar(-1);
