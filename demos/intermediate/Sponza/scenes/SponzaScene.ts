@@ -12,41 +12,37 @@ import { rand } from '@/util';
 import { Engine } from '@/engine/Engine';
 
 export class SponzaScene {
-    private scene: Scene;
-    private camera: PerspectiveCamera;
-    private particles: Mesh;
-    private point: PointLight;
-    private redCube: PointLight;
+    private scene!: Scene;
+    private camera!: PerspectiveCamera;
+    private particles!: Mesh;
+    private point!: PointLight;
+    private redCube!: PointLight;
     private elapsed: number = 0;
     private last: number = performance.now();
     private engine : Engine;
 
     constructor(engine : Engine) {
         this.engine = engine;
-        this.scene = new Scene();
-        this.camera = new PerspectiveCamera(40, engine.settings.width / engine.settings.height, 0.1, 1000);
-        this.particles = new Mesh;
-        this.point = new PointLight;
-        this.redCube = new PointLight;
     }
 
     async init() {
-        await this.setupCamera();
-        await this.setupScene();
-        await this.setupGrass();
+        this.setupScene();
+        this.setupCamera();
         await this.setupSponza();
-        await this.setupLights();
-        await this.setupParticles();
+        this.setupLights();
+        this.setupGrass();
+        this.setupParticles();
     }
 
     private setupCamera() {
+        this.camera = new PerspectiveCamera(40, this.engine.settings.width / this.engine.settings.height, 0.1, 1000);
         this.camera.lookAt(Vector3.left);
         this.camera.position.setXYZ(100, 30, 0);
-
         this.scene.add(this.camera);
     }
 
     private setupScene() {
+        this.scene = new Scene();
         this.scene.backgroundColor.setHex(0x111111);
         this.scene.ambientColor.set([0.05, 0.05, 0.05, 1]);
         this.scene.fog.color.setHex(0x111111);
@@ -87,7 +83,6 @@ export class SponzaScene {
         `);
         
         grassMat.addChunk(grassChunk);
-        console.log(grassMat.shader.fragmentSource)
 
         // GRASS GEOMETRY
         const triangleGeometry = new Geometry();
@@ -120,19 +115,21 @@ export class SponzaScene {
     }
 
     private setupLights() {
-        // // LIGHTS
-        const point = new PointLight({ intensity: 10000, range: 2000, color: '#ffff88' });
-        this.scene.add(point);
-        point.position.setXYZ(-100, 20, 0);
+        // // POINT LIGHT 
+        this.point = new PointLight({ intensity: 10000, range: 2000, color: '#ffff88' });
+        this.scene.add(this.point);
+        this.point.position.setXYZ(-100, 20, 0);
         const bulb = new Mesh(new SphereGeometry(2), new StandardMaterial({ emissive: '#ffffff', emissive_factor: 10 }));
-        point.add(bulb);
+        this.point.add(bulb);
 
 
+        // RED CUBE
         const redCube = new PointLight({ intensity: 10000, range: 200, color: '#ff0000' });
         const redCubeMesh = new Mesh(new BoxGeometry(10, 10, 10), new StandardMaterial({ emissive: '#ff3333' }));
         redCube.add(redCubeMesh);
         redCube.position.setXYZ(-180, 60, 0);
         this.scene.add(redCube);
+        this.redCube = redCube;
     }
 
     private setupParticles() {
@@ -140,7 +137,7 @@ export class SponzaScene {
         const rangeZ = 50;
         const particleGeometry = new PlaneGeometry(1, 1);
         const particleMaterial = new StandardMaterial({ emissive: '#ff0000', transmission: 1, blending: 'additive', transparent: true });
-        particleMaterial.addChunk(new ShaderChunk('particle', `
+        particleMaterial.addChunk(new ShaderChunk('Particle', `
             @fragment(last) {{
                 let dist = distance(input.vUv, vec2(0.5));
                 if (dist > 0.5) {
@@ -153,11 +150,11 @@ export class SponzaScene {
             }}
         `));
 
-        const particles = new Mesh(particleGeometry, particleMaterial, 3_000);
-        particles.setAllPositions(Array.from({ length: particles.count }, (_, i) => [rand(-rangeX, rangeX), rand(0, 100), rand(-rangeZ, rangeZ)]).flat());
-        particles.setAllScales(rand(0.15, 0.3));
-        particles.setAllRotations(Array.from({ length: particles.count }, (_, i) => [0, -Math.PI / 2, 0]).flat());
-        this.scene.add(particles);
+        this.particles = new Mesh(particleGeometry, particleMaterial, 3_000);
+        this.particles.setAllPositions(Array.from({ length: this.particles.count }, (_, i) => [rand(-rangeX, rangeX), rand(0, 100), rand(-rangeZ, rangeZ)]).flat());
+        this.particles.setAllScales(rand(0.15, 0.3));
+        this.particles.setAllRotations(Array.from({ length: this.particles.count }, (_, i) => [0, -Math.PI / 2, 0]).flat());
+        this.scene.add(this.particles);
     }
 
     start() {
@@ -194,7 +191,7 @@ export class SponzaScene {
         this.particles.translateAll(translations);
 
         // Render and continue loop
-       this.engine.renderer.render(this.scene, this.camera);
+        this.engine.renderer.render(this.scene, this.camera);
         requestAnimationFrame(this.animate);
     }
 }
