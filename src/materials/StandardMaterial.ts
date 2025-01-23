@@ -7,6 +7,7 @@ import { RenderState, RenderStateOptions } from "@/renderer/RenderState";
 import { Texture2D } from "@/data/Texture2D";
 import { Struct } from '@/data/Struct';
 import { boolToNum } from '@/util/general';
+import { Vector2 } from '@/math';
 
 
 export interface StandardMaterialOptions extends RenderStateOptions {
@@ -23,6 +24,7 @@ export interface StandardMaterialOptions extends RenderStateOptions {
     specular_factor?: number;
     alpha_test?: number;
     transmission?: number;
+    uvScale?: Vector2;
 
     diffuse_map?: Texture;
     normal_map?: Texture;
@@ -59,6 +61,7 @@ class StandardMaterial extends Material {
         specular_factor: 'f32',
         alpha_test: 'f32',
         transmission: 'f32',
+        uvScale: 'vec2f',
 
         useLight: 'u32',
         usePBR: 'u32',
@@ -123,6 +126,7 @@ class StandardMaterial extends Material {
                     specular_factor: options.specular_factor || 1.0,
                     alpha_test: options.alpha_test || 0.5,
                     transmission: options.transmission || 0.0,
+                    uvScale: options.uvScale || new Vector2(1, 1),
 
                     useLight: boolToNum(options.useLight, 1),
                     usePBR: boolToNum(options.usePBR, 1),

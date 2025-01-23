@@ -199,6 +199,7 @@ class GLTFLoader {
         }
 
         let material = new StandardMaterial();
+
         try {
             if (primitive.material !== undefined) {
                 const gltfMaterial = gltf.materials[primitive.material];
@@ -224,6 +225,18 @@ class GLTFLoader {
                 if (pbr.roughnessFactor !== undefined) {
                     material.roughness = pbr.roughnessFactor;
                 }
+
+                if (pbr.normalTexture !== undefined) {
+                    const texture = await this.loadTexture(gltf, buffers, pbr.normalTexture.index);
+                    material.normal_map?.setTexture(texture);
+                }
+
+                if (pbr.metallicRoughnessTexture !== undefined) {
+                    const texture = await this.loadTexture(gltf, buffers, pbr.metallicRoughnessTexture.index);
+                    material.metalness_map?.setTexture(texture);
+                    material.roughness_map?.setTexture(texture);
+                }
+
 
                 this.materialCache.set(primitive.material, material); // Cache material
             }

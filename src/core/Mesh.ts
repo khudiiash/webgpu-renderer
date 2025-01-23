@@ -20,6 +20,8 @@ export class Mesh extends Object3D {
     public type: string = 'mesh';
     public localInstanceMatrices: BufferData;
 
+    public useBillboard: boolean = false;
+
     static struct = new Struct('MeshOptions', {
         useBillboard: 'u32',
     })

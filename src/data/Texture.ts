@@ -58,26 +58,32 @@ export class Texture {
         return this.texture?.createView();
     }
 
-    onLoaded(callback: Function) {
+    onLoaded(callback: Function): this {
         if (typeof callback !== 'function') {
             console.error('Texture: Invalid onLoaded callback')
-            return;
+            return this;
         }
         if (this.loadCbs.includes(callback)) {
             console.warn('Texture: load callback already added');
-            return;
+            return this;
         }
 
         this.loadCbs.push(callback);
+        return this;
     }
 
-    offLoaded(callback: Function) {
+    offLoaded(callback?: Function): this {
+        if (!callback) {
+            this.loadCbs = [];
+            return this;
+        }
         const index = this.loadCbs.indexOf(callback);
         if (index === -1) {
             console.warn('Texture: load callback not found');
-            return;
+            return this;
         }
         this.loadCbs.splice(this.loadCbs.indexOf(callback), 1);
+        return this;
     }
 
     notifyChange() {

@@ -300,9 +300,15 @@ export class ResourceManager extends EventEmitter {
                         id: dataID
                     });
                     descriptor.entries.push(binding.getBindGroupEntry(buffer));
+                    data.offChange(this.updateBuffer);
+                    data.onChange(this.updateBuffer);
                 }
                 if (binding.isTexture) {
                     const texture = data.getTexture(binding.description.varName) as Texture;
+                    texture.offLoaded();
+                    texture.onLoaded(() => {
+                        renderable?.rebuild();
+                    })
                     descriptor.entries.push(binding.getBindGroupEntry(texture.texture));
                     samplers.push(this.getOrCreateSampler(texture.getSamplerDescriptor()));
                 }
@@ -311,6 +317,7 @@ export class ResourceManager extends EventEmitter {
                     descriptor.entries.push(binding.getBindGroupEntry(sampler));
                 }
             }
+
         }
 
 

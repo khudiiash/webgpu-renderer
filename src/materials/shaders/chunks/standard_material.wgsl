@@ -31,22 +31,35 @@
 @include(Map)
 
 @fragment() {{
-    color = material.diffuse;
-    
-    // maps
-    color *= sampleColor(diffuse_map, diffuse_map_sampler, input.vUv, color);
-    if (color.a < material.alpha_test) {
-        discard;
-    }
+    // declares
+    var uv = input.vUv;
+    var diffuse = material.diffuse.rgb;
+    var normal = input.vNormalW;
+    var ao = 1.0;
+    var metalness = material.metalness;
+    var roughness = material.roughness;
+    var transmission = material.transmission;
+    var specular = material.specular;
+    var sheen = material.sheen;
+    var emissive = material.emissive;
+    var emissive_factor = material.emissive_factor;
+    var viewHeight = 1.0;
+    var useParallax = false;
 
+    let TBN = getTBN(input.vTangentW, input.vBitangentW, normal);
+    var viewDir = normalize(camera.position - input.vPositionW);
+    var viewDirTan = normalize(TBN * viewDir);
+
+    var lightOccluded = false;
+
+    color = vec4f(diffuse, material.opacity);
+    
     // lighting
     if (material.useLight == 1) {
-        let albedo = material.diffuse.rgb;
-        let roughness = material.roughness;
-        let metalness = material.metalness;
+        var albedo = diffuse;
         let F0 = vec3f(0.04);
-        let N = normalize(input.vNormalW);
-        let V = normalize(camera.position - input.vPositionW);
+        let N = normal;
+        let V = viewDir;
 
         var accumulatedLight = vec3f(0.0);
 
@@ -57,14 +70,29 @@
             } else {
                 accumulatedLight += calculate_directional_light_phong(light, N, V, albedo);
             } 
+            if (useParallax) {
+                let lightViewDirTan = normalize(TBN * light.direction);
+                let isOccluded = computeParallaxLightOcclusion(parallax.uv, lightViewDirTan, parallax.viewHeight, height_map, height_map_sampler); 
+                if (isOccluded) {
+                    accumulatedLight *= 0.05;
+                }
+            }
         }
 
         for (var i = 0u; i < scene.pointLightsNum; i++) {
             let light = scene.pointLights[i];
             if (material.usePBR == 1) {
-                accumulatedLight += calculate_point_light_pbr(light, input, N, V, albedo, F0, roughness, metalness, material.transmission);
+                accumulatedLight += calculate_point_light_pbr(light, input, N, V, albedo, F0, roughness, metalness, transmission);
             } else {
                 accumulatedLight += calculate_point_light_phong(light, input, N, V, albedo);
+            }
+            if (useParallax) {
+                let lightViewDir = normalize(light.position - input.vPositionW);
+                let lightViewDirTan = normalize(TBN * lightViewDir);
+                let isOccluded = computeParallaxLightOcclusion(parallax.uv, lightViewDirTan, parallax.viewHeight, height_map, height_map_sampler); 
+                if (isOccluded) {
+                    accumulatedLight *= 0.05;
+                }
             }
         }
 
@@ -78,7 +106,7 @@
 
     // emissive
     if (material.useEmissive == 1) {
-        color = calculate_emissive(color, material.emissive, material.emissive_factor);
+        color = calculate_emissive(color, emissive, emissive_factor);
     }
 
     // fog 
