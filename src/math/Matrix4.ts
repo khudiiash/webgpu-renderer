@@ -324,8 +324,8 @@ export class Matrix4 extends BufferData {
         return this.rotateOnAxis(new Vector3(0, 0, 1), radians);
     }
     
-    // Use makeScale if you need a pure scaling matrix or want to replace any existing transformations
-    makeScale(scale: Vector3): this {
+    // Use setScaleMatrix if you need a pure scaling matrix or want to replace any existing transformations
+    setScaleMatrix(scale: Vector3): this {
         const te = this;
         const { x: sx, y: sy, z: sz } = scale;
     

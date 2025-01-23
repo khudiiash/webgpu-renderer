@@ -73,7 +73,7 @@ describe('BoundingSphere', () => {
 
     it('applies a matrix transformation', () => {
         const sphere = new BoundingSphere(new Vector3(1, 1, 1), 2);
-        const matrix = new Matrix4().makeScale(new Vector3(2, 3, 4));
+        const matrix = new Matrix4().setScaleMatrix(new Vector3(2, 3, 4));
 
         sphere.applyMatrix4(matrix);
         expect(sphere.center.x).toBe(2);
