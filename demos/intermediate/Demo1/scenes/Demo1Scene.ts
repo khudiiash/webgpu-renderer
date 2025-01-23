@@ -42,6 +42,7 @@ export class Demo1Scene {
     private setupCamera() {
         this.camera.lookAt(Vector3.left);
         this.camera.position.setXYZ(100, 30, 0);
+
         this.scene.add(this.camera);
     }
 
@@ -54,35 +55,41 @@ export class Demo1Scene {
     }
 
     private async setupGrass() {
-        const grassMat = new StandardMaterial({ 
-            diffuse: '#aaaa00', 
-            metalness: 0.1, 
-            roughness: 0.1,  
-            transmission: 1.0, 
-            cullMode: 'back' 
-        });
+        // GRASS MATERIAL (EXTENDED STANDARD MATERIAL)
+        const grassMat = new StandardMaterial({ diffuse: '#aaaa00', metalness: 0.1, roughness: 0.1,  transmission: 1.0, cullMode: 'back' });
 
-        const grassChunk = new ShaderChunk('grass', `
-            @vertex(before:model) {{
+        const grassChunk = new ShaderChunk('Grass', `
+            @group(Global) @binding(Scene)
+            @include(Noise)
+
+            @vertex(after:world_position) {{
                 if (input.vertex_index == 2) {
-                    let model = model[input.instance_index];
-                    var worldPosition = getWorldPosition(position, model);
-                    let time = scene.time;
-                    let noise = perlinNoise(worldPosition.xz * 0.1) * 0.5 + 0.5;
-                    position.y = noise * 2.0;
+                    // noise patches
+                    worldPosition = getWorldPosition(position, model);
+                    let noise = perlinNoise(worldPosition.xz * 0.15) * 0.5 + 0.5;
+                    position.y += noise;
+
+                    // wind animation
                     let wind = perlinNoise(worldPosition.xz * 0.005) * 0.5 + 0.5;
-                    let windStrength = sin(time * 2.0 + wind * 100.0);
+                    let windStrength = sin(scene.time * 2.0 + wind * 100.0) * position.y;
                     position.x += windStrength;
                     position.z += windStrength;
                 }
             }}
-            @fragment(before:gamma) {{
-                color = vec4(color.rgb * input.vUv.y, 1.0);
+            @fragment(after:gamma) {{
+                let colorNoise = perlinNoise(input.vPositionW.xz * 0.1) * 0.5 + 0.5;
+                let color1 = vec3(color.rgb * vec3(4.0, 4.0, 1.0));
+                let color2 = vec3(color.rgb * vec3(0.8, 0.8, 0.0));
+                let mixed = vec4f(mix(color1, color2, colorNoise), color.a);
+                color = vec4f(mix(color.rgb, mixed.rgb, colorNoise), color.a);
+                color = vec4(color.rgb * 0.5 * input.vUv.y, 1.0);
             }}
         `);
         
         grassMat.addChunk(grassChunk);
+        console.log(grassMat.shader.fragmentSource)
 
+        // GRASS GEOMETRY
         const triangleGeometry = new Geometry();
         triangleGeometry.setFromArrays({
             positions: [ -1, 0, 0, 1, 0, 0, 0, 1, 0, ],
@@ -91,17 +98,15 @@ export class Demo1Scene {
             indices: [0, 2, 1]
         });
 
+        // GRASS MESH
         const grass = new Mesh(triangleGeometry, grassMat, 100_000);
+
+        // GRASS TRANSFORMS
         const rangeX = 280;
         const rangeZ = 50;
-
-        grass.setAllPositions(Array.from({ length: grass.count }, () => 
-            [rand(-rangeX, rangeX), 0, rand(-rangeZ, rangeZ)]).flat());
-        grass.setAllScales(Array.from({ length: grass.count }, () => 
-            [rand(0.3, 0.5), rand(1, 4), 1]).flat());
-        grass.setAllRotations(Array.from({ length: grass.count }, () => 
-            [0, -Math.PI / 2, 0]).flat());
-        
+        grass.setAllPositions(Array.from({ length: grass.count }, (_, i) => [rand(-rangeX, rangeX), 0, rand(-rangeZ, rangeZ)]).flat());
+        grass.setAllScales(Array.from({ length: grass.count }, (_, i) => [rand(0.3, 0.5), rand(1, 4), 1]).flat());
+        grass.setAllRotations(Array.from({ length: grass.count }, (_, i) => [0, -Math.PI / 2, 0]).flat());
         this.scene.add(grass);
     }
 
@@ -115,37 +120,26 @@ export class Demo1Scene {
     }
 
     private setupLights() {
-        this.point = new PointLight({ intensity: 10000, range: 2000 });
-        this.scene.add(this.point);
-        this.point.position.setXYZ(-100, 20, 0);
-        
-        const bulb = new Mesh(
-            new SphereGeometry(2), 
-            new StandardMaterial({ emissive: '#ffffff', emissive_factor: 100 })
-        );
-        this.point.add(bulb);
+        // // LIGHTS
+        const point = new PointLight({ intensity: 10000, range: 2000, color: '#ffff88' });
+        this.scene.add(point);
+        point.position.setXYZ(-100, 20, 0);
+        const bulb = new Mesh(new SphereGeometry(2), new StandardMaterial({ emissive: '#ffffff', emissive_factor: 10 }));
+        point.add(bulb);
 
-        this.redCube = new PointLight({ intensity: 10000, range: 200, color: '#ff0000' });
-        const redCubeMesh = new Mesh(
-            new BoxGeometry(10, 10, 10), 
-            new StandardMaterial({ emissive: '#ff3333', emissive_factor: 5 })
-        );
-        this.redCube.add(redCubeMesh);
-        this.redCube.position.setXYZ(-180, 60, 0);
-        this.scene.add(this.redCube);
+
+        const redCube = new PointLight({ intensity: 10000, range: 200, color: '#ff0000' });
+        const redCubeMesh = new Mesh(new BoxGeometry(10, 10, 10), new StandardMaterial({ emissive: '#ff3333' }));
+        redCube.add(redCubeMesh);
+        redCube.position.setXYZ(-180, 60, 0);
+        this.scene.add(redCube);
     }
 
     private setupParticles() {
         const rangeX = 280;
         const rangeZ = 50;
         const particleGeometry = new PlaneGeometry(1, 1);
-        const particleMaterial = new StandardMaterial({ 
-            emissive: '#ff0000', 
-            transmission: 1, 
-            blending: 'additive', 
-            transparent: true 
-        });
-
+        const particleMaterial = new StandardMaterial({ emissive: '#ff0000', transmission: 1, blending: 'additive', transparent: true });
         particleMaterial.addChunk(new ShaderChunk('particle', `
             @fragment(last) {{
                 let dist = distance(input.vUv, vec2(0.5));
@@ -159,14 +153,11 @@ export class Demo1Scene {
             }}
         `));
 
-        this.particles = new Mesh(particleGeometry, particleMaterial, 500);
-        this.particles.setAllPositions(Array.from({ length: this.particles.count }, () => 
-            [rand(-rangeX, rangeX), rand(0, 100), rand(-rangeZ, rangeZ)]).flat());
-        this.particles.setAllScales(rand(0.2, 1));
-        this.particles.setAllRotations(Array.from({ length: this.particles.count }, () => 
-            [0, -Math.PI / 2, 0]).flat());
-        this.scene.add(this.particles);
-        return 
+        const particles = new Mesh(particleGeometry, particleMaterial, 3_000);
+        particles.setAllPositions(Array.from({ length: particles.count }, (_, i) => [rand(-rangeX, rangeX), rand(0, 100), rand(-rangeZ, rangeZ)]).flat());
+        particles.setAllScales(rand(0.15, 0.3));
+        particles.setAllRotations(Array.from({ length: particles.count }, (_, i) => [0, -Math.PI / 2, 0]).flat());
+        this.scene.add(particles);
     }
 
     start() {
