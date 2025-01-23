@@ -9,7 +9,7 @@ The demo implements :
 - Particle systems
 - Animated lights
 - Camera movement
-- gltf model usage
+- glb model usage (Sponza)
 
 it uses a direct, procedural approach to scene setup and management.
 
