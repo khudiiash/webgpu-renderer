@@ -1,5 +1,6 @@
 import { BufferData } from '@/data/BufferData';
 import { cleanFloat } from '@/util/general';
+import { clamp } from '@/util/math';
 
 class Color extends BufferData {
     static size = 4;
@@ -19,7 +20,6 @@ class Color extends BufferData {
                 a = 1;
             }
             // Clamp each value to the [0, 1] range
-            const clamp = (value: number) => Math.max(0, Math.min(1, value));
             this.set([clamp(r), clamp(g), clamp(b), clamp(a)]);
         }
         else {

@@ -751,7 +751,7 @@ describe('Matrix4', () => {
         const scale = new Vector3(2, 3, 4);
         
         // Apply scaling to the matrix
-        matrix.makeScale(scale);
+        matrix.setScaleMatrix(scale);
         
         // Check if the scaling values are correctly set in the matrix
         expect(matrix[0]).toBe(2);  // Scale in X
@@ -777,7 +777,7 @@ describe('Matrix4', () => {
     it('should apply scaling correctly when scale is 1 in all axes', () => {
         const matrix = new Matrix4();
         const scale = new Vector3(1, 1, 1); // No scaling, identity matrix
-        matrix.makeScale(scale);
+        matrix.setScaleMatrix(scale);
         
         // Check that the matrix is unchanged (identity matrix)
         expect(matrix[0]).toBe(1);  // X scale factor
