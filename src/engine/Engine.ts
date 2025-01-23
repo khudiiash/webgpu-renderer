@@ -6,12 +6,6 @@ import { GLTFLoader } from '@/util/loaders/GLTFLoader';
 import { PipelineManager } from './PipelineManager';
 import { ResourceManager } from './ResourceManager';
 import { EventCallback, EventEmitter } from '@/core/EventEmitter';
-import { PointLight } from '@/lights/PointLight';
-import { rand } from '@/util';
-import { Vector3 } from '@/math';
-import { Geometry, PlaneGeometry, SphereGeometry } from '@/geometry';
-import { ShaderChunk } from '@/materials';
-import { GLTFLoader } from '@/util/loaders/GLTFLoader';
 
 export class Engine extends EventEmitter {
     static #instance: Engine;
@@ -80,11 +74,11 @@ export class Engine extends EventEmitter {
         this.device = this.renderer.device;
         
         // Initialize core systems
+        PipelineManager.init(Engine.device);
+        ResourceManager.init(Engine.device);
         ShaderLibrary.init();
-        TextureLoader.init(this.device);
-        GLTFLoader.init(this.device);
-        PipelineManager.init(this.device);
-        ResourceManager.init(this.device);
+        TextureLoader.init(Engine.device);
+        GLTFLoader.init(Engine.device);
 
         this.renderer.setResources(ResourceManager.getInstance());
         
