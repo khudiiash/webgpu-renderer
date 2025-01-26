@@ -20,7 +20,7 @@ export class LightComponent extends Component {
 
    async deserialize(data: any) {
        if (data.color) {
-           this.light.color.set(data.color);
+           this.light.color.setHex(data.color);
        }
        if (data.intensity !== undefined) {
            this.light.intensity = data.intensity;
