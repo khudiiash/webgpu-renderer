@@ -11,44 +11,43 @@ A WebGPU demonstration of the Sponza scene using an Entity Component System arch
 - All configured through YAML
 
 ## Project Structure
-
+```
 /src/
-       ├── core/
-                         ├── ecs/
-                         │             ├── core/
-                         │             │               ├── Component.ts
-                         │             │               ├── Entity.ts
-                         │             │               ├── System.ts
-                         │             │               ├── World.ts
-                         │             │               ├── ComponentRegistry.ts
-                         │             │               └── SystemRegistry.ts
-                         │             ├── components/
-                         │             │                              ├── Transform.ts
-                         │             │                              ├── Model.ts
-                         │             │                              ├── Light.ts
-                         │             │                              ├── Particle.ts
-                         │             │                              ├── Camera.ts
-                         │             │                              └── Scene.ts
-                         │             └── systems/
-                         │                                     ├── GrassSystem.ts
-                         │                                     ├── ParticleSystem.ts
-                         │                                     ├── LightAnimationSystem.ts
-                         │                                     └── CameraAnimationSystem.ts
-                         └── engine/
-                                               ├── Engine.ts
-                                               └── ...
+    ├── core/
+            ├── ecs/
+            │      ├── core/
+            │      │       ├── Component.ts
+            │      │       ├── Entity.ts
+            │      │       ├── System.ts
+            │      │       ├── World.ts
+            │      │       ├── ComponentRegistry.ts
+            │      │       └── SystemRegistry.ts
+            │      ├── components/
+            │      │             ├── Transform.ts
+            │      │             ├── Model.ts
+            │      │             ├── Light.ts
+            │      │             ├── Particle.ts
+            │      │             ├── Camera.ts
+            │      │             └── Scene.ts
+            │      └── systems/
+            │                 ├── GrassSystem.ts
+            │                 ├── ParticleSystem.ts
+            │                 ├── LightAnimationSystem.ts
+            │                 └── CameraAnimationSystem.ts
+            └── engine/
+                      ├── Engine.ts
+                      └── ...
 /demos/
-             ├── README.md
-             ├── basic/..
-             ├── intermediate/..
-             └── advanced/
-                                        └── sponza_ecs/
-                                                                       ├── README.md
-                                                                       ├── index.ts
-                                                                       ├── Demo1Scene.ts
-                                                                       └── config.yaml
-                                                                       
-
+      ├── README.md
+      ├── basic/..
+      ├── intermediate/..
+      └── advanced/
+                  └── sponza_ecs/
+                                ├── README.md
+                                ├── index.ts
+                                ├── Demo1Scene.ts
+                                └── config.yaml
+```
 
 ## Scene Components
 
