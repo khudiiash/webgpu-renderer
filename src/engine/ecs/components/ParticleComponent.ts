@@ -1,6 +1,6 @@
 import { Component } from '../core/Component';
 
-export class Particle extends Component {
+export class ParticleComponent extends Component {
     count: number = 1;
     properties: any = {};
     initialized: boolean = false;

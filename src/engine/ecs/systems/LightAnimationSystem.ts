@@ -1,5 +1,5 @@
 import { System } from '../core/System';
-import { Transform } from '../components/Transform';
+import { TransformComponent } from '../components/TransformComponent';
 import { PointLightComponent } from '../components/PointLightComponent';
 import { World } from '../core/World';
 
@@ -11,7 +11,7 @@ export class LightAnimationSystem implements System {
 
         for (const entity of world.getEntities()) {
             const light = entity.get(PointLightComponent);
-            const transform = entity.get(Transform);
+            const transform = entity.get(TransformComponent);
             
             if (light?.animation && transform) {
                 switch (light.animation.type) {
@@ -26,7 +26,7 @@ export class LightAnimationSystem implements System {
         }
     }
 
-    private updateCircularMotion(light: PointLightComponent, transform: Transform) {
+    private updateCircularMotion(light: PointLightComponent, transform: TransformComponent) {
         const { radius, speed, axis = 'x' } = light.animation ??  { radius : 1, speed : 1, axis : 'x'};
         
         switch (axis) {
@@ -42,7 +42,7 @@ export class LightAnimationSystem implements System {
         }
     }
 
-    private updateRotation(light: PointLightComponent, transform: Transform, delta: number) {
+    private updateRotation(light: PointLightComponent, transform: TransformComponent, delta: number) {
         const { speed } = light.animation ??  { speed : 1};
         transform.rotation.x += speed * delta;
         transform.rotation.z += speed * delta;

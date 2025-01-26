@@ -1,5 +1,5 @@
 import { System } from '../core/System';
-import { Transform } from '../components/Transform';
+import { TransformComponent } from '../components/TransformComponent';
 import { PerspectiveCameraComponent } from '../components/PerspectiveCameraComponent';
 import { World } from '../core/World';
 
@@ -11,7 +11,7 @@ export class CameraAnimationSystem implements System {
 
         for (const entity of world.getEntities()) {
             const camera = entity.get(PerspectiveCameraComponent);
-            const transform = entity.get(Transform);
+            const transform = entity.get(TransformComponent);
             
             if (camera?.animation && transform) {
                 switch (camera.animation.type) {
@@ -26,7 +26,7 @@ export class CameraAnimationSystem implements System {
         }
     }
 
-    private updateCircularMotion(camera: PerspectiveCameraComponent, transform: Transform) {
+    private updateCircularMotion(camera: PerspectiveCameraComponent, transform: TransformComponent) {
         const { radius, speed, axis = 'x' } = camera.animation ?? { radius : 1, speed : 1, axis : 'x'};
         
         switch (axis) {
@@ -42,7 +42,7 @@ export class CameraAnimationSystem implements System {
         }
     }
 
-    private updateLinearMotion(camera: PerspectiveCameraComponent, transform: Transform, delta: number) {
+    private updateLinearMotion(camera: PerspectiveCameraComponent, transform: TransformComponent, delta: number) {
     const { speed } = camera.animation ?? { speed : 1 };
         transform.position.x += speed * delta;
     }

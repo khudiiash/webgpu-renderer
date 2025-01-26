@@ -1,14 +1,14 @@
 import { System } from '../core/System';
-import { Transform } from '../components/Transform';
-import { Model } from '../components/Model';
+import { TransformComponent } from '../components/TransformComponent';
+import { ModelComponent } from '../components/ModelComponent';
 import { World } from '../core/World';
 import { rand } from '@/util';
 
 export class GrassSystem implements System {
     update(delta: number, world: World) {
         for (const entity of world.getEntities()) {
-            const model = entity.get(Model);
-            const transform = entity.get(Transform);
+            const model = entity.get(ModelComponent);
+            const transform = entity.get(TransformComponent);
             
             if (model?.material?.shader?.name === 'grass' && transform && !transform.initialized) {
                 this.initializeGrassInstances(model, transform);
@@ -17,7 +17,7 @@ export class GrassSystem implements System {
         }
     }
 
-    private initializeGrassInstances(model: Model, transform: Transform) {
+    private initializeGrassInstances(model: ModelComponent, transform: TransformComponent) {
         const { rangeX, rangeZ, initialScale } = model.properties;
         
         transform.setPositions(Array.from({ length: transform.instanceCount }, () => 

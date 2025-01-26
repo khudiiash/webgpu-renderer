@@ -1,6 +1,6 @@
 import { System } from '../core/System';
-import { Transform } from '../components/Transform';
-import { Particle } from '../components/Particle';
+import { TransformComponent } from '../components/TransformComponent';
+import { ParticleComponent } from '../components/ParticleComponent';
 import { World } from '../core/World';
 import { rand } from '@/util';
 
@@ -11,8 +11,8 @@ export class ParticleSystem implements System {
         this.elapsed += delta;
 
         for (const entity of world.getEntities()) {
-            const particle = entity.get(Particle);
-            const transform = entity.get(Transform);
+            const particle = entity.get(ParticleComponent);
+            const transform = entity.get(TransformComponent);
             
             if (particle && transform) {
                 if (!particle.initialized) {
@@ -27,7 +27,7 @@ export class ParticleSystem implements System {
         }
     }
 
-    private initializeParticles(particle: Particle, transform: Transform) {
+    private initializeParticles(particle: ParticleComponent, transform: TransformComponent) {
         const { rangeX, rangeZ, height, scale } = particle.properties;
         
         const positions = [];
@@ -49,7 +49,7 @@ export class ParticleSystem implements System {
         transform.setRotations(Array(particle.count).fill([0, -Math.PI / 2, 0]).flat());
     }
 
-    private updateParticlePositions(delta: number, particle: Particle, transform: Transform) {
+    private updateParticlePositions(delta: number, particle: ParticleComponent, transform: TransformComponent) {
         const { speed, distance } = particle.properties;
         const translations = [];
         

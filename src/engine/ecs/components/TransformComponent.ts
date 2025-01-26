@@ -1,7 +1,7 @@
 import { Component } from '../core/Component';
 import { Vector3 } from '@/math/Vector3';
 
-export class Transform extends Component {
+export class TransformComponent extends Component {
     position: Vector3 = new Vector3();
     rotation: Vector3 = new Vector3();
     scale: Vector3 = new Vector3(1, 1, 1);

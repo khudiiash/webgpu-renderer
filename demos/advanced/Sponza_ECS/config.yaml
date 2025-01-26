@@ -13,7 +13,7 @@ scene:
         color: 0x111111
         start: 300
         end: 2000
-    Transform: {}
+    TransformComponent: {}
 
 camera:
   components:
@@ -26,13 +26,13 @@ camera:
         speed: 0.3
         radius: 200
         axis: x
-    Transform:
+    TransformComponent:
       position: { x: 100, y: 30, z: 0 }
 
 prefabs:
   grass:
     components:
-      Model:
+      ModelComponent:
         geometry: triangle
         geometryData:
           positions: [-1, 0, 0, 1, 0, 0, 0, 1, 0]
@@ -50,26 +50,33 @@ prefabs:
           shader:
             name: grass
             code: |
-              @vertex(before:model) {{
-                if (input.vertex_index == 2) {
-                  let model = model[input.instance_index];
-                  var worldPosition = getWorldPosition(position, model);
-                  let time = scene.time;
-                  let noise = perlinNoise(worldPosition.xz * 0.1) * 0.5 + 0.5;
-                  position.y = noise * 2.0;
-                  let wind = perlinNoise(worldPosition.xz * 0.005) * 0.5 + 0.5;
-                  let windStrength = sin(time * 2.0 + wind * 100.0);
-                  position.x += windStrength;
-                  position.z += windStrength;
-                }
+              @group(Global) @binding(Scene)
+              @include(Noise)
+
+              @vertex(after:world_position) {{
+                  if (input.vertex_index == 2) {
+                      worldPosition = getWorldPosition(position, model);
+                      let noise = perlinNoise(worldPosition.xz * 0.15) * 0.5 + 0.5;
+                      position.y += noise;
+
+                      let wind = perlinNoise(worldPosition.xz * 0.005) * 0.5 + 0.5;
+                      let windStrength = sin(scene.time * 2.0 + wind * 100.0) * position.y;
+                      position.x += windStrength;
+                      position.z += windStrength;
+                  }
               }}
-              @fragment(before:gamma) {{
-                color = vec4(color.rgb * input.vUv.y, 1.0);
+              @fragment(after:gamma) {{
+                  let colorNoise = perlinNoise(input.vPositionW.xz * 0.1) * 0.5 + 0.5;
+                  let color1 = vec3(color.rgb * vec3(4.0, 4.0, 1.0));
+                  let color2 = vec3(color.rgb * vec3(0.8, 0.8, 0.0));
+                  let mixed = vec4f(mix(color1, color2, colorNoise), color.a);
+                  color = vec4f(mix(color.rgb, mixed.rgb, colorNoise), color.a);
+                  color = vec4(color.rgb * 0.5 * input.vUv.y, 1.0);
               }}
 
   particle:
     components:
-      Model:
+      ModelComponent:
         geometry: plane
         material:
           type: standard
@@ -95,11 +102,11 @@ prefabs:
 entities:
   - prefab: grass
     components:
-      Transform:
+      TransformComponent:
         position: { x: 0, y: 0, z: 0 }
         scale: { x: 0.3, y: 1, z: 1 }
         instanceCount: 100000
-      Particle:
+      ParticleComponent:
         properties:
           rangeX: 280
           rangeZ: 50
@@ -107,10 +114,10 @@ entities:
           initialHeight: { min: 1, max: 4 }
 
   - components:
-      Model:
+      ModelComponent:
         geometry: gltf
         path: assets/models/sponza.glb
-      Transform:
+      TransformComponent:
         position: { x: 0, y: 0, z: 7 }
         scale: { x: 0.2, y: 0.2, z: 0.2 }
 
@@ -124,9 +131,9 @@ entities:
           radius: 200
           speed: 0.3
           axis: x
-      Transform:
+      TransformComponent:
         position: { x: -100, y: 20, z: 0 }
-      Model:
+      ModelComponent:
         geometry: sphere
         material:
           type: standard
@@ -142,9 +149,9 @@ entities:
         animation:
           type: rotate
           speed: 1
-      Transform:
+      TransformComponent:
         position: { x: -180, y: 60, z: 0 }
-      Model:
+      ModelComponent:
         geometry: box
         size: { x: 10, y: 10, z: 10 }
         material:
@@ -155,10 +162,10 @@ entities:
 
   - prefab: particle
     components:
-      Transform:
+      TransformComponent:
         position: { x: 0, y: 0, z: 0 }
         instanceCount: 500
-      Particle:
+      ParticleComponent:
         properties:
           rangeX: 280
           rangeZ: 50

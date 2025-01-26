@@ -2,7 +2,7 @@ import { Component } from '../core/Component';
 import { Scene as BaseScene } from '@/core/Scene';
 import { Object3D } from '@/core/Object3D';
 import { World } from '../core/World';
-import { Model } from './Model';
+import { ModelComponent } from './ModelComponent';
 import { PointLightComponent } from './PointLightComponent';
 import { Mesh } from '@/core/Mesh';
 
@@ -15,21 +15,22 @@ export class SceneComponent extends Component {
    }
    
    attachToWorld(world: World) {
-    for (const entity of world.getEntities()) {
-        // Handle Model components
-        const model = entity.get(Model);
+        console.log('All entities:', world.getEntities());
+        console.log('Entities with ModelComponent:', 
+        
+        world.getEntities().filter(e => e.has(ModelComponent)));
 
-        if (model.object) {
-            this.scene.add(model.object);
+        for (const entity of world.getEntities()) {
+            const model = entity.get(ModelComponent);
+            console.log('Processing entity model:', model?.object);
+            if (model?.object) {
+                this.scene.add(model.object);
+            }
         }
-
-        // Handle Light components
-        const light = entity.get(PointLightComponent);
-        if (light) {
-            this.scene.add(light.light);
-        }
+        
+        console.log('Scene after adding meshes:', this.scene);
     }
-}
+
 
    async deserialize(data: any) {
        if (data.background) {

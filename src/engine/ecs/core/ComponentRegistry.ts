@@ -1,15 +1,15 @@
-import { Transform } from '../components/Transform';
+import { TransformComponent } from '../components/TransformComponent';
 import { PointLightComponent } from '../components/PointLightComponent';
-import { Model } from '../components/Model';
-import { Particle } from '../components/Particle';
+import { ModelComponent } from '../components/ModelComponent';
+import { ParticleComponent } from '../components/ParticleComponent';
 import { PerspectiveCameraComponent } from '../components/PerspectiveCameraComponent';
 import { SceneComponent } from '../components/SceneComponent';
 
 export const componentRegistry = new Map<string, any>([
-    ['Transform', Transform],
+    ['TransformComponent', TransformComponent],
     ['PointLightComponent', PointLightComponent],
-    ['Model', Model],
-    ['Particle', Particle],
+    ['ModelComponent', ModelComponent],
+    ['ParticleComponent', ParticleComponent],
     ['PerspectiveCameraComponent', PerspectiveCameraComponent],
     ['SceneComponent', SceneComponent]
 ]);

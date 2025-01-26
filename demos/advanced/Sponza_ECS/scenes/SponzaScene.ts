@@ -12,11 +12,15 @@ export class SponzaScene {
 
     async init(config: any) {
         await this.world.loadFromYAML(config);
+
+        const scene = this.world.findEntity(entity => entity.has(SceneComponent));
+        scene?.get(SceneComponent).attachToWorld(this.world);
+
         await this.startRendering();
     }
 
     start() {
-        // Scene is already initialized and rendering from loadFromYAML
+        
     }
 
     private async startRendering() {
