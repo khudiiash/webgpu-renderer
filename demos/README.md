@@ -28,7 +28,7 @@ Key features:
 - Reusable systems for behavior
 - Easy to extend and modify
 
-[Learn more about the ECS Sponza Demo](./demos/advanced/Sponza_ECS/README.md)
+[Learn more about the ECS Sponza Demo](./advanced/Sponza_ECS/README.md)
 
 ## Understanding the ECS Architecture
 
