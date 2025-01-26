@@ -3,6 +3,7 @@ systems:
   - type: ParticleSystem
   - type: LightAnimationSystem
   - type: CameraAnimationSystem
+  - type: TransformAnimationSystem
 
 scene:
   components:

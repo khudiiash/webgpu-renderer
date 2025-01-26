@@ -43,6 +43,7 @@ export class ModelComponent extends Component {
                     const geometry = new Geometry();
                     geometry.setFromArrays(data.geometryData);
                     this.object = new Mesh(geometry, this.material);
+                    
                     break;
                 case 'sphere':
                     this.object = new Mesh(new SphereGeometry(2), this.material);

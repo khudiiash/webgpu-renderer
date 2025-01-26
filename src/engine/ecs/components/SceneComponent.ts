@@ -15,20 +15,29 @@ export class SceneComponent extends Component {
    }
    
    attachToWorld(world: World) {
-        console.log('All entities:', world.getEntities());
-        console.log('Entities with ModelComponent:', 
+        console.log('Before attaching:', this.scene.meshes.length);
         
-        world.getEntities().filter(e => e.has(ModelComponent)));
-
         for (const entity of world.getEntities()) {
             const model = entity.get(ModelComponent);
-            console.log('Processing entity model:', model?.object);
             if (model?.object) {
+                console.log('Adding object:', model.object);
                 this.scene.add(model.object);
+                // Verify object was added
+                console.log('Scene meshes after add:', this.scene.meshes);
+            }
+            
+            const pointLight = entity.get(PointLightComponent);
+            if (pointLight?.light) {
+                console.log('Adding light:', pointLight.light);
+                this.scene.add(pointLight.light);
+                console.log('Scene lights after add:', this.scene.lights);
             }
         }
         
-        console.log('Scene after adding meshes:', this.scene);
+        console.log('After attaching all:',
+            'Meshes:', this.scene.meshes.length,
+            'Lights:', this.scene.lights.length
+        );
     }
 
 
