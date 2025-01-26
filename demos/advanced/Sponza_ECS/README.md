@@ -27,8 +27,8 @@ A WebGPU demonstration of the Sponza scene using an Entity Component System arch
             │      │             ├── Model.ts
             │      │             ├── Light.ts
             │      │             ├── Particle.ts
-            │      │             ├── Camera.ts
-            │      │             └── Scene.ts
+            │      │             ├── PerspectiveCameraComponent.ts
+            │      │             └── SceneComponent.ts
             │      └── systems/
             │                 ├── GrassSystem.ts
             │                 ├── ParticleSystem.ts

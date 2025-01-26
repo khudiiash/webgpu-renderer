@@ -1,0 +1,168 @@
+systems:
+  - type: GrassSystem
+  - type: ParticleSystem
+  - type: LightAnimationSystem
+  - type: CameraAnimationSystem
+
+scene:
+  components:
+    SceneComponent:
+      background: 0x111111
+      ambient: [0.05, 0.05, 0.05, 1]
+      fog:
+        color: 0x111111
+        start: 300
+        end: 2000
+    Transform: {}
+
+camera:
+  components:
+    PerspectiveCameraComponent:
+      fov: 40
+      near: 0.1
+      far: 1000
+      animation:
+        type: circular
+        speed: 0.3
+        radius: 200
+        axis: x
+    Transform:
+      position: { x: 100, y: 30, z: 0 }
+
+prefabs:
+  grass:
+    components:
+      Model:
+        geometry: triangle
+        geometryData:
+          positions: [-1, 0, 0, 1, 0, 0, 0, 1, 0]
+          normals: [0, 0, -1, 0, 0, -1, 0, 0, -1]
+          uvs: [0, 0, 1, 0, 0.5, 1]
+          indices: [0, 2, 1]
+        material:
+          type: standard
+          properties:
+            diffuse: "#aaaa00"
+            metalness: 0.1
+            roughness: 0.1
+            transmission: 1.0
+            cullMode: back
+          shader:
+            name: grass
+            code: |
+              @vertex(before:model) {{
+                if (input.vertex_index == 2) {
+                  let model = model[input.instance_index];
+                  var worldPosition = getWorldPosition(position, model);
+                  let time = scene.time;
+                  let noise = perlinNoise(worldPosition.xz * 0.1) * 0.5 + 0.5;
+                  position.y = noise * 2.0;
+                  let wind = perlinNoise(worldPosition.xz * 0.005) * 0.5 + 0.5;
+                  let windStrength = sin(time * 2.0 + wind * 100.0);
+                  position.x += windStrength;
+                  position.z += windStrength;
+                }
+              }}
+              @fragment(before:gamma) {{
+                color = vec4(color.rgb * input.vUv.y, 1.0);
+              }}
+
+  particle:
+    components:
+      Model:
+        geometry: plane
+        material:
+          type: standard
+          properties:
+            emissive: "#ff0000"
+            transmission: 1
+            blending: additive
+            transparent: true
+          shader:
+            name: particle
+            code: |
+              @fragment(last) {{
+                let dist = distance(input.vUv, vec2(0.5));
+                if (dist > 0.5) {
+                  discard;
+                } else {
+                  color = vec4(color.rgb * (0.5 - dist), 0.5 - dist);
+                  let edge = smoothstep(0.0, 0.1, dist);
+                  color.a *= edge;
+                }
+              }}
+
+entities:
+  - prefab: grass
+    components:
+      Transform:
+        position: { x: 0, y: 0, z: 0 }
+        scale: { x: 0.3, y: 1, z: 1 }
+        instanceCount: 100000
+      Particle:
+        properties:
+          rangeX: 280
+          rangeZ: 50
+          initialScale: { min: 0.3, max: 0.5 }
+          initialHeight: { min: 1, max: 4 }
+
+  - components:
+      Model:
+        geometry: gltf
+        path: assets/models/sponza.glb
+      Transform:
+        position: { x: 0, y: 0, z: 7 }
+        scale: { x: 0.2, y: 0.2, z: 0.2 }
+
+  - components:
+      PointLightComponent:
+        intensity: 10000
+        range: 2000
+        color: "#ffffff"
+        animation:
+          type: circular
+          radius: 200
+          speed: 0.3
+          axis: x
+      Transform:
+        position: { x: -100, y: 20, z: 0 }
+      Model:
+        geometry: sphere
+        material:
+          type: standard
+          properties:
+            emissive: "#ffffff"
+            emissive_factor: 100
+
+  - components:
+      PointLightComponent:
+        intensity: 10000
+        range: 200
+        color: "#ff0000"
+        animation:
+          type: rotate
+          speed: 1
+      Transform:
+        position: { x: -180, y: 60, z: 0 }
+      Model:
+        geometry: box
+        size: { x: 10, y: 10, z: 10 }
+        material:
+          type: standard
+          properties:
+            emissive: "#ff3333"
+            emissive_factor: 5
+
+  - prefab: particle
+    components:
+      Transform:
+        position: { x: 0, y: 0, z: 0 }
+        instanceCount: 500
+      Particle:
+        properties:
+          rangeX: 280
+          rangeZ: 50
+          height: { min: 0, max: 100 }
+          scale: { min: 0.2, max: 1.0 }
+          speed: 1
+          distance: 1

@@ -5,11 +5,13 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 8080",
     "dev:sponza": "vite --host 0.0.0.0 --port 8080 --config demos/intermediate/Sponza/vite.config.ts",
+    "dev:sponza_ecs": "vite --host 0.0.0.0 --port 8080 --config demos/advanced/Sponza_ECS/vite.config.ts",
     "test": "vitest --coverage",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@rollup/plugin-yaml": "^4.1.2",
     "@vitest/coverage-v8": "^2.1.8",
     "@webgpu/types": "^0.1.52",
     "jest": "^29.7.0",
@@ -21,6 +23,7 @@
   "dependencies": {
     "@loaders.gl/core": "^4.3.3",
     "@loaders.gl/gltf": "^4.3.3",
-    "wgpu-matrix": "^3.3.0"
+    "wgpu-matrix": "^3.3.0",
+    "yaml": "^2.7.0"
   }
 }
