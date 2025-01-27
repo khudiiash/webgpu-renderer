@@ -23,10 +23,10 @@ A WebGPU demonstration of the Sponza scene using an Entity Component System arch
             │      │       ├── ComponentRegistry.ts
             │      │       └── SystemRegistry.ts
             │      ├── components/
-            │      │             ├── Transform.ts
-            │      │             ├── Model.ts
-            │      │             ├── Light.ts
-            │      │             ├── Particle.ts
+            │      │             ├── TransformComponent.ts
+            │      │             ├── ModelComponent.ts
+            │      │             ├── PointLightComponent.ts
+            │      │             ├── ParticleComponent.ts
             │      │             ├── PerspectiveCameraComponent.ts
             │      │             └── SceneComponent.ts
             │      └── systems/
@@ -76,11 +76,12 @@ A WebGPU demonstration of the Sponza scene using an Entity Component System arch
 The demo uses several key components:
 
 1. **Components**:
-   - Transform (position, rotation, scale)
-   - Model (geometry, materials)
-   - Light (color, intensity, animation)
-   - Particle (count, properties)
-   - Camera (perspective settings)
+   - TransformComponent (position, rotation, scale)
+   - ModelComponent (geometry, materials)
+   - PointLightComponent (color, intensity, animation)
+   - ParticleComponent (count, properties)
+   - PerspectiveCameraComponent (perspective settings)
+   - SceneComponent (scene)
 
 2. **Systems**:
    - GrassSystem (handles grass instance creation and animation)
