@@ -109,19 +109,7 @@ prefabs:
 
 entities:
   - prefab: grass
-    components:
-      TransformComponent:
-        position: { x: 0, y: 0, z: 0 }
-        scale: { x: 0.3, y: 1, z: 1 }
-        instanceCount: 100000
-      ParticleComponent:
-        count: 100000
-        properties:
-          rangeX: 280
-          rangeZ: 50
-          initialScale: { min: 0.3, max: 0.5 }
-          initialHeight: { min: 1, max: 4 }
-
+  
   - components:
       ModelComponent:
         geometry: gltf
@@ -157,9 +145,10 @@ entities:
         color: "#ff0000"
         animation:
           type: rotate
+          mode: self
           speed: 1
       TransformComponent:
-        position: { x: -180, y: 60, z: 0 }
+        position: { x: 0, y: 0, z: 0 }
       ModelComponent:
         geometry: box
         size: { x: 10, y: 10, z: 10 }
@@ -169,16 +158,3 @@ entities:
             emissive: "#ff3333"
 
   - prefab: particle
-    components:
-      TransformComponent:
-        position: { x: 0, y: 0, z: 0 }
-        instanceCount: 500
-      ParticleComponent:
-        count: 500
-        properties:
-          rangeX: 280
-          rangeZ: 50
-          height: { min: 0, max: 100 }
-          scale: { min: 0.2, max: 1.0 }
-          speed: 1
-          distance: 1

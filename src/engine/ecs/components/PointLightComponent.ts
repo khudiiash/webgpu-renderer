@@ -5,6 +5,7 @@ import { PointLight as BasePointLight } from '@/lights/PointLight';
 interface LightAnimation {
    type: 'circular' | 'rotate';
    speed: number;
+   mode: 'path' | 'self';
    radius?: number;
    axis?: 'x' | 'y' | 'z';
 }

@@ -43,8 +43,14 @@ export class LightAnimationSystem implements System {
     }
 
     private updateRotation(light: PointLightComponent, transform: TransformComponent, delta: number) {
-        const { speed } = light.animation ??  { speed : 1};
-        transform.rotation.x += speed * delta;
-        transform.rotation.z += speed * delta;
+        const { speed, mode } = light.animation ?? { speed : 1, mode : 'self'};
+        if (mode === 'self') {
+            // Self rotation
+            light.light.rotation.x += speed * delta;
+            light.light.rotation.z += speed * delta;
+        } else {
+            transform.rotation.x += speed * delta;
+            transform.rotation.z += speed * delta;
+        }
     }
 }
