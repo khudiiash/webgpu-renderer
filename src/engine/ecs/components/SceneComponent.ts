@@ -19,30 +19,26 @@ export class SceneComponent extends Component {
         for (const entity of world.getEntities()) {
             const model = entity.get(ModelComponent);
             const transform = entity.get(TransformComponent);
+            const pointLight = entity.get(PointLightComponent);
         
         
-            if (model?.object) {
-                //console.log('Adding object:', model.object);
-
-                // Apply transform if it exists
+            // If this entity has both a light and a model, add the model to the light
+            if (pointLight && model?.object) {
+                pointLight.light.add(model.object);
+                this.scene.add(pointLight.light);
+            } 
+            // If it only has a model, add it directly to the scene
+            else if (model?.object) {
                 if (transform) {
                     model.object.position.copy(transform.position);
                     model.object.scale.copy(transform.scale);
                     model.object.rotation.copy(transform.rotation);
                 }
                 this.scene.add(model.object);
-
-                // Verify object was added
-                //console.log('Scene meshes after add:', this.scene.meshes);
             }
-
-            
-            
-            const pointLight = entity.get(PointLightComponent);
-            if (pointLight?.light) {
-                //console.log('Adding light:', pointLight.light);
+            // If it only has a light, add it to the scene
+            else if (pointLight) {
                 this.scene.add(pointLight.light);
-                //console.log('Scene lights after add:', this.scene.lights);
             }
         }
         

@@ -41,6 +41,9 @@ prefabs:
           normals: [0, 0, -1, 0, 0, -1, 0, 0, -1]
           uvs: [0, 0, 1, 0, 0.5, 1]
           indices: [0, 2, 1]
+        instancesCount: 100000
+        rangeX: 280
+        rangeZ: 50
         material:
           type: standard
           properties:
@@ -161,7 +164,6 @@ entities:
           type: standard
           properties:
             emissive: "#ff3333"
-            emissive_factor: 5
 
   - prefab: particle
     components:

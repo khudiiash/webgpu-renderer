@@ -7,6 +7,7 @@ import { Mesh } from '@/core';
 import { SphereGeometry } from '@/geometry';
 import { BoxGeometry } from '@/geometry';
 import { PlaneGeometry } from '@/geometry';
+import { rand } from '@/util'
 
 export class ModelComponent extends Component {
    object?: Object3D;
@@ -44,7 +45,29 @@ export class ModelComponent extends Component {
                 case 'triangle':
                     const geometry = new Geometry();
                     geometry.setFromArrays(data.geometryData);
-                    this.object = new Mesh(geometry, this.material);
+                    
+                    // Get instance count from transform or particle component
+                    const instanceCount = data.instanceCount || 100000;
+                    this.object = new Mesh(geometry, this.material, instanceCount);
+
+                    // Initialize instances
+                    const rangeX = data.rangeX;
+                    const rangeZ = data.rangeZ;
+                    
+                    (this.object as Mesh).setAllPositions(
+                        Array.from({ length: instanceCount }, () => 
+                            [rand(-rangeX, rangeX), 0, rand(-rangeZ, rangeZ)]).flat()
+                    );
+                    
+                    (this.object as Mesh).setAllScales(
+                        Array.from({ length: instanceCount }, () => 
+                            [rand(0.3, 0.5), rand(1, 4), 1]).flat()
+                    );
+                    
+                    (this.object as Mesh).setAllRotations(
+                        Array.from({ length: instanceCount }, () => 
+                            [0, -Math.PI / 2, 0]).flat()
+                    );
                     
                     break;
                 case 'sphere':
