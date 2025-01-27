@@ -18,17 +18,20 @@ export class LightComponent extends Component {
        this.light = new BaseLight();
    }
 
-   async deserialize(data: any) {
-       if (data.color) {
-           this.light.color.setHex(data.color);
-       }
-       if (data.intensity !== undefined) {
-           this.light.intensity = data.intensity;
-       }
-       if (data.animation) {
-           this.animation = data.animation;
-       }
-   }
+    async deserialize(data: any) {
+        const lightData = data;
+        if (lightData) {
+            if (lightData.color) {
+                this.light.color.setHex(lightData.color);
+            }
+            if (lightData.intensity !== undefined) {
+                this.light.intensity = lightData.intensity;
+            }
+            if (lightData.animation) {
+                this.animation = lightData.animation;
+            }
+        }
+    }
 }
 
 export class PointLightComponent extends LightComponent {
@@ -40,9 +43,29 @@ export class PointLightComponent extends LightComponent {
     }
  
     async deserialize(data: any) {
-        await super.deserialize(data);
-        if (data.range !== undefined) {
-            this.light.range = data.range;
+        const lightData = data;
+        if (lightData) {
+            if (lightData.color) {
+                this.light.color.setHex(lightData.color); 
+            }
+            if (lightData.intensity !== undefined) {
+                this.light.intensity = lightData.intensity;
+            }
+            if (lightData.range !== undefined) {
+                this.light.range = lightData.range;
+            }
+            if (lightData.animation) {
+                this.animation = lightData.animation;
+            }
+        }
+ 
+        const transformData = data.components?.TransformComponent;
+        if (transformData?.position) {
+            this.light.position.setXYZ(
+                transformData.position.x || 0,
+                transformData.position.y || 0,
+                transformData.position.z || 0
+            );
         }
     }
  }

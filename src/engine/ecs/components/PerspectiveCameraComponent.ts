@@ -19,26 +19,29 @@ export class PerspectiveCameraComponent extends Component {
    }
 
    async deserialize(data: any) {
-       if (data.fov) this.camera.fov = data.fov;
-       if (data.near) this.camera.near = data.near;
-       if (data.far) this.camera.far = data.far;
-       if (data.position) {
-           this.camera.position.setXYZ(
-               data.position.x || 0,
-               data.position.y || 0,
-               data.position.z || 0
-           );
-       }
-       if (data.target) {
-           this.camera.target.setXYZ(
-               data.target.x || 0,
-               data.target.y || 0,
-               data.target.z || 0
-           );
-       }
-       if (data.animation) {
-           this.animation = data.animation;
-       }
-       this.camera.updateProjectionMatrix();
-   }
+        const cameraData = data.components?.PerspectiveCameraComponent;
+        const transformData = data.components?.TransformComponent;
+
+        if (cameraData) {
+            if (cameraData.fov) this.camera.fov = cameraData.fov;
+            if (cameraData.near) this.camera.near = cameraData.near;
+            if (cameraData.far) this.camera.far = cameraData.far;
+            if (cameraData.lookAt) {
+                this.camera.lookAt(new Vector3(cameraData.lookAt[0], cameraData.lookAt[1], cameraData.lookAt[2]));
+            }
+            if (cameraData.animation) {
+                this.animation = cameraData.animation;
+            }
+        }
+
+        if (transformData?.position) {
+            this.camera.position.setXYZ(
+                transformData.position.x || 0,
+                transformData.position.y || 0,
+                transformData.position.z || 0
+            );
+        }
+
+        this.camera.updateProjectionMatrix();
+    }
 }
