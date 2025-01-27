@@ -148,6 +148,65 @@ export class Renderer extends EventEmitter {
         this.renderPassDescriptor.colorAttachments[0].clearValue = color;
     }
 
+    simpleStringify(object: any) {
+        const simpleObject : any = {};
+        for (const prop in object) {
+            if (!object.hasOwnProperty(prop)) {
+                continue;
+            }
+            if (typeof(object[prop]) == 'object') {
+                continue;
+            }
+            if (typeof(object[prop]) == 'function') {
+                continue;
+            }
+            simpleObject[prop] = object[prop];
+        }
+        return JSON.stringify(simpleObject);
+      }
+
+    debugScene(scene: Scene) {
+        const findFirstMeshRecursive = (object: Object3D): Mesh | null => {
+            if ('geometry' in object && 'material' in object) {
+                return object as Mesh;
+            }
+            
+            for (const child of object.children) {
+                const mesh = findFirstMeshRecursive(child);
+                if (mesh) return mesh;
+            }
+            
+            return null;
+        };
+    
+        // Get first Object3D
+        const firstObject = scene.children[1];
+        if (!firstObject) {
+            console.log('No objects in scene');
+            return;
+        }
+    
+        console.log('=== Scene Debug ===');
+        console.log('First Object3D:', this.simpleStringify(firstObject));
+        console.log('Position:', firstObject.position);
+        console.log('Scale:', firstObject.scale);
+    
+        // Find first actual mesh
+        const firstMesh = findFirstMeshRecursive(firstObject);
+        if (firstMesh) {
+            console.log('=== First Mesh ===');
+            console.log('Mesh:', this.simpleStringify(firstMesh));
+            console.log('Material:', this.simpleStringify(firstMesh.material));
+            if (firstMesh.material?.shader) {
+                console.log('Vertex Shader:', firstMesh.material.shader.fragmentSource);
+                console.log('Fragment Shader:', firstMesh.material.shader.vertexSource);
+            }
+        } else {
+            console.log('No meshes found in object hierarchy');
+        }
+        console.log('=================');
+    }
+     
 
     public render(scene: Scene, camera: Camera) {
         const commandEncoder = this.device.createCommandEncoder();
@@ -162,6 +221,10 @@ export class Renderer extends EventEmitter {
         this.updateClearValue(scene.backgroundColor);
 
         const pass = commandEncoder.beginRenderPass(this.renderPassDescriptor);
+        
+        //DEBUG
+        //this.debugScene(scene);
+        
         this.draw(scene, camera, pass);
         pass.end();
 

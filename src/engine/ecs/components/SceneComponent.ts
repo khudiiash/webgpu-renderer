@@ -1,10 +1,9 @@
 import { Component } from '../core/Component';
 import { Scene as BaseScene } from '@/core/Scene';
-import { Object3D } from '@/core/Object3D';
 import { World } from '../core/World';
 import { ModelComponent } from './ModelComponent';
 import { PointLightComponent } from './PointLightComponent';
-import { Mesh } from '@/core/Mesh';
+import { TransformComponent } from './TransformComponent';
 
 export class SceneComponent extends Component {
    public scene: BaseScene;
@@ -15,29 +14,42 @@ export class SceneComponent extends Component {
    }
    
    attachToWorld(world: World) {
-        console.log('Before attaching:', this.scene.meshes.length);
+        //console.log('Before attaching:', this.scene.meshes.length);
         
         for (const entity of world.getEntities()) {
             const model = entity.get(ModelComponent);
+            const transform = entity.get(TransformComponent);
+        
+        
             if (model?.object) {
-                console.log('Adding object:', model.object);
+                //console.log('Adding object:', model.object);
+
+                // Apply transform if it exists
+                if (transform) {
+                    model.object.position.copy(transform.position);
+                    model.object.scale.copy(transform.scale);
+                    model.object.rotation.copy(transform.rotation);
+                }
                 this.scene.add(model.object);
+
                 // Verify object was added
-                console.log('Scene meshes after add:', this.scene.meshes);
+                //console.log('Scene meshes after add:', this.scene.meshes);
             }
+
+            
             
             const pointLight = entity.get(PointLightComponent);
             if (pointLight?.light) {
-                console.log('Adding light:', pointLight.light);
+                //console.log('Adding light:', pointLight.light);
                 this.scene.add(pointLight.light);
-                console.log('Scene lights after add:', this.scene.lights);
+                //console.log('Scene lights after add:', this.scene.lights);
             }
         }
         
-        console.log('After attaching all:',
+        /*console.log('After attaching all:',
             'Meshes:', this.scene.meshes.length,
             'Lights:', this.scene.lights.length
-        );
+        );*/
     }
 
 

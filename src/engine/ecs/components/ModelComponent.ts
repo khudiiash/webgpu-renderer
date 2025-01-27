@@ -12,9 +12,10 @@ export class ModelComponent extends Component {
    object?: Object3D;
    material?: Material;
    properties: any = {};
-   
+
    async deserialize(data: any) {
-        console.log('ModelComponent deserialize - Input:', data);
+
+        //console.log('ModelComponent deserialize - Input:', data);
         this.properties = data.properties || {};
         
         if (data.material) {
@@ -31,13 +32,14 @@ export class ModelComponent extends Component {
         }
     
         if (data.geometry) {
-            console.log('Loading geometry type:', data.geometry);
+            //console.log('Loading geometry type:', data.geometry);
             switch (data.geometry) {
                 case 'gltf':
                     if (data.path) {
                         const GLTFLoader = (await import('@/util/loaders/GLTFLoader')).GLTFLoader;
                         this.object = await GLTFLoader.loadMesh(data.path);
                     }
+                    
                     break;
                 case 'triangle':
                     const geometry = new Geometry();
@@ -47,13 +49,16 @@ export class ModelComponent extends Component {
                     break;
                 case 'sphere':
                     this.object = new Mesh(new SphereGeometry(2), this.material);
+
                     break;
                 case 'box':
                     const size = data.size || { x: 1, y: 1, z: 1 };
                     this.object = new Mesh(new BoxGeometry(size.x, size.y, size.z), this.material);
+
                     break;
                 case 'plane':
                     this.object = new Mesh(new PlaneGeometry(1, 1), this.material);
+                    
                     break;
             }
         }
