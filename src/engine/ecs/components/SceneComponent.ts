@@ -25,6 +25,11 @@ export class SceneComponent extends Component {
             // If this entity has both a light and a model, add the model to the light
             if (pointLight && model?.object) {
                 pointLight.light.add(model.object);
+                if (transform) {
+                    model.object.position.copy(transform.position);
+                    model.object.scale.copy(transform.scale);
+                    model.object.rotation.copy(transform.rotation);
+                }
                 this.scene.add(pointLight.light);
             } 
             // If it only has a model, add it directly to the scene

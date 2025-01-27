@@ -41,7 +41,7 @@ prefabs:
           normals: [0, 0, -1, 0, 0, -1, 0, 0, -1]
           uvs: [0, 0, 1, 0, 0.5, 1]
           indices: [0, 2, 1]
-        instancesCount: 100000
+        instanceCount: 100000
         rangeX: 280
         rangeZ: 50
         material:
@@ -83,6 +83,9 @@ prefabs:
     components:
       ModelComponent:
         geometry: plane
+        instanceCount: 3000
+        rangeX: 280
+        rangeZ: 50
         material:
           type: standard
           properties:

@@ -18,7 +18,12 @@ export class ModelComponent extends Component {
 
         //console.log('ModelComponent deserialize - Input:', data);
         this.properties = data.properties || {};
-        
+
+        // instances
+        const instanceCount = parseInt(data.instanceCount) || 1;
+        const rangeX = data.rangeX;
+        const rangeZ = data.rangeZ;
+
         if (data.material) {
             const StandardMaterial = (await import('@/materials/StandardMaterial')).StandardMaterial;
             this.material = new StandardMaterial(data.material.properties);
@@ -46,13 +51,7 @@ export class ModelComponent extends Component {
                     const geometry = new Geometry();
                     geometry.setFromArrays(data.geometryData);
                     
-                    // Get instance count from transform or particle component
-                    const instanceCount = data.instanceCount || 100000;
                     this.object = new Mesh(geometry, this.material, instanceCount);
-
-                    // Initialize instances
-                    const rangeX = data.rangeX;
-                    const rangeZ = data.rangeZ;
                     
                     (this.object as Mesh).setAllPositions(
                         Array.from({ length: instanceCount }, () => 
@@ -80,8 +79,20 @@ export class ModelComponent extends Component {
 
                     break;
                 case 'plane':
-                    this.object = new Mesh(new PlaneGeometry(1, 1), this.material);
+                    this.object = new Mesh(new PlaneGeometry(1, 1), this.material, instanceCount);
+
+                    (this.object as Mesh).setAllPositions(
+                        Array.from({ length: instanceCount }, () => 
+                            [rand(-rangeX, rangeX), rand(0, 100), rand(-rangeZ, rangeZ)]).flat()
+                    );
                     
+                    (this.object as Mesh).setAllScales(rand(0.15, 0.3));
+                    
+                    (this.object as Mesh).setAllRotations(
+                        Array.from({ length: instanceCount }, (_, i) => [0, -Math.PI / 2, 0]).flat()
+                    );
+                    break;    
+                
                     break;
             }
         }
