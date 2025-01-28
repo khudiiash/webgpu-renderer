@@ -599,7 +599,6 @@ describe('Matrix4', () => {
 
     it('setOrthographic', () => {
         const m = new Matrix4().setOrthographic(-1,1,-1,1,1,10);
-        console.log(m.toString())
         const expected = new Matrix4().set([
             1, 0, 0, 0,
             0, 1, 0, 0,

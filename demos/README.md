@@ -16,6 +16,35 @@ Key features:
 
 [Learn more about the Classic Sponza Demo](./intermediate/Sponza/README.md)
 
+### 2. Sponza ECS Demo
+**Location**: `demos/advanced/Sponza_ECS`
+
+The same Sponza scene rebuilt using an Entity Component System (ECS) architecture. Shows how to structure more complex applications using a data-oriented approach.
+
+Key features:
+- Full ECS implementation
+- Declarative scene setup using YAML
+- Component-based architecture
+- Reusable systems for behavior
+- Easy to extend and modify
+
+[Learn more about the ECS Sponza Demo](./advanced/Sponza_ECS/README.md)
+
+## Understanding the ECS Architecture
+
+The ECS (Entity Component System) architecture used in demo1 is based on three main concepts:
+
+1. **Entities**: Simple containers that give identity to objects in the scene
+2. **Components**: Pure data containers that define object properties
+3. **Systems**: Logic that operates on entities with specific components
+
+Benefits of the ECS approach:
+- Clear separation of data and logic
+- Easy to add new features through components and systems
+- Better performance through data-oriented design
+- More maintainable and testable code
+- Declarative scene setup using YAML
+
 ## Getting Started
 
 Each demo folder contains:
