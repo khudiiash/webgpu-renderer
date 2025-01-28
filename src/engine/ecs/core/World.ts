@@ -4,6 +4,7 @@ import { componentRegistry } from './ComponentRegistry';
 import { systemRegistry } from './SystemRegistry';
 import { PerspectiveCameraComponent } from '../components/PerspectiveCameraComponent';
 import { SceneComponent } from '../components/SceneComponent';
+import { TransformComponent } from '../components/TransformComponent';
 
 export class World {
     private entities: Map<number, Entity> = new Map();
@@ -63,6 +64,9 @@ export class World {
             const camera = new PerspectiveCameraComponent();
             await camera.deserialize(config.camera);
             cameraEntity.add(camera);
+            const transform = new TransformComponent();
+            await transform.deserialize(config.camera);
+            cameraEntity.add(transform);
         }
 
         if (config.scene) {
@@ -101,6 +105,8 @@ export class World {
                 const component = new ComponentClass();
                 await component.deserialize(props);
                 entity.add(component);
+            } else {
+                console.warn(`Component class not found: ${componentName}`);
             }
         }
     }

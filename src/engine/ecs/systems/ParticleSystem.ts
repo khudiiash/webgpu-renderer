@@ -3,6 +3,8 @@ import { TransformComponent } from '../components/TransformComponent';
 import { ParticleComponent } from '../components/ParticleComponent';
 import { World } from '../core/World';
 import { rand } from '@/util';
+import { ModelComponent } from '../components/ModelComponent';
+import { Mesh } from '@/core/Mesh';
 
 export class ParticleSystem implements System {
     private elapsed = 0;
@@ -12,48 +14,45 @@ export class ParticleSystem implements System {
 
         for (const entity of world.getEntities()) {
             const particle = entity.get(ParticleComponent);
-            const transform = entity.get(TransformComponent);
+            const model = entity.get(ModelComponent);
             
-            if (particle && transform) {
+            // Need to work with the actual Mesh
+            if (particle && model?.object instanceof Mesh) {
+                const mesh = model.object;
+                
                 if (!particle.initialized) {
-                    this.initializeParticles(particle, transform);
+                    this.initializeParticles(particle, mesh);
                     particle.initialized = true;
                 }
 
                 if (particle.properties.speed) {
-                    this.updateParticlePositions(delta, particle, transform);
+                    this.updateParticlePositions(delta, particle, mesh);
                 }
             }
         }
     }
 
-    private initializeParticles(particle: ParticleComponent, transform: TransformComponent) {
+    private initializeParticles(particle: ParticleComponent, mesh: Mesh) {
         const { rangeX, rangeZ, height, scale } = particle.properties;
         
-        const positions = [];
-        for (let i = 0; i < particle.count; i++) {
-            positions.push(
-                rand(-rangeX, rangeX),
-                rand(height?.min || 0, height?.max || 0),
-                rand(-rangeZ, rangeZ)
-            );
-        }
-        transform.setPositions(positions);
+        mesh.setAllPositions(Array.from({ length: mesh.count }, () => 
+            [rand(-rangeX, rangeX), rand(height?.min || 0, height?.max || 0), rand(-rangeZ, rangeZ)]).flat()
+        );
 
         if (scale) {
-            transform.setScales(Array(particle.count).fill(0).map(() => 
-                rand(scale.min, scale.max)
-            ));
+            mesh.setAllScales(rand(scale.min, scale.max));
         }
 
-        transform.setRotations(Array(particle.count).fill([0, -Math.PI / 2, 0]).flat());
+        mesh.setAllRotations(Array.from({ length: mesh.count }, () => 
+            [0, -Math.PI / 2, 0]).flat()
+        );
     }
 
-    private updateParticlePositions(delta: number, particle: ParticleComponent, transform: TransformComponent) {
+    private updateParticlePositions(delta: number, particle: ParticleComponent, mesh: Mesh) {
         const { speed, distance } = particle.properties;
         const translations = [];
         
-        for (let i = 0; i < particle.count; i++) {
+        for (let i = 0; i < mesh.count; i++) {
             translations.push(
                 Math.sin((this.elapsed + i) * speed) * distance * delta,
                 Math.cos((this.elapsed + i) * speed) * distance * delta,
@@ -61,6 +60,6 @@ export class ParticleSystem implements System {
             );
         }
         
-        transform.translate(translations);
+        mesh.translateAll(translations);
     }
 }

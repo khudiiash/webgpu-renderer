@@ -2,6 +2,7 @@ import { System } from "../core/System";
 import { World } from "../core/World";
 import { PerspectiveCameraComponent } from "../components/PerspectiveCameraComponent";
 import { PointLightComponent } from "../components/PointLightComponent";
+import { TransformComponent } from "../components/TransformComponent";
 
 export class TransformAnimationSystem implements System {
     private elapsed = 0;
@@ -13,7 +14,8 @@ export class TransformAnimationSystem implements System {
         const cameraEntity = world.findEntity(e => e.has(PerspectiveCameraComponent));
         if (cameraEntity) {
             const camera = cameraEntity.get(PerspectiveCameraComponent).camera;
-            camera.position.x = Math.sin(this.elapsed * 0.3) * 200;
+            const pos = cameraEntity.get(TransformComponent).position;
+            camera.position.x = pos.x;
         }
  
     }
