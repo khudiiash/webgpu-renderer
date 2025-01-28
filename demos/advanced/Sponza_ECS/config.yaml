@@ -111,7 +111,7 @@ prefabs:
           rangeX: 280
           rangeZ: 50
           height: { min: 0, max: 100 }
-          scale: { min: 2.0, max: 3.0 }
+          scale: { min: 1.0, max: 2.0 }
           speed: 1
           distance: 1
 
@@ -160,6 +160,7 @@ entities:
       ModelComponent:
         geometry: box
         size: { x: 10, y: 10, z: 10 }
+        position: { x: 0, y: 10, z: 0 }
         material:
           type: standard
           properties:

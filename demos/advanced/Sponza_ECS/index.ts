@@ -4,7 +4,8 @@ import configRaw from './config.yaml?raw'
 import { parse } from 'yaml'
 
 async function main() {
-    const engine = Engine.getInstance();
+    
+    const engine = Engine.getInstance( {fullscreen : true});
     await engine.init();
     
     const scene = new SponzaScene();
