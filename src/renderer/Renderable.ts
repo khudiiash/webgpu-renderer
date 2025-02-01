@@ -5,6 +5,7 @@ import { Mesh } from '@/core/Mesh';
 import { Material } from '@/materials/Material';
 import { Geometry } from '@/geometry/Geometry';
 import { Shader } from '@/materials/shaders/Shader';
+import { Camera } from '@/camera/Camera';
 
 export class Renderable {
     public id: string;
@@ -38,8 +39,11 @@ export class Renderable {
         this.initialize();
     }
 
+
     
     initialize() {
+        this.shader.insertAttributes(this.geometry.getShaderAttributes());
+        this.shader.insertVaryings(this.geometry.getShaderVaryings());
         this.createVertexBuffer();
         this.createIndexBuffer();
         this.createBindGroups();
@@ -81,11 +85,10 @@ export class Renderable {
     createIndexBuffer() {
         this.isIndexed = this.geometry.isIndexed;
         if (!this.isIndexed) return;
-
         this.indexBuffer = this.resourceManager.createAndUploadBuffer(
             { 
                 name: "Geometry Index Buffer",
-                data: this.geometry.indices as ArrayBuffer, 
+                data: this.geometry.getIndices(),
                 usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
                 id: 'ib_' + this.geometry.id,
             },
@@ -112,10 +115,10 @@ export class Renderable {
         pass.setVertexBuffer(0, this.vertexBuffer);
         
         if (this.isIndexed && this.indexBuffer) {
-            pass.setIndexBuffer(this.indexBuffer, this.geometry.indexFormat as GPUIndexFormat);
-            pass.drawIndexed(this.geometry.indices.length, this.mesh.count);
+            pass.setIndexBuffer(this.indexBuffer, this.geometry.indices.format);
+            pass.drawIndexed(this.geometry.indices.count, this.mesh.count);
         } else {
-            pass.draw(this.geometry.vertexCount, 1, 0, 0);
+            pass.draw(this.geometry.vertexCount, this.mesh.count);
         }
     }
     

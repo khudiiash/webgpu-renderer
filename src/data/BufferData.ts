@@ -40,6 +40,7 @@ export class BufferData extends Float32Array {
             case 2: return 'vec2f';
             case 3: return 'vec3f';
             case 4: return 'vec4f';
+            case 9: return 'mat3x3f';
             case 16: return 'mat4x4f';
             default: return 'f32';
         }
@@ -77,7 +78,7 @@ export class BufferData extends Float32Array {
     }
 
     clone(): this {
-        return new (this.constructor as any)(...this) as this;
+        return new (this.constructor as any)(this) as this;
     }
 
     equals(data: BufferData): boolean {

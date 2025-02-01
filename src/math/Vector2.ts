@@ -1,4 +1,6 @@
 import { BufferData } from "@/data/BufferData";
+import { BufferAttribute } from "@/geometry/BufferAttribute";
+import { Matrix3 } from "./Matrix3";
 
 export class Vector2 extends BufferData {
     [index: number]: number;
@@ -27,6 +29,39 @@ export class Vector2 extends BufferData {
         return this;
     }
 
+    applyMatrix3(m: Matrix3): this {
+        const x = this[0], y = this[1];
+        const e = m;
+        this[0] = e[0] * x + e[1] * y + e[2];
+        this[1] = e[3] * x + e[4] * y + e[5];
+        return this;
+    }
+
+    set(x: number | ArrayLike<number>, y: number): this {
+        if (Array.isArray(x) || x instanceof Float32Array) {
+            this[0] = x[0];
+            this[1] = x[1];
+        } else {
+            this[0] = x as number;
+            this[1] = y as number;
+        }
+        return this;
+    }
+
+    applyMatrix4(m: Matrix3): this {
+        const x = this[0], y = this[1];
+        const e = m;
+        this[0] = e[0] * x + e[1] * y + e[2];
+        this[1] = e[3] * x + e[4] * y + e[5];
+        return this;
+    }
+
+    setFromBufferAttribute(attribute: BufferAttribute, index: number): this {
+        this[0] = attribute.getX(index);
+        this[1] = attribute.getY(index);
+        return this;
+    }
+
     subVectors(a: Vector2, b: Vector2): this {
         this[0] = a[0] - b[0];
         this[1] = a[1] - b[1];
@@ -47,10 +82,6 @@ export class Vector2 extends BufferData {
 
     dot(v: Vector2): number {
         return this[0] * v[0] + this[1] * v[1];
-    }
-
-    clone(): this {
-        return new Vector2(this[0], this[1]) as this;
     }
 
     copy(v: this): this {
@@ -91,6 +122,10 @@ export class Vector2 extends BufferData {
             this[1] *= y!;
         }
         return this;
+    }
+
+    clone(): this {
+        return new Vector2(this[0], this[1]) as this;
     }
 
     magnitude(): number {

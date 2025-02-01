@@ -4,6 +4,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 8080",
+    "demo:parallax": "vite --host 0.0.0.0 --port 8080 --config demos/intermediate/parallax/vite.config.ts",
+    "demo:sponza": "vite --host 0.0.0.0 --port 8080 --config demos/intermediate/sponza/vite.config.ts",
+    "demo:cube": "vite --host 0.0.0.0 --port 8080 --config demos/basic/cube/vite.config.ts",
     "test": "vitest --coverage",
     "build": "tsc && vite build",
     "preview": "vite preview"

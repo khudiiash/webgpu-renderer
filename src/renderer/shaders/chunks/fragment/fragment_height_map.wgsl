@@ -1,10 +1,10 @@
-var height_uv = input.vUv;
+var height_uv = input.uv;
 
 if (textureDimensions(heightMap).x > 1) {
-    let dp1 = dpdx(input.vPositionW);
-    let dp2 = dpdy(input.vPositionW);
-    let duv1 = dpdx(input.vUv);
-    let duv2 = dpdy(input.vUv);
+    let dp1 = dpdx(input.positionW);
+    let dp2 = dpdy(input.positionW);
+    let duv1 = dpdx(input.uv);
+    let duv2 = dpdy(input.uv);
     color = vec4(1, 0, 0, 1);
 
     // Calculate tangent and bitangent
@@ -15,7 +15,7 @@ if (textureDimensions(heightMap).x > 1) {
     var tbn = mat3x3<f32>(
         normalize(tangent),
         normalize(bitangent),
-        normalize(input.vNormalW)
+        normalize(input.normalV)
     );
     
     let view_dir_tangent = normalize(tbn * view_dir);
@@ -31,7 +31,7 @@ if (textureDimensions(heightMap).x > 1) {
     // Calculate initial UV offset per layer
     let delta_uv = (view_dir_tangent.xy * height_scale) / (view_dir_tangent.z * num_layers);
     
-    var current_uv = input.vUv;
+    var current_uv = input.uv;
     var current_depth = textureSample(heightMap, sampler2D, current_uv).r;
     
     // While the current depth is less than the layer depth, move to next layer

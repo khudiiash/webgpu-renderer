@@ -1,5 +1,8 @@
 import { BufferData } from "@/data/BufferData";
 import { Matrix4 } from "./Matrix4";
+import { BufferAttribute } from "@/geometry/BufferAttribute";
+import { Matrix3 } from "./Matrix3";
+import { Quaternion } from "./Quaternion";
 
 export class Vector3 extends BufferData {
     [index: number]: number;
@@ -85,15 +88,27 @@ export class Vector3 extends BufferData {
         return this;
     }
 
-    divide(v: Vector3): this {
-        if (!this.locked) {
+    divide(v: Vector3 | number): this {
+        if (this.locked) return this;
+        if (v instanceof Vector3) {
+            if (v[0] === 0 || v[1] === 0 || v[2] === 0) {
+                throw new Error('Division by zero');
+            }
             this[0] /= v[0];
             this[1] /= v[1];
             this[2] /= v[2];
         }
+        if (typeof v === 'number') {
+            if (v === 0) {
+                throw new Error('Division by zero');
+            }
+            this[0] /= v;
+            this[1] /= v;
+            this[2] /= v;
+        }
         return this;
     }
-
+    
     multiply(v: Vector3): this {
         if (!this.locked) {
             this[0] *= v[0];
@@ -174,21 +189,117 @@ export class Vector3 extends BufferData {
 
     applyMatrix4(m: Matrix4): this {
         if (!this.locked) {
+            const x = this.x, y = this.y, z = this.z;
+            const e = m;
+            const w = 1 / ( e[ 3 ] * x + e[ 7 ] * y + e[ 11 ] * z + e[ 15 ] );
+            this[0] = ( e[ 0 ] * x + e[ 4 ] * y + e[ 8 ] * z + e[ 12 ] ) * w;
+            this[1] = ( e[ 1 ] * x + e[ 5 ] * y + e[ 9 ] * z + e[ 13 ] ) * w;
+            this[2] = ( e[ 2 ] * x + e[ 6 ] * y + e[ 10 ] * z + e[ 14 ] ) * w;
+        }
+        return this;
+    }
+
+    applyQuaternion(q: Quaternion): this {
+		const vx = this.x, vy = this.y, vz = this.z;
+		const qx = q.x, qy = q.y, qz = q.z, qw = q.w;
+		const tx = 2 * ( qy * vz - qz * vy );
+		const ty = 2 * ( qz * vx - qx * vz );
+		const tz = 2 * ( qx * vy - qy * vx );
+		this.setXYZ(
+            vx + qw * tx + qy * tz - qz * ty,
+		    vy + qw * ty + qz * tx - qx * tz,
+		    vz + qw * tz + qx * ty - qy * tx,
+        );
+		return this;
+    }
+
+    transformDirection(m: Matrix4): this {
+        if (!this.locked) {
             const x = this[0];
             const y = this[1];
             const z = this[2];
 
             const e = m;
 
-            this[0] = e[0] * x + e[4] * y + e[8] * z + e[12];
-            this[1] = e[1] * x + e[5] * y + e[9] * z + e[13];
-            this[2] = e[2] * x + e[6] * y + e[10] * z + e[14];
+            this[0] = e[0] * x + e[4] * y + e[8] * z;
+            this[1] = e[1] * x + e[5] * y + e[9] * z;
+            this[2] = e[2] * x + e[6] * y + e[10] * z;
+        }
+        return this;
+    }
+
+    applyMatrix3(m: Matrix3): this {
+        if (!this.locked) {
+            const x = this[0];
+            const y = this[1];
+            const z = this[2];
+
+            const e = m;
+
+            this[0] = e[0] * x + e[3] * y + e[6] * z;
+            this[1] = e[1] * x + e[4] * y + e[7] * z;
+            this[2] = e[2] * x + e[5] * y + e[8] * z;
+        }
+        return this;
+    }
+
+    negate(): this {
+        if (!this.locked) {
+            this[0] = -this[0];
+            this[1] = -this[1];
+            this[2] = -this[2];
+        }
+        return this;
+    }
+
+    lerp( v: Vector3, alpha: number ) {
+		this[0] += ( v.x - this.x ) * alpha;
+		this[1] += ( v.y - this.y ) * alpha;
+		this[2] += ( v.z - this.z ) * alpha;
+		return this;
+	}
+
+	lerpVectors(v1: Vector3, v2: Vector3, alpha: number) {
+		this[0] = v1.x + ( v2.x - v1.x ) * alpha;
+		this[1] = v1.y + ( v2.y - v1.y ) * alpha;
+		this[2] = v1.z + ( v2.z - v1.z ) * alpha;
+		return this;
+	}
+
+    applyNormalMatrix(m: Matrix3): this {
+        return this.applyMatrix3(m).normalize();
+    }
+
+    setFromBufferAttribute(attribute: BufferAttribute, index: number): this {
+        if (!this.locked) {
+            this[0] = attribute.getX(index);
+            this[1] = attribute.getY(index);
+            this[2] = attribute.getZ(index);
+        }
+        return this;
+    }
+
+    set(x: number | ArrayLike<number>, y?: number, z?: number): this {
+        if (!this.locked) {
+            if (Array.isArray(x)) {
+                this[0] = x[0];
+                this[1] = x[1];
+                this[2] = x[2];
+            } else {
+                this[0] = x as number;
+                this[1] = y as number;
+                this[2] = z as number;
+            }
+            this.monitor.check();
         }
         return this;
     }
 
     setFromMatrixColumn(matrix: Matrix4, index: number): this {
         if (!this.locked) {
+            if (index < 0 || index > 3) {
+                throw new Error('Index out of bounds');
+            }
             return this.fromArray(matrix, index * 4);
         }
         return this;
@@ -202,8 +313,18 @@ export class Vector3 extends BufferData {
     }
 
     setXYZ(x: number, y: number, z: number): this {
-        this.set([x, y, z]);
+        if (!this.locked) {
+            this.set([x, y, z]);
+        }
         return this;
+    }
+
+    static lerp(v1: Vector3, v2: Vector3, t: number): Vector3 {
+        return new Vector3(
+            v1.x + (v2.x - v1.x) * t,
+            v1.y + (v2.y - v1.y) * t,
+            v1.z + (v2.z - v1.z) * t
+        );
     }
 
     setFromSphericalCoords(radius: number, phi: number, theta: number): this {
@@ -215,13 +336,15 @@ export class Vector3 extends BufferData {
     }
 
     normalize(): this {
-        if (!this.locked) {
-            const length = this.magnitude();
-            if (length === 0) return this;
-            this[0] /= length;
-            this[1] /= length;
-            this[2] /= length;
+        if (this.locked) return this;
+        const length = this.magnitude();
+        if (length === 0) {
+            return this;
         }
-        return this;
+        return this.divide(this.magnitude());
+    }
+
+    clone(): this {
+        return new Vector3(this[0], this[1], this[2]) as this;
     }
 }

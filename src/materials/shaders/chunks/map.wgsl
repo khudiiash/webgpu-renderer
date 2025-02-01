@@ -7,22 +7,13 @@ fn sampleColor(map: texture_2d<f32>, mapSampler: sampler, uv: vec2f, color: vec4
     return color;
 }
 
-fn sampleNormal(map: texture_2d<f32>, mapSampler: sampler, uv: vec2f, normal: vec3f) -> vec3f {
-    if (textureDimensions(map).x > 1) {
-        let wrappedUV = fract(uv);
-        let texNormal = textureSample(map, mapSampler, wrappedUV).xyz;
-        let normalMatrix = mat3x3f(
-            vec3f(1.0, 0.0, 0.0),
-            vec3f(0.0, 1.0, 0.0),
-            vec3f(0.0, 0.0, 1.0)
-        );
-        let tangent = normalize(cross(normal, vec3f(0.0, 0.0, 1.0)));
-        let bitangent = cross(normal, tangent);
-        let TBN = mat3x3f(tangent, bitangent, normal);
-        let normalMap = normalize(TBN * (texNormal * 2.0 - 1.0));
-        return normalMap;
+fn sampleNormal(uv: vec2f, normal: vec3f) -> vec3f {
+    // Early return if no normal map
+    if (textureDimensions(normal_map).x <= 1) {
+        return normal;
     }
-    return normal;
+    let sample = textureSample(normal_map, normal_map_sampler, uv);
+    return normalize(sample.xyz * 2.0 - 1.0);
 }
 
 fn sampleMetalness(map: texture_2d<f32>, mapSampler: sampler, uv: vec2f, metalness: f32) -> f32 {
@@ -52,30 +43,6 @@ fn sampleHeight(map: texture_2d<f32>, mapSampler: sampler, uv: vec2f) -> f32 {
     return 1.0;
 }
 
-const NUM_STEPS: i32 = 512;
-
-fn inverse(mat: mat3x3f) -> mat3x3f {
-    let a = mat[0][0];
-    let b = mat[0][1];
-    let c = mat[0][2];
-    let d = mat[1][0];
-    let e = mat[1][1];
-    let f = mat[1][2];
-    let g = mat[2][0];
-    let h = mat[2][1];
-    let i = mat[2][2];
-    let A = e * i - f * h;
-    let B = f * g - d * i;
-    let C = d * h - e * g;
-    let det = a * A + b * B + c * C;
-    let invDet = 1.0 / det;
-    return mat3x3f(
-        vec3f(A * invDet, (c * h - b * i) * invDet, (b * f - c * e) * invDet),
-        vec3f(B * invDet, (a * i - c * g) * invDet, (c * d - a * f) * invDet),
-        vec3f(C * invDet, (b * g - a * h) * invDet, (a * e - b * d) * invDet)
-    );
-}
-
 fn sampleAO(map: texture_2d<f32>, mapSampler: sampler, uv: vec2f, ao: f32) -> f32 {
     if (textureDimensions(map).x > 1) {
         let wrappedUV = fract(uv);
@@ -85,147 +52,111 @@ fn sampleAO(map: texture_2d<f32>, mapSampler: sampler, uv: vec2f, ao: f32) -> f3
     return ao;
 }
 
-fn modulo(a: f32, b: f32) -> f32 {
-	var m = a % b;
-	if (m < 0.0) {
-		if (b < 0.0) {
-			m -= b;
-		} else {
-			m += b;
-		}
-	}
-	return m;
-}
-
 struct ParallaxResult {
     uv: vec2f,
     viewHeight: f32
 };
-fn computeParallaxLightOcclusion(uv: vec2f, lightViewDir: vec3f, viewHeight: f32, heightMap: texture_2d<f32>, heightMapSampler: sampler) -> bool {
-    const numSteps = 64;
-    let viewAngle = 1.0 - abs(dot(vec3f(0.0, 0.0, 1.0), lightViewDir));
-    let heightScale = 0.1 * (1.0 + viewAngle);
-    let scale = 0.5;
-    let layerSize = scale / numSteps;
-    var shadowUV = uv;
-    var shadowLayer = viewHeight;
-    var lightOccluded = false;
 
-    let deltaUV = lightViewDir.xy * heightScale;
-    let stepUV = deltaUV / numSteps;
-    let shadowBias = 0.001 * (1.0 + viewAngle * 2.0);
+fn parallax_occlusion_mapping(startUV: vec2f, viewDirTS: vec3f) -> vec3f {
+    let ddx = dpdx(startUV);
+    let ddy = dpdy(startUV);
+    var depthScale = material.height_scale;
+    var depthLayers = 32;
     
-    for (var i = 0; i < 32; i++) {
-        shadowUV += stepUV;
-        let wrappedShadowUV = fract(shadowUV);
-        let sampledHeight = textureSample(heightMap, heightMapSampler, wrappedShadowUV).r;
-        shadowLayer += layerSize;
-        
-        if (sampledHeight > (shadowLayer + shadowBias)) {
-            lightOccluded = true;
+    let uvDelta = viewDirTS.xy * depthScale / (-viewDirTS.z * f32(depthLayers));
+    let depthDelta = 1.0 / f32(depthLayers);
+    let posDelta = vec3f(uvDelta, depthDelta);
+    
+    var currentPos = vec3f(startUV, 1.0);
+    var prevPos = currentPos;
+    
+    // First pass: find approximate intersection point
+    for (var i = 0; i < depthLayers; i++) {
+        let heightSample = textureSampleGrad(height_map, height_map_sampler, currentPos.xy, ddx, ddy).r;
+        if (currentPos.z <= heightSample) {
+            break;
         }
-    }
-
-    return lightOccluded;
-}
-fn computeParallaxOcclusionMapping(uv: vec2f, viewDir: vec3f, heightMap: texture_2d<f32>, heightMapSampler: sampler) -> ParallaxResult {
-    // map
-    const numSteps = 64;
-    var resultUV = uv;
-    let scale = 1.0;
-    var layerSize = scale / 64.0;
-    let viewAngle = 1.0 - abs(dot(vec3f(0.0, 0.0, 1.0), viewDir));
-    let heightScale = 0.3 * (1.0 + viewAngle);
-    
-    var currentLayer = 0.0;
-    var deltaUV = -viewDir.xy * heightScale;
-    var stepUV = deltaUV / 64.0;
-    // First pass: linear search
-    var prevHeight = 0.0;
-    var nextHeight = 0.0;
-    var prevUV = resultUV;
-    let wrappedUV = fract(resultUV);
-    nextHeight = textureSample(heightMap, heightMapSampler, wrappedUV).r;
-    
-    
-    for (var i = 0; i < 32; i++) {
-        let wrappedUV = fract(resultUV);
-        currentLayer += layerSize;
-        
-        if (nextHeight < currentLayer) {
-            prevHeight = nextHeight;
-            prevUV = resultUV;
-            resultUV += stepUV;
-        }
+        prevPos = currentPos;
+        currentPos -= posDelta;
     }
     
-    // Binary search refinement
-    let numRefinements = 5;
-    for (var i = 0; i < numRefinements; i++) {
-        let midUV = (prevUV + resultUV) * 0.5;
-        let midLayer = (prevHeight + nextHeight) * 0.5;
-        let wrappedMidUV = fract(midUV);
-        let midHeight = textureSample(heightMap, heightMapSampler, wrappedMidUV).r;
+    // Second pass: binary search for precise intersection
+    let numBinarySteps = 5;
+    for (var i = 0; i < numBinarySteps; i++) {
+        let midPos = (currentPos + prevPos) * 0.5;
+        let heightSample = textureSampleGrad(height_map, height_map_sampler, midPos.xy, ddx, ddy).r;
         
-        if (midHeight > midLayer) {
-            resultUV = midUV;
-            nextHeight = midHeight;
+        if (midPos.z <= heightSample) {
+            currentPos = midPos;
         } else {
-            prevUV = midUV;
-            prevHeight = midHeight;
+            prevPos = midPos;
         }
     }
     
-    return ParallaxResult(resultUV, nextHeight);
+    return currentPos;
 }
 
-fn getTBN(tangent: vec3f, bitangent: vec3f, normal: vec3f) -> mat3x3<f32> {
-    let T = normalize(tangent);
-    let B = normalize(bitangent);
-    let N = normalize(normal);
-    let TBN = mat3x3f(T, B, N);
-    return TBN;
+fn get_parallax_shadow(lightDirTS: vec3f, currentPos: vec3f, ddx: vec2f, ddy: vec2f) -> f32 {
+    let numShadowSteps = 32; 
+    let shadowStepSize = 1.0 / f32(numShadowSteps);
+    
+    var rayPos = currentPos;
+    let rayStep = vec3f(lightDirTS.xy * shadowStepSize * 0.1, shadowStepSize);
+    
+    var shadow = 1.0;
+    rayPos += rayStep;
+    
+    for (var i = 0; i < numShadowSteps; i++) {
+        let heightSample = textureSampleGrad(height_map, height_map_sampler, rayPos.xy, ddx, ddy).r;
+        
+        if (rayPos.z < heightSample) {
+            shadow = 0.0;
+            break;
+        }
+        
+        rayPos += rayStep;
+        if (rayPos.z >= 1.0) { break; }
+    }
+    
+    return shadow;
 }
-
-fn scaleUV(uv: vec2f, scale: vec2f) -> vec2f {
-    return (uv - 0.5) * scale + 0.5;
-}
-
 
 @fragment(before:lighting) {{
     // map
-    let uvScale = material.uvScale;
-    uv = scaleUV(uv, uvScale);
+    var parallax = vec3f(uv, 0.0);
 
-    let parallax = computeParallaxOcclusionMapping(uv, viewDirTan, height_map, height_map_sampler);
-
-    if (textureDimensions(height_map).x > 1) {
+    if (textureDimensions(height_map).x > 1 && useTangent) {
+        parallax = parallax_occlusion_mapping(uv, viewDir);
+        uv = parallax.xy;
         useParallax = true;
-        uv = parallax.uv;
-        //if (length(uvScale) == 1) {
+        if (uv_scale.x == 1.0 && uv_scale.y == 1.0) {
             if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
                 discard;
             }
-        //}
+        }
     }
 
-    let height = sampleHeight(height_map, height_map_sampler, uv);
-    normal = sampleNormal(normal_map, normal_map_sampler, uv, normal);
+    if (textureDimensions(normal_map).x > 1 && useTangent) {
+        var normalSample = textureSample(normal_map, normal_map_sampler, uv).rgb;
+        if (material.invert_normal == 1) {
+            normalSample.g = 1.0 - normalSample.g;
+        }
+        normal = normalize(normalSample * 2.0 - 1.0); // in tangent space
+    }
 
 
-    color = sampleColor(diffuse_map, diffuse_map_sampler, uv, color);
-    if (color.a < material.alpha_test) {
+    // diffuse_map
+    let diffuseSample = sampleColor(diffuse_map, diffuse_map_sampler, uv, color);
+    if (diffuseSample.a < material.alpha_test || color.a < material.alpha_test) {
         discard;
     }
+    if (diffuseSample.a < 1.0 && (uv.x < 0.02 || uv.x > 0.98 || uv.y < 0.02 || uv.y > 0.98)) {
+        discard;
+    }
+    color = vec4f(color.rgb * diffuseSample.rgb * diffuseSample.a, color.a * diffuseSample.a);
     metalness = sampleMetalness(metalness_map, metalness_map_sampler, uv, metalness);
     roughness = sampleRoughness(roughness_map, roughness_map_sampler, uv, roughness);
-    ao = sampleAO(ao_map, ao_map_sampler, uv, 1.0);
+    ao = sampleAO(ao_map, ao_map_sampler, uv, ao);
     color = vec4f(color.rgb * ao, color.a);
     emissive = sampleColor(emissive_map, emissive_map_sampler, uv, emissive);
-
-    if (height < 1.0 && height > 0.0) {
-        color = vec4f(color.rgb * height, color.a);
-    }
-
-
 }}

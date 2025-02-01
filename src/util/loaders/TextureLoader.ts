@@ -1,4 +1,3 @@
-import { uuid } from '../general';
 import { TextureMipGenerator } from './TextureMipGenerator';
 
 export class TextureLoader {

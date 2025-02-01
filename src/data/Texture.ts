@@ -1,6 +1,16 @@
 import { uuid } from "@/util/general";
 import { ObjectMonitor } from "./ObjectMonitor";
 
+export interface TextureOptions {
+    magFilter?: 'linear' | 'nearest';
+    minFilter?: 'linear' | 'nearest';
+    mipmapFilter?: 'linear' | 'nearest';
+    addressModeU?: GPUAddressMode;
+    addressModeV?: GPUAddressMode;
+    addressModeW?: GPUAddressMode;
+    invertY: boolean;
+}
+
 export class Texture {
     public width: number = 0;
     public height: number = 0;
@@ -41,6 +51,16 @@ export class Texture {
             format,
             usage: usage,
         });
+    }
+
+    setOptions(options: TextureOptions) {
+        if (!options) return;
+        if (options.magFilter) this.magFilter = options.magFilter;
+        if (options.minFilter) this.minFilter = options.minFilter;
+        if (options.mipmapFilter) this.mipmapFilter = options.mipmapFilter;
+        if (options.addressModeU) this.addressModeU = options.addressModeU;
+        if (options.addressModeV) this.addressModeV = options.addressModeV;
+        if (options.addressModeW) this.addressModeW = options.addressModeW;
     }
 
     getSamplerDescriptor(): GPUSamplerDescriptor {

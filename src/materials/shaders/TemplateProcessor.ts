@@ -35,6 +35,16 @@ export class TemplateProcessor {
         return TemplateProcessor.getInstance().getChunks();
     }
 
+    static processDefines(defines: Record<string, boolean>, template: string) {
+        if (!template || !template.includes('#if')) return template; 
+        for (const [key, value] of Object.entries(defines)) {
+            if (!template.includes(key)) continue;
+            const re = new RegExp(`#if ${key} {([\\s\\S]*?)}`, 'g');
+            template = template.replace(re, value ? '$1' : '');
+        }
+        return template;
+    }
+
     processTemplate(template: string, chunks: string[]) {
         let processed = template;
         this.type = processed.match(/@(vertex|fragment|compute)/)?.[1] as 'vertex' | 'fragment' | 'compute';
@@ -104,7 +114,7 @@ export class TemplateProcessor {
         let bodyStr = body.join('\n');
 
         // sort ordered chunks
-        const orderedBodyCodes = chunks.map(ch => ch.bodyCodes).flat().sort((a, b) => {
+        const orderedBodyCodes = chunks.map(chunk => chunk.getBodyCodesOrdered(this.type)).flat().sort((a, b) => {
             const aRule = a.order;
             const bRule = b.order;
             if (aRule === 'first') return -1;
@@ -152,10 +162,6 @@ export class TemplateProcessor {
                     bodyStr = splitBody.join('\n');
                 }
             }
-        }
-        if (chunks.some(c => c.name === 'StandardMaterial')) {
-            console.log('body includes', bodyStr.includes('//fix_uv'));
-            console.log('template includes', template.includes('//fix_uv'));
         }
         template = template.replace(bodyRe, `${firstStr}\n${bodyStr}\n${lastStr}`);
         template = `${bindingsStr}\n${chunksStr}\n${template}`;

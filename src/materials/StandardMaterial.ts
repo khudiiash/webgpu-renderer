@@ -24,7 +24,9 @@ export interface StandardMaterialOptions extends RenderStateOptions {
     specular_factor?: number;
     alpha_test?: number;
     transmission?: number;
-    uvScale?: Vector2;
+    uv_scale?: [number, number];
+    height_scale?: number;
+    invert_normal?: boolean;
 
     diffuse_map?: Texture;
     normal_map?: Texture;
@@ -61,7 +63,10 @@ class StandardMaterial extends Material {
         specular_factor: 'f32',
         alpha_test: 'f32',
         transmission: 'f32',
-        uvScale: 'vec2f',
+
+        height_scale: 'f32',
+        uv_scale: 'vec2f',
+        invert_normal: 'u32',
 
         useLight: 'u32',
         usePBR: 'u32',
@@ -81,6 +86,7 @@ class StandardMaterial extends Material {
     emissive_factor!: number;
     specular_factor!: number;
     alpha_test!: number;
+    transmission!: number;
 
     diffuse_map!: Texture;
     normal_map!: Texture;
@@ -106,7 +112,10 @@ class StandardMaterial extends Material {
             depthCompare: options.depthCompare || 'less',
             topology: options.topology || 'triangle-list',
             frontFace: options.frontFace || 'ccw',
-		}); 
+		}).onChange(() => {
+            console.log(this.renderState);
+            this.rebuild()
+        }); 
 
         this.uniforms.set('StandardMaterial', new UniformData(this, { 
                 name: 'StandardMaterial',
@@ -115,18 +124,20 @@ class StandardMaterial extends Material {
                 values: {
                     ambient: new Color(options.ambient),
                     diffuse: new Color(options.diffuse),
-                    specular: new Color(options.specular),
+                    specular: new Color(options.specular || '#FFFFFF'),
                     emissive: new Color(options.emissive || '#000000'),
                     sheen: new Color(options.sheen),
                     ao: new Color(options.ao),
                     opacity: options.opacity || 1.0,
-                    metalness: options.metalness || 0.0,
-                    roughness: options.roughness || 0.5,
-                    emissive_factor: options.emissive_factor || 1.0,
-                    specular_factor: options.specular_factor || 1.0,
-                    alpha_test: options.alpha_test || 0.5,
-                    transmission: options.transmission || 0.0,
-                    uvScale: options.uvScale || new Vector2(1, 1),
+                    metalness: options.metalness ?? 0.0,
+                    roughness: options.roughness ?? 0.5,
+                    emissive_factor: options.emissive_factor ?? 1.0,
+                    specular_factor: options.specular_factor ?? 1.0,
+                    alpha_test: options.alpha_test ?? 0.027,
+                    transmission: options.transmission ?? 0.0,
+                    uv_scale: options.uv_scale ? new Vector2(...options.uv_scale) : new Vector2(1, 1),
+                    height_scale: options.height_scale ?? 0.1,
+                    invert_normal: boolToNum(options.invert_normal, 0),
 
                     useLight: boolToNum(options.useLight, 1),
                     usePBR: boolToNum(options.usePBR, 1),

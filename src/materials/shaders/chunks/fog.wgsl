@@ -18,5 +18,5 @@ fn applyFog(color: vec4f, worldPosition: vec3f, cameraPos: vec3f, fog: Fog) -> v
         fogFactor = 1.0 - exp2(-fogDensity * fogDensity * fogDensity * fogDistance * fogDistance * fogDistance);
     }
     
-    return mix(color, fogColor, fogFactor);
+    return vec4f(mix(color.rgb, fogColor.rgb, fogFactor), color.a);
 }

@@ -15,7 +15,7 @@ export class Euler extends BufferData {
     static YXZ: EulerOrder = 'YXZ';
     static ZYX: EulerOrder = 'ZYX';
 
-    private static ORDERS: EulerOrder[] = [Euler.XYZ, Euler.YZX, Euler.ZXY, Euler.XZY, Euler.YXZ, Euler.ZYX];
+    static ORDERS: EulerOrder[] = [Euler.XYZ, Euler.YZX, Euler.ZXY, Euler.XZY, Euler.YXZ, Euler.ZYX];
     static DEFAULT_ORDER: EulerOrder = Euler.XYZ;
 
     static instance = new Euler();
@@ -144,5 +144,15 @@ export class Euler extends BufferData {
         Quaternion.instance.setFromEuler(this);
         return this.setFromQuaternion(Quaternion.instance, order);
     }
+
+	set(x: number | ArrayLike<number>, y?: number, z?: number, order = this.order): this {
+		if (Array.isArray(x)) {
+			return super.set(x);
+		}
+		if (typeof x === 'number') {
+			return super.set([x, y as number, z as number, this.__getOrderNum(order)]);
+		}
+		return this;
+	}
     
 }
