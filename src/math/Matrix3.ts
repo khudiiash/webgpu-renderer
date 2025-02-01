@@ -1,6 +1,10 @@
 import { BufferData } from '@/data/BufferData';
+import { Matrix4 } from './Matrix4';
 
 export class Matrix3 extends BufferData {
+    static readonly IDENTITY = new Matrix3();
+    static instance = new Matrix3();
+
     constructor(values?: number[]) {
         super(new Float32Array(9));
         if (values) this.set(values);
@@ -16,6 +20,20 @@ export class Matrix3 extends BufferData {
 
     copy(m: Matrix3): this {
         return this.set(m as unknown as number[]);
+    }
+
+    getNormalMatrix(m: Matrix4) {
+        return this.fromMatrix4(m).invert().transpose();
+    }
+
+    transpose(): this {
+        const a = this;
+        this.set([
+            a[0], a[3], a[6],
+            a[1], a[4], a[7],
+            a[2], a[5], a[8]
+        ]);
+        return this;
     }
 
     multiply(m: Matrix3): this {

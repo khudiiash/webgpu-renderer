@@ -5,6 +5,8 @@ import { Matrix4 } from "@/math/Matrix4";
 import { uuid, num } from "@/util/general";
 import { EventEmitter } from "./EventEmitter";
 import { UniformData } from "@/data";
+import { Matrix3 } from "@/math/Matrix3";
+import { Scene } from "./Scene";
 
 export class Object3D extends EventEmitter {
     public position: Vector3;
@@ -13,12 +15,14 @@ export class Object3D extends EventEmitter {
     public quaternion: Quaternion;
     public matrix: Matrix4;
     public matrixWorld: Matrix4;
+    public normalMatrix: Matrix3;
     public children: Object3D[];
     public parent: Object3D | null;
     public name: string = 'Object';
     public up: Vector3 = Vector3.UP;
     public id: string;
     public uniforms: Map<string, UniformData> = new Map();
+    public scene!: Scene;
     readonly forward = new Vector3(0, 0, -1);
     readonly right = new Vector3(1, 0, 0);
 
@@ -52,6 +56,7 @@ export class Object3D extends EventEmitter {
         this.id = uuid('object');
         this.matrix = new Matrix4();
         this.matrixWorld = new Matrix4();
+        this.normalMatrix = new Matrix3();
         this.children = [];
         this.parent = null;
     }
@@ -62,7 +67,7 @@ export class Object3D extends EventEmitter {
         if (x instanceof Vector3) {
             _target.copy(x);
         } else {
-            _target.set([x, y!, z!]);
+            _target.set(x, y!, z!);
         }
 
         const parent = this.parent;
@@ -133,6 +138,10 @@ export class Object3D extends EventEmitter {
         child.parent = this;
         this.children.push(child);
         child.updateMatrixWorld(true);
+
+        if (child.isLight && this.scene && this.scene.isScene) {
+            this.scene.addLight(child);
+        }
         return this;
     }
 

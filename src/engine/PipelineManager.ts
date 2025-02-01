@@ -53,7 +53,6 @@ export class PipelineManager {
     let binding = 0;
     const mesh = new BindGroupLayout(this.device, 'Mesh', 'Mesh', [
         new Binding(group, binding++, 'Mesh', 'MeshInstances').storage('read').visibility('vertex').var('mesh_instances', 'array<mat4x4f>'),
-        new Binding(group, binding++, 'Mesh', 'MeshOptions').uniform().visibility('vertex').var('mesh_options', 'MeshOptions'),
     ]);
     this.layouts.set('Mesh', mesh.layout);
     this.layoutDescriptors.set('Mesh', mesh);

@@ -22,6 +22,11 @@ class Shader {
     options: any;
     bindings: Binding[] = [];
     layouts: BindGroupLayout[] = [];
+    defines: Record<string, boolean> = {};
+
+    BUILTIN_VERTEX_ATTRIBUTES = [
+        { name: 'vertex_index', type: 'u32' },
+    ];
     
     constructor(name: string, options = {}) {
         this.name = name;
@@ -35,7 +40,7 @@ class Shader {
     addVarying(varying: ShaderVarying) {
         if (varying.interpolate) {
             const { interpolate } = varying;
-            const { type, sampling } = interpolate;
+            let { type, sampling } = interpolate;
             if (type === 'flat' && type && !['first', 'either'].includes(sampling as string)) {
                 varying.interpolate.sampling = 'first';
                 console.warn(`Invalid sampling mode for flat interpolation: ${varying.interpolate.sampling}. Using 'first' instead.`);
@@ -79,7 +84,7 @@ class Shader {
         return result;
     }
 
-    static create(options: ShaderConfig) {
+    static create(options: ShaderConfig, defines?: Record<string, boolean>) {
         const shader = new Shader(options.name || 'unnamed');
         const chunks = options.chunks || [];
         const bindings = new Set<Binding>();
@@ -113,7 +118,7 @@ class Shader {
                     }; 
 
                     struct VertexOutput {
-                        @builtin(position) position: vec4f,
+                        @builtin(position) positionC: vec4f,
                         ${varyings}
                     };
 
@@ -130,7 +135,6 @@ class Shader {
         }
 
         if (options.fragmentTemplate) {
-            console.warn(shader.name, chunks);
             shader.fragmentSource = ShaderFormatter.format(
                 TemplateProcessor.processTemplate(`
                     struct FragmentInput {
@@ -157,13 +161,59 @@ class Shader {
         }
         shader.bindings = Array.from(bindings);
         shader.layouts = [...new Set(shader.bindings.map(binding => binding.getBindGroupLayout() as BindGroupLayout))];
+        if (defines) {
+            shader.setDefines(defines);
+        }
 
         return shader;
     }
 
+    insertAttributes(attributes: ShaderAttribute[]) {
+        for (const attribute of attributes) {
+            this.addAttribute(attribute);
+        }
+
+        this.vertexSource = this.vertexSource.replace(/struct VertexInput {[\s\S]*?};/, '');
+        const attributesString = this.generateAttributes();
+        this.vertexSource = ShaderFormatter.format(`struct VertexInput { 
+            @builtin(vertex_index) vertex_index: u32,
+            @builtin(instance_index) instance_index: u32,
+            ${attributesString} 
+        }; \n${this.vertexSource}`);
+    }
+
+    setDefines(defines: Record<string, boolean>) {
+        this.defines = defines;
+        this.vertexSource = ShaderFormatter.format(TemplateProcessor.processDefines(defines, this.vertexSource));
+        this.fragmentSource = ShaderFormatter.format(TemplateProcessor.processDefines(defines, this.fragmentSource));
+        this.computeSource = ShaderFormatter.format(TemplateProcessor.processDefines(defines, this.computeSource));
+    }
+
+    insertVaryings(varyings: ShaderVarying[]) {
+        for (const varying of varyings) {
+            this.addVarying(varying);
+        }
+
+        this.vertexSource = this.vertexSource.replace(/struct VertexOutput {[\s\S]*?};/, '');
+        this.fragmentSource = this.fragmentSource.replace(/struct FragmentInput {[\s\S]*?};/, '');
+
+        const varyingsString = this.generateVaryings();
+        this.vertexSource = ShaderFormatter.format(`struct VertexOutput { 
+            @builtin(position) clip: vec4f,
+            ${varyingsString} 
+        }; \n${this.vertexSource}`);
+        this.fragmentSource = ShaderFormatter.format(`struct FragmentInput { 
+            @builtin(position) clip: vec4f,
+            @builtin(front_facing) front_facing: bool,
+            ${varyingsString} 
+        }; \n${this.fragmentSource}`);
+    }
+
+
     verify(source: string) {
         return !/undefined|\[Object/.test(source);
     }
+
 
 
 }

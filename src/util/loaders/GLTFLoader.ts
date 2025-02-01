@@ -72,14 +72,14 @@ class GLTFLoader {
     
     createGeometry(primitive: any, gltf: any, buffers: any) {
         const geometry = new Geometry();
-        // Removed the need to access primitive from mesh.primitives[0]
-
         const positions = this.parseAccessor(gltf, buffers, primitive.attributes.POSITION);
         const normals = this.parseAccessor(gltf, buffers, primitive.attributes.NORMAL);
         const uvs = this.parseAccessor(gltf, buffers, primitive.attributes.TEXCOORD_0);
-        const indices = this.parseAccessor(gltf, buffers, primitive.indices);
+        const tangents = this.parseAccessor(gltf, buffers, primitive.attributes.TANGENT);
         const joints = this.parseAccessor(gltf, buffers, primitive.attributes.JOINTS_0);
         const weights = this.parseAccessor(gltf, buffers, primitive.attributes.WEIGHTS_0);
+        const indices = this.parseAccessor(gltf, buffers, primitive.indices);
+
 
         geometry.setFromArrays({
             positions: positions || new Float32Array(),
@@ -88,6 +88,7 @@ class GLTFLoader {
             indices: indices || undefined,
             joints: joints || undefined,
             weights: weights || undefined,
+            tangents: tangents || undefined,
         });
         return geometry;        
     }
@@ -153,14 +154,15 @@ class GLTFLoader {
                 const primitive = meshData.primitives[0];
                 const geometry = this.createGeometry(primitive, gltf, buffers);
                 const material = await this.createMaterial(primitive, gltf, buffers);
-                const mesh = new Mesh(geometry, material, this.instances);
+                const mesh = new Mesh(geometry, material, { count: this.instances });
                 obj = mesh;
             } else {
                 // Multiple primitives: create a parent object and add each mesh as a child
-                for (const primitive of meshData.primitives) {
+                for (let i = 0; i < meshData.primitives.length; i++) {
+                    const primitive = meshData.primitives[i];
                     const geometry = this.createGeometry(primitive, gltf, buffers);
                     const material = await this.createMaterial(primitive, gltf, buffers);
-                    const mesh = new Mesh(geometry, material, this.instances);
+                    const mesh = new Mesh(geometry, material, { count: this.instances });
                     obj.add(mesh);
                 }
             }
@@ -168,8 +170,7 @@ class GLTFLoader {
 
         if (nodeData.name) {
             obj.name = nodeData.name;
-        }
-
+        } 
         this.cache.set(nodeIndex, obj);
 
         if (nodeData.translation) obj.position.fromArray(nodeData.translation);
@@ -199,23 +200,31 @@ class GLTFLoader {
         }
 
         let material = new StandardMaterial();
+        material.name = `Material_${primitive.material}`;
 
         try {
             if (primitive.material !== undefined) {
                 const gltfMaterial = gltf.materials[primitive.material];
                 const pbr = gltfMaterial.pbrMetallicRoughness || {};
 
+
+                if (gltf.alphaMode === 'BLEND') {
+                    material.renderState.transparent = true;
+                    material.renderState.blending = 'normal';
+                }
+                if (gltf.alphaMode === 'MASK') {
+                    material.renderState.transparent = true;
+                    material.alpha_test = 0.5;
+                }
+                if (gltfMaterial.doubleSided) {
+                    material.renderState.cullMode = 'none';
+                }
                 if (pbr.baseColorTexture !== undefined) {
                     const texture = await this.loadTexture(gltf, buffers, pbr.baseColorTexture.index);
                     material.diffuse_map?.setTexture(texture);
                 }
 
-                // TODO
-                // if (pbr.metallicRoughnessTexture !== undefined) {
-                //     const texture = await this.loadTexture(gltf, buffers, pbr.metallicRoughnessTexture.index);
-                //     material.setTexture('metallicRoughness_map', texture);
-                // }
-                
+
                 if (pbr.baseColorFactor !== undefined) {
                     material.diffuse.fromArray(pbr.baseColorFactor);
                 }
@@ -226,8 +235,8 @@ class GLTFLoader {
                     material.roughness = pbr.roughnessFactor;
                 }
 
-                if (pbr.normalTexture !== undefined) {
-                    const texture = await this.loadTexture(gltf, buffers, pbr.normalTexture.index);
+                if (gltfMaterial.normalTexture !== undefined) {
+                    const texture = await this.loadTexture(gltf, buffers, gltfMaterial.normalTexture.index);
                     material.normal_map?.setTexture(texture);
                 }
 
@@ -236,7 +245,6 @@ class GLTFLoader {
                     material.metalness_map?.setTexture(texture);
                     material.roughness_map?.setTexture(texture);
                 }
-
 
                 this.materialCache.set(primitive.material, material); // Cache material
             }

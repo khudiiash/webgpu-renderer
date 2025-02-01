@@ -20,8 +20,8 @@ export type ShaderDefines = {
 
 export type ShaderConfig = {
     name: string;
-    attributes: ShaderAttribute[];
-    varyings: ShaderVarying[];
+    attributes?: ShaderAttribute[];
+    varyings?: ShaderVarying[];
     chunks: string[];
     vertexTemplate: string;
     fragmentTemplate: string;
@@ -65,50 +65,12 @@ export class ShaderLibrary {
     static get STANDARD(): ShaderConfig {
         return {
             name: 'standard',
-            attributes: [
-                { name: 'position', type: 'vec3f' },
-                { name: 'normal', type: 'vec3f' },
-                { name: 'uv', type: 'vec2f' },
-                { name: 'tangent', type: 'vec3f' },
-                { name: 'bitangent', type: 'vec3f' },
-            ],
-            varyings: [
-                { name: 'vPosition', type: 'vec3f' },
-                { name: 'vNormal', type: 'vec3f' },
-                { name: 'vPositionW', type: 'vec3f' },
-                { name: 'vNormalW', type: 'vec3f' },
-                { name: 'vUv', type: 'vec2f' },
-                { name: 'vTangent', type: 'vec3f' },
-                { name: 'vBitangent', type: 'vec3f' },
-                { name: 'vTangentW', type: 'vec3f' },
-                { name: 'vBitangentW', type: 'vec3f' },
-            ],
             chunks: ['Mesh', 'StandardMaterial'],
             vertexTemplate: `
                 @vertex(input) -> output {
-                    var position: vec3f = input.position;
-                    var normal: vec3f = input.normal;
-                    var uv: vec2f = input.uv;
-                    var tangent: vec3f = input.tangent;
-                    var bitangent: vec3f = input.bitangent;
-                    var worldPosition: vec3f;
-                    var worldTangent: vec3f;
-                    var worldBitangent: vec3f;
-                    var worldNormal: vec3f;
-                    var screenPosition: vec4f;
 
                     {{vertex}}
 
-                    output.position = screenPosition;
-                    output.vNormal = normal;
-                    output.vNormalW = worldNormal;
-                    output.vPosition = position;
-                    output.vPositionW = worldPosition;
-                    output.vUv = uv;
-                    output.vTangent = input.tangent;
-                    output.vBitangent = input.bitangent;
-                    output.vTangentW = worldTangent;
-                    output.vBitangentW = worldBitangent;
                     return output;
                 }
             `,

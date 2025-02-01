@@ -37,14 +37,16 @@ export class Material extends EventEmitter {
 
     createShader(config: ShaderConfig = this._shaderConfig) {
         this._shaderConfig = config;
-        this.shader = Shader.create(this._shaderConfig);
-        this.fire('rebuild', this);
+        this.shader = Shader.create(this._shaderConfig, this.shader?.defines);
+        this.rebuild();
     }
 
-    addChunk(chunk: ShaderChunk) {
+    addChunk(chunk: ShaderChunk): this {
         this.shaderConfig.chunks.push(chunk.name);
         this.createShader();
+        return this;
     }
+
 
     removeChunk(chunkName: string) {
         const index = this.shaderConfig.chunks.indexOf(chunkName);
@@ -75,6 +77,10 @@ export class Material extends EventEmitter {
     copy(source: Material) {
         this.name = source.name;
         return this;
+    }
+
+    rebuild() {
+        this.fire('rebuild', this);
     }
   
 }

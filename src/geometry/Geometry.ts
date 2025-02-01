@@ -1,10 +1,12 @@
-import { Float32BufferAttribute } from './BufferAttribute';
+import { BufferAttribute, Float32BufferAttribute, Uint16BufferAttribute, Uint32BufferAttribute } from './BufferAttribute';
 import { Vector3 } from '@/math/Vector3';
 import { BoundingBox } from '@/math/BoundingBox';
 import { BoundingSphere } from '@/math/BoundingSphere';
 import { autobind, uuid } from '@/util/general';
-import { alignArray } from '@/util/webgpu';
+import { alignArray, arrayNeedsUint32 } from '@/util/webgpu';
 import { BufferData } from '@/data';
+import { Matrix3, Matrix4, Vector2 } from '@/math';
+import { ShaderAttribute, ShaderVarying } from '@/materials';
 
 const _tempVec3 = new Vector3();
 
@@ -12,185 +14,251 @@ type GPUIndexFormat = 'uint32' | 'uint16' | 'uint8';
 
 export class Geometry {
     id: string = uuid('geometry');
-    attributes: Record<string, Float32BufferAttribute>;
-    index: Uint32Array | Uint16Array | Uint8Array | null;
+    attributes: Record<string, BufferAttribute | undefined>;
     boundingBox!: BoundingBox;
     boundingSphere!: BoundingSphere;
     isIndexed: boolean;
     indexFormat?: GPUIndexFormat;
-    packed!: Float32Array | null;
-    indices: any;
+    packed!: BufferData;
+    indices!: Uint16BufferAttribute | Uint32BufferAttribute;
+    groups: { start: number, count: number, materialIndex: number }[] = [];
+    parameters: any;
 
     constructor() {
         autobind(this);
         this.attributes = {
             position: new Float32BufferAttribute([], 3),
+            normal: undefined,
+            tangent: undefined,
+            uv: undefined,
         }
-        this.index = null;
         this.isIndexed = false;
     }
 
+    computeVertexNormals() {
+        const index = this.indices;
+        const positionAttribute = this.getAttribute('position');
 
-    calculateNormals() {
-        const positions = this.attributes.position?.data;
-        const indices = this.indices;
-    
-        if (!positions || !indices) {
-            console.error('Missing required attributes for normal calculation.');
-            return;
-        }
-    
-        const vertexCount = positions.length / 3;
-        const normals = new Float32Array(vertexCount * 3);
-    
-        const vA = new Vector3();
-        const vB = new Vector3();
-        const vC = new Vector3();
-        const edgeA = new Vector3();
-        const edgeB = new Vector3();
-        const normal = new Vector3();
-    
-        for (let i = 0; i < indices.length; i += 3) {
-            const iA = indices[i] * 3;
-            const iB = indices[i + 1] * 3;
-            const iC = indices[i + 2] * 3;
-    
-            vA.setXYZ(positions[iA], positions[iA + 1], positions[iA + 2]);
-            vB.setXYZ(positions[iB], positions[iB + 1], positions[iB + 2]);
-            vC.setXYZ(positions[iC], positions[iC + 1], positions[iC + 2]);
-    
-            edgeA.subVectors(vB, vA);
-            edgeB.subVectors(vC, vA);
-            normal.crossVectors(edgeA, edgeB).normalize();
-    
-            normals[iA] += normal.x;
-            normals[iA + 1] += normal.y;
-            normals[iA + 2] += normal.z;
-    
-            normals[iB] += normal.x;
-            normals[iB + 1] += normal.y;
-            normals[iB + 2] += normal.z;
-    
-            normals[iC] += normal.x;
-            normals[iC + 1] += normal.y;
-            normals[iC + 2] += normal.z;
-        }
-    
-        for (let i = 0; i < vertexCount; i++) {
-            const i3 = i * 3;
-            const x = normals[i3];
-            const y = normals[i3 + 1];
-            const z = normals[i3 + 2];
-            const length = Math.sqrt(x * x + y * y + z * z);
-    
-            normals[i3] /= length;
-            normals[i3 + 1] /= length;
-            normals[i3 + 2] /= length;
-        }
+        if (positionAttribute !== undefined) {
+            let normalAttribute = this.getAttribute('normal');
 
-        this.setAttribute('normal', new Float32BufferAttribute(normals, 3));
-    }
-    calculateTangents() {
-        const positions = this.attributes.position?.data;
-        const uvs = this.attributes.uv?.data;
-        const indices = this.indices;
-    
-        if (!positions || !uvs || !indices) {
-            console.error('Missing required attributes for tangent calculation.');
-            return;
-        }
-    
-        // Initialize tangent and bitangent arrays
-        const tangents = new Float32Array(positions.length);
-        const bitangents = new Float32Array(positions.length);
-    
-        // Reusable vectors
-        const pos0 = new Vector3();
-        const pos1 = new Vector3();
-        const pos2 = new Vector3();
-        const deltaPos1 = new Vector3();
-        const deltaPos2 = new Vector3();
-        const tangent = new Vector3();
-        const bitangent = new Vector3();
-    
-        // Loop over every triangle
-        for (let i = 0; i < indices.length - 2; i++) {
-            const index0 = indices[i];
-            const index1 = indices[i + 1 + (i % 2)];
-            const index2 = indices[i + 2 - (i % 2)];
-    
-            const posIndex0 = index0 * 3;
-            const posIndex1 = index1 * 3;
-            const posIndex2 = index2 * 3;
-    
-            const uvIndex0 = index0 * 2;
-            const uvIndex1 = index1 * 2;
-            const uvIndex2 = index2 * 2;
-    
-            // Vertex positions
-            pos0.setXYZ(positions[posIndex0], positions[posIndex0 + 1], positions[posIndex0 + 2]);
-            pos1.setXYZ(positions[posIndex1], positions[posIndex1 + 1], positions[posIndex1 + 2]);
-            pos2.setXYZ(positions[posIndex2], positions[posIndex2 + 1], positions[posIndex2 + 2]);
-    
-            // Texture coordinates
-            const uv0x = uvs[uvIndex0], uv0y = uvs[uvIndex0 + 1];
-            const uv1x = uvs[uvIndex1], uv1y = uvs[uvIndex1 + 1];
-            const uv2x = uvs[uvIndex2], uv2y = uvs[uvIndex2 + 1];
-    
-            // Edges of the triangle
-            deltaPos1.subVectors(pos1, pos0);
-            deltaPos2.subVectors(pos2, pos0);
-    
-            const deltaUV1x = uv1x - uv0x;
-            const deltaUV1y = uv1y - uv0y;
-            const deltaUV2x = uv2x - uv0x;
-            const deltaUV2y = uv2y - uv0y;
-    
-            const r = deltaUV1x * deltaUV2y - deltaUV1y * deltaUV2x;
-            const f = r === 0 ? 0.0 : 1.0 / r;
-    
-            // Compute tangent and bitangent
-            tangent.setXYZ(
-                f * (deltaPos1.x * deltaUV2y - deltaPos2.x * deltaUV1y),
-                f * (deltaPos1.y * deltaUV2y - deltaPos2.y * deltaUV1y),
-                f * (deltaPos1.z * deltaUV2y - deltaPos2.z * deltaUV1y)
-            );
-            bitangent.setXYZ(
-                f * (deltaPos2.x * deltaUV1x - deltaPos1.x * deltaUV2x),
-                f * (deltaPos2.y * deltaUV1x - deltaPos1.y * deltaUV2x),
-                f * (deltaPos2.z * deltaUV1x - deltaPos1.z * deltaUV2x)
-            );
-    
-            // Accumulate for each vertex of the triangle
-            for (const idx of [index0, index1, index2]) {
-                tangents[idx * 3]     += tangent.x;
-                tangents[idx * 3 + 1] += tangent.y;
-                tangents[idx * 3 + 2] += tangent.z;
-    
-                bitangents[idx * 3]     += bitangent.x;
-                bitangents[idx * 3 + 1] += bitangent.y;
-                bitangents[idx * 3 + 2] += bitangent.z;
+            if (normalAttribute === undefined) {
+                normalAttribute = new Float32BufferAttribute(new Float32Array(positionAttribute.count * 3), 3);
+                this.setAttribute('normal', normalAttribute as Float32BufferAttribute);
+            } else {
+                for (let i = 0, il = normalAttribute.count; i < il; i++) {
+                    normalAttribute.setXYZ(i, 0, 0, 0);
+                }
             }
+
+            const pA = new Vector3(), pB = new Vector3(), pC = new Vector3();
+            const nA = new Vector3(), nB = new Vector3(), nC = new Vector3();
+            const cb = new Vector3(), ab = new Vector3();
+
+            if (index) {
+                for (let i = 0, il = index.count; i < il; i += 3) {
+                    const vA = index.getX(i + 0);
+                    const vB = index.getX(i + 1);
+                    const vC = index.getX(i + 2);
+
+                    pA.setFromBufferAttribute(positionAttribute, vA);
+                    pB.setFromBufferAttribute(positionAttribute, vB);
+                    pC.setFromBufferAttribute(positionAttribute, vC);
+
+                    cb.subVectors(pC, pB);
+                    ab.subVectors(pA, pB);
+                    cb.cross(ab);
+
+                    nA.setFromBufferAttribute(normalAttribute, vA);
+                    nB.setFromBufferAttribute(normalAttribute, vB);
+                    nC.setFromBufferAttribute(normalAttribute, vC);
+
+                    nA.add(cb);
+                    nB.add(cb);
+                    nC.add(cb);
+
+                    normalAttribute.setXYZ(vA, nA.x, nA.y, nA.z);
+                    normalAttribute.setXYZ(vB, nB.x, nB.y, nB.z);
+                    normalAttribute.setXYZ(vC, nC.x, nC.y, nC.z);
+                }
+            } else {
+                for (let i = 0, il = positionAttribute.count; i < il; i += 3) {
+                    pA.setFromBufferAttribute(positionAttribute, i + 0);
+                    pB.setFromBufferAttribute(positionAttribute, i + 1);
+                    pC.setFromBufferAttribute(positionAttribute, i + 2);
+
+                    cb.subVectors(pC, pB);
+                    ab.subVectors(pA, pB);
+                    cb.cross(ab);
+
+                    normalAttribute.setXYZ(i + 0, cb.x, cb.y, cb.z);
+                    normalAttribute.setXYZ(i + 1, cb.x, cb.y, cb.z);
+                    normalAttribute.setXYZ(i + 2, cb.x, cb.y, cb.z);
+                }
+            }
+
+            this.normalizeNormals();
+        } else {
+            console.error('Geometry.computeVertexNormals(): Missing required attribute \'position\'');
         }
-    
-        // Normalize the tangents and bitangents
-        for (let i = 0; i < this.vertexCount; i++) {
-            // Normalize each tangent
-            tangent.setXYZ(tangents[i * 3], tangents[i * 3 + 1], tangents[i * 3 + 2]).normalize();
-            tangents[i * 3] = tangent.x;
-            tangents[i * 3 + 1] = tangent.y;
-            tangents[i * 3 + 2] = tangent.z;
-    
-            // Normalize each bitangent
-            bitangent.setXYZ(bitangents[i * 3], bitangents[i * 3 + 1], bitangents[i * 3 + 2]).normalize();
-            bitangents[i * 3] = bitangent.x;
-            bitangents[i * 3 + 1] = bitangent.y;
-            bitangents[i * 3 + 2] = bitangent.z;
+    }
+
+    normalizeNormals() {
+        const normals = this.attributes.normal as Float32BufferAttribute;
+
+        for (let i = 0, il = normals.count; i < il; i++) {
+            _tempVec3.setFromBufferAttribute(normals, i);
+            _tempVec3.normalize();
+            normals.setXYZ(i, _tempVec3.x, _tempVec3.y, _tempVec3.z);
         }
-    
-        // Set the calculated tangents and bitangents
-        this.setAttribute('tangent', new Float32BufferAttribute(tangents, 3));
-        this.setAttribute('bitangent', new Float32BufferAttribute(bitangents, 3));
+    }
+
+    hasAttribute(name: string) {
+        return this.attributes[name] !== undefined;
+    }
+    computeTangents() {
+        const index = this.indices;
+		const attributes = this.attributes;
+		// based on http://www.terathon.com/code/tangent.html
+		// (per vertex tangents)
+		if (index === null ||
+			attributes.position === undefined ||
+			attributes.normal === undefined ||
+			attributes.uv === undefined) {
+			console.error( 'computeTangents() failed. Missing required attributes (index, position, normal or uv)' );
+			return;
+
+		}
+
+		const positionAttribute = attributes.position;
+		const normalAttribute = attributes.normal;
+		const uvAttribute = attributes.uv;
+
+		if (this.hasAttribute('tangent') === false) {
+			this.setAttribute('tangent', new Float32BufferAttribute(new Array(positionAttribute.count * 4).fill(0), 4));
+		}
+        if (!positionAttribute || !normalAttribute || !uvAttribute || !index) {
+            return;
+        }
+
+		const tangentAttribute = this.getAttribute('tangent') as BufferAttribute;
+
+		const tan1: Vector3[] = [], tan2: Vector3[] = [];
+
+		for ( let i = 0; i < positionAttribute.count; i ++ ) {
+			tan1[ i ] = new Vector3();
+			tan2[ i ] = new Vector3();
+		}
+
+		const vA = new Vector3(),
+			vB = new Vector3(),
+			vC = new Vector3(),
+
+			uvA = new Vector2(),
+			uvB = new Vector2(),
+			uvC = new Vector2(),
+
+			sdir = new Vector3(),
+			tdir = new Vector3();
+
+		function handleTriangle( a: number, b: number, c: number ) {
+
+			vA.setFromBufferAttribute( positionAttribute, a );
+			vB.setFromBufferAttribute( positionAttribute, b );
+			vC.setFromBufferAttribute( positionAttribute, c );
+
+			uvA.setFromBufferAttribute( uvAttribute, a );
+			uvB.setFromBufferAttribute( uvAttribute, b );
+			uvC.setFromBufferAttribute( uvAttribute, c );
+
+			vB.sub( vA );
+			vC.sub( vA );
+
+			uvB.sub( uvA );
+			uvC.sub( uvA );
+
+			const r = 1.0 / ( uvB.x * uvC.y - uvC.x * uvB.y );
+
+			// silently ignore degenerate uv triangles having coincident or colinear vertices
+			if (!isFinite( r ) ) return;
+
+			sdir.copy( vB ).scale( uvC.y ).add( vC.scale(- uvB.y) ).scale( r );
+			tdir.copy( vC ).scale( uvB.x ).add( vB.scale(- uvC.x) ).scale( r );
+
+			tan1[ a ].add( sdir );
+			tan1[ b ].add( sdir );
+			tan1[ c ].add( sdir );
+
+			tan2[ a ].add( tdir );
+			tan2[ b ].add( tdir );
+			tan2[ c ].add( tdir );
+
+		}
+
+		let groups = this.groups;
+
+		if (groups.length === 0 ) {
+			groups = [{
+				start: 0,
+                materialIndex: 0,
+				count: index.count,
+			}];
+		}
+
+		for (let i = 0, il = groups.length; i < il; ++ i) {
+			const group = groups[ i ];
+			const start = group.start;
+			const count = group.count;
+
+			for ( let j = start, jl = start + count; j < jl; j += 3 ) {
+				handleTriangle(
+					index.getX( j + 0 ),
+					index.getX( j + 1 ),
+					index.getX( j + 2 )
+				);
+			}
+
+		}
+
+		const tmp = new Vector3(), tmp2 = new Vector3();
+		const n = new Vector3(), n2 = new Vector3();
+
+		function handleVertex( v: number ) {
+
+			n.setFromBufferAttribute( normalAttribute, v );
+            if (!n2 || isNaN(n2[0])) {
+                return;
+            }
+			n2.copy( n );
+
+			const t = tan1[ v ];
+
+            if (!t || isNaN(t[0])) {
+                return;
+            }
+			// Gram-Schmidt orthogonalize
+			tmp.copy( t );
+			tmp.sub( n.scale(n.dot( t ))).normalize();
+			// Calculate handedness
+			tmp2.crossVectors( n2, t );
+			const test = tmp2.dot( tan2[ v ] );
+			const w = ( test < 0.0 ) ? - 1.0 : 1.0;
+
+			tangentAttribute.setXYZW( v, tmp.x, tmp.y, tmp.z, w );
+		}
+
+		for ( let i = 0, il = groups.length; i < il; ++ i ) {
+			const group = groups[ i ];
+			const start = group.start;
+			const count = group.count;
+
+			for ( let j = start, jl = start + count; j < jl; j += 3 ) {
+				handleVertex(index.getX( j + 0 ));
+				handleVertex(index.getX( j + 1 ));
+				handleVertex(index.getX( j + 2 ));
+			}
+
+		}
     }
     setAttribute(name: string, attribute: Float32BufferAttribute) {
         this.attributes[name] = attribute;
@@ -201,77 +269,122 @@ export class Geometry {
         return this.attributes[name];
     }
 
-    setIndices(indices: ArrayLike<number> | Uint32Array | Uint16Array | Uint8Array) {
-        if (indices instanceof Uint32Array) {
-            this.indices = indices;
-            this.indexFormat = 'uint32';
-        } else if (indices instanceof Uint16Array) {
-            this.indices = indices;
-            this.indexFormat = 'uint16';
-        } else if (indices instanceof Uint8Array) {
-            this.indices = indices;
-            this.indexFormat = 'uint8'; 
-        } else {
-            this.indices = new Uint16Array(indices);
-            this.indexFormat = 'uint16';
+    setIndices(indices: ArrayLike<number> | Uint32BufferAttribute | Uint16BufferAttribute) {
+        if (Array.isArray(indices)) {
+			this.indices = new (arrayNeedsUint32(indices) ? Uint32BufferAttribute : Uint16BufferAttribute )(indices, 1);
+		} else if (indices instanceof Uint32BufferAttribute || indices instanceof Uint16BufferAttribute) {
+			this.indices = indices as Uint32BufferAttribute | Uint16BufferAttribute;
+		} else if (indices instanceof Uint32Array || indices instanceof Uint16Array) {
+            this.indices = new (arrayNeedsUint32(indices) ? Uint32BufferAttribute : Uint16BufferAttribute )(indices, 1);
         }
+
         this.isIndexed = true;
         return this;
     }
 
-    getIndices() {
-        return this.index;
+    getIndices(): Uint16Array | Uint32Array {
+        return this.indices.data as Uint16Array | Uint32Array;
     }
 
-    rotateY(angle: number) {
-        const pos = this.attributes.position?.data;
-        if (!pos) return this;
-        for (let i = 0; i < pos.length; i += 3) {
-            const x = pos[i], z = pos[i + 2];
-            pos[i] = x * Math.cos(angle) + z * Math.sin(angle);
-            pos[i + 2] = z * Math.cos(angle) - x * Math.sin(angle);
-        }
+    applyMatrix4(matrix: Matrix4) {
+		const position = this.attributes.position;
+		if (position !== undefined) {
+			position.applyMatrix4( matrix );
+			position.needsUpdate = true;
+		}
+
+		const normal = this.attributes.normal;
+		if (normal !== undefined) {
+			const normalMatrix = new Matrix3().getNormalMatrix( matrix );
+			normal.applyNormalMatrix( normalMatrix );
+			normal.needsUpdate = true;
+		}
+
+		const tangent = this.attributes.tangent;
+		if (tangent !== undefined) {
+			tangent.transformDirection( matrix );
+			tangent.needsUpdate = true;
+		}
+
+		if (this.boundingBox !== null) {
+			this.computeBoundingBox();
+		}
+
+		if ( this.boundingSphere !== null ) {
+			this.computeBoundingSphere();
+		}
+
+        this.pack();
+
+		return this;
+
+	}
+
+    rotateX(angle: number) {
+        const _m1 = new Matrix4().setRotationX(angle);
+        this.applyMatrix4(_m1);
         return this;
     }
 
-    rotateX(angle: number) {
-        const pos = this.attributes.position?.data;
-        if (!pos) return this;
-        for (let i = 0; i < pos.length; i += 3) {
-            const y = pos[i + 1], z = pos[i + 2];
-            pos[i + 1] = y * Math.cos(angle) - z * Math.sin(angle);
-            pos[i + 2] = z * Math.cos(angle) + y * Math.sin(angle);
-        }
-        this.pack();
+    rotateY(angle: number) {
+        const _m1 = new Matrix4().setRotationY(angle);
+        this.applyMatrix4(_m1);
         return this;
     }
 
     rotateZ(angle: number) {
-        const pos = this.attributes.position?.data;
-        if (!pos) return this;
-        for (let i = 0; i < pos.length; i += 3) {
-            const x = pos[i], y = pos[i + 1];
-            pos[i] = x * Math.cos(angle) - y * Math.sin(angle);
-            pos[i + 1] = y * Math.cos(angle) + x * Math.sin(angle);
-        }
-        this.pack();
+        const _m1 = new Matrix4().setRotationZ(angle);
+        this.applyMatrix4(_m1);
         return this;
     }
 
-    scale(sx: number, sy: number, sz: number) {
-        const pos = this.attributes.position?.data;
-        if (!pos) return this;
-        for (let i = 0; i < pos.length; i += 3) {
-            pos[i] *= sx; pos[i + 1] *= sy; pos[i + 2] *= sz;
-        }
+    translate(x: number, y: number, z: number) {
+        const _m1 = new Matrix4().setTranslation(x, y, z);
+        this.applyMatrix4(_m1);
         return this;
     }
 
-    translate(tx: number, ty: number, tz: number) {
-        const pos = this.attributes.position?.data;
-        if (!pos) return this;
-        for (let i = 0; i < pos.length; i += 3) {
-            pos[i] += tx; pos[i + 1] += ty; pos[i + 2] += tz;
+    scale(x: number, y: number, z: number) {
+        const _m1 = new Matrix4().setScale(x, y, z);
+        this.applyMatrix4(_m1);
+        return this;
+    }
+
+    lookAt(vector: Vector3) {
+        const _obj = { matrix: new Matrix4(), lookAt: (v: Vector3) => { /* mock implementation */ }, updateMatrix: () => { /* mock implementation */ } };
+        _obj.lookAt(vector);
+        _obj.updateMatrix();
+        this.applyMatrix4(_obj.matrix);
+        return this;
+    }
+
+    center() {
+        this.computeBoundingBox();
+        const _offset = new Vector3();
+        this.boundingBox.getCenter(_offset).negate();
+        this.translate(_offset.x, _offset.y, _offset.z);
+        return this;
+    }
+
+    setFromPoints(points: Vector3[]) {
+        const positionAttribute = this.getAttribute('position') as Float32BufferAttribute;
+        if (positionAttribute === undefined) {
+            const position = [];
+            for (let i = 0, l = points.length; i < l; i++) {
+                const point = points[i];
+                position.push(point.x, point.y, point.z || 0);
+            }
+            this.setAttribute('position', new Float32BufferAttribute(position, 3));
+        } else {
+            const l = Math.min(points.length, positionAttribute.count);
+            for (let i = 0; i < l; i++) {
+                const point = points[i];
+                positionAttribute.setXYZ(i, point.x, point.y, point.z || 0);
+            }
+            if (points.length > positionAttribute.count) {
+                console.warn('Buffer size too small for points data. Use .dispose() and create a new geometry.');
+            }
+            positionAttribute.needsUpdate = true;
         }
         return this;
     }
@@ -281,6 +394,15 @@ export class Geometry {
         return position ? position.count : 0;
     }
 
+
+    addGroup(start: number, count: number, materialIndex = 0 ) {
+		this.groups.push( {
+			start: start,
+			count: count,
+			materialIndex: materialIndex
+		});
+	}
+
     getAttributes() {
         return Object.values(this.attributes);
     }
@@ -288,8 +410,10 @@ export class Geometry {
     getVertexAttributesLayout() {
         const layout: any = { arrayStride: 0, attributes: [] };
         let offset = 0, location = 0;
+        
         for (const name in this.attributes) {
             const attr = this.attributes[name];
+            if (attr === undefined) continue;
             layout.attributes.push({
                 shaderLocation: location++,
                 offset,
@@ -332,76 +456,71 @@ export class Geometry {
         const positions = this.attributes.position?.data;
         const normals = this.attributes.normal?.data;
         const uvs = this.attributes.uv?.data;
-        const joints = this.attributes.joints?.data;
-        const weights = this.attributes.weights?.data;
         const tangents = this.attributes.tangent?.data;
-        const bitangents = this.attributes.bitangent?.data;
 
-        const positionOffset = 0;
-        const normalOffset = 3;
-        const uvOffset = 6;
-        const tangentOffset = 8; 
-        const bitangentOffset = 11;
-        const vertexSize = 14;
-    
-        if (!this.packed) {
-            this.packed = new BufferData(this.vertexCount, vertexSize).onChange(this.pack);
+        let positionOffset = 0;
+        let tangentOffset = 0;
+        let normalOffset = 0;
+        let uvOffset = 0;
+        let vertexSize = 0; 
+
+        let offset = 0;
+        for (const attr of this.getAttributes()) {
+            if (!attr) continue;
+            if (attr === this.attributes.position) {
+                positionOffset = offset;
+            } else if (attr === this.attributes.normal) {
+                normalOffset = vertexSize;
+            } else if (attr === this.attributes.tangent) {
+                tangentOffset = vertexSize;
+            } else if (attr === this.attributes.uv) {
+                uvOffset = vertexSize;
+            }
+            offset += attr.itemSize;
+            vertexSize += attr.itemSize;
         }
+
+        if (this.packed) {
+            this.packed.offChange();
+        }
+        this.packed = new BufferData(this.vertexCount, vertexSize).onChange(() => this.pack());
     
         for (let i = 0; i < this.vertexCount; i++) {
-            const vi = i * 3; // Index for positions, normals, tangents, bitangents
-            const uvi = i * 2; // Index for UVs
-            const ji = i * 4; // Index for joints
-            const wi = i * 4; // Index for weights
+            const i2 = i * 2; // Index for UVs
+            const i3 = i * 3; // Index for positions, normals;
+            const i4 = i * 4; // Index for tangents
             const offset = i * vertexSize; // Base offset in the buffer
     
             // Positions
             if (positions) {
-                this.packed[offset + positionOffset + 0] = positions[vi + 0];
-                this.packed[offset + positionOffset + 1] = positions[vi + 1];
-                this.packed[offset + positionOffset + 2] = positions[vi + 2];
-            } else {
-                this.packed.set([0, 0, 0], offset + positionOffset);
-            }
-    
-            // Normals
-            if (normals) {
-                this.packed[offset + normalOffset + 0] = normals[vi + 0];
-                this.packed[offset + normalOffset + 1] = normals[vi + 1];
-                this.packed[offset + normalOffset + 2] = normals[vi + 2];
-            } else {
-                this.packed.set([0, 0, 0], offset + normalOffset);
-            }
-    
-            // UVs
-            if (uvs) {
-                this.packed[offset + uvOffset + 0] = uvs[uvi + 0];
-                this.packed[offset + uvOffset + 1] = uvs[uvi + 1];
-            } else {
-                this.packed.set([0, 0], offset + uvOffset);
-            }
+                this.packed[offset + positionOffset + 0] = positions[i3 + 0];
+                this.packed[offset + positionOffset + 1] = positions[i3 + 1];
+                this.packed[offset + positionOffset + 2] = positions[i3 + 2];
+            } 
     
             // Tangents
             if (tangents) {
-                this.packed[offset + tangentOffset + 0] = tangents[vi + 0];
-                this.packed[offset + tangentOffset + 1] = tangents[vi + 1];
-                this.packed[offset + tangentOffset + 2] = tangents[vi + 2];
-            } else {
-                this.packed.set([0, 0, 0], offset + tangentOffset);
+                this.packed[offset + tangentOffset + 0] = tangents[i4 + 0];
+                this.packed[offset + tangentOffset + 1] = tangents[i4 + 1];
+                this.packed[offset + tangentOffset + 2] = tangents[i4 + 2];
+                this.packed[offset + tangentOffset + 3] = tangents[i4 + 3];
             }
-    
-            // Bitangents
-            if (bitangents) {
-                this.packed[offset + bitangentOffset + 0] = bitangents[vi + 0];
-                this.packed[offset + bitangentOffset + 1] = bitangents[vi + 1];
-                this.packed[offset + bitangentOffset + 2] = bitangents[vi + 2];
-            } else {
-                this.packed.set([0, 0, 0], offset + bitangentOffset);
+            // Normals
+            if (normals) {
+                this.packed[offset + normalOffset + 0] = normals[i3 + 0];
+                this.packed[offset + normalOffset + 1] = normals[i3 + 1];
+                this.packed[offset + normalOffset + 2] = normals[i3 + 2];
             }
-        }
-    
+            // UVs
+            if (uvs) {
+                this.packed[offset + uvOffset + 0] = uvs[i2 + 0];
+                this.packed[offset + uvOffset + 1] = uvs[i2 + 1];
+            }
+        } 
+
         return this;
     }
+            
     
     getPacked() {
         if (!this.packed) {
@@ -436,44 +555,328 @@ export class Geometry {
         indices, 
         normals, 
         uvs, 
-        joints, 
-        weights, 
         tangents, 
-        bitangents
     }: {
         positions: ArrayLike<number>, 
-        indices?: Uint16Array<ArrayBufferLike> | Uint32Array<ArrayBufferLike> | ArrayLike<number> | Uint8Array<ArrayBufferLike>, 
+        indices?: Uint16BufferAttribute | Uint32BufferAttribute | Uint16Array<ArrayBufferLike> | Uint32Array<ArrayBufferLike> | ArrayLike<number>,
         normals?: ArrayLike<number>, 
         uvs?: ArrayLike<number>, 
         joints?: ArrayLike<number>, 
         weights?: ArrayLike<number>, 
         tangents?: ArrayLike<number>, 
-        bitangents?: ArrayLike<number>
     }) {
         if (positions) this.setAttribute('position', new Float32BufferAttribute(positions, 3));
+        if (tangents) this.setAttribute('tangent', new Float32BufferAttribute(tangents, 4));
         if (normals) this.setAttribute('normal', new Float32BufferAttribute(normals, 3));
         if (uvs) this.setAttribute('uv', new Float32BufferAttribute(uvs, 2));
-        // if (joints) this.setAttribute('joints', new Float32BufferAttribute(joints, 4));
-        // if (weights) this.setAttribute('weights', new Float32BufferAttribute(weights, 4));
-        if (indices) this.setIndices(alignArray(indices));
-        if (tangents) this.setAttribute('tangent', new Float32BufferAttribute(tangents, 3));
-        if (bitangents) this.setAttribute('bitangent', new Float32BufferAttribute(bitangents, 3));
-
+        if (indices) this.setIndices(indices);
 
         this.computeBoundingBox();
         this.computeBoundingSphere();
 
         if (!normals) {
-            this.calculateNormals();
+            this.computeVertexNormals();
         }
         if (!uvs) {
             this.calculateUVs();
         }
-        if (!tangents || !bitangents) {
-            this.calculateTangents();
+        if (!tangents) {
+            this.computeTangents();
         }
 
         this.pack();
+        return this;
+    }
+
+    getShaderAttributes() {
+        let loc = 0;
+        const attributes: ShaderAttribute[] = [];
+        for (const name in this.attributes) {
+            const attr = this.attributes[name];
+            if (attr === undefined) continue;
+            attributes.push({
+                name,
+                location: loc++,
+                type: attr.type,
+            });
+        }
+        return attributes
+    }
+
+    getShaderVaryings() {
+        let loc = 0;
+        const varyings: ShaderVarying[] = [];
+        for (const name in this.attributes) {
+            const attr = this.attributes[name];
+            if (attr === undefined) continue;
+            const isTangent = name === 'tangent';
+            const isPosition = name === 'position';
+            const varying = {
+                name,
+                location: loc++,
+                type: attr.type,
+            }
+            isTangent && (varying.type = 'vec3f');
+            varyings.push(varying);
+            isTangent && varyings.push({
+                name: 'bitangent',
+                location: loc++,
+                type: 'vec3f',
+            });
+            isPosition && varyings.push({
+                name: 'local_position',
+                location: loc++,
+                type: 'vec3f',
+            });
+        }
+        return varyings;
+    }
+    subdivide(steps: number = 1, mode: 'simple' | 'catmull-clark' = 'simple'): this {
+        if (steps < 1) return this;
+        
+        const positions = this.attributes.position?.data as Float32Array;
+        const indices = this.indices?.data as (Uint16Array | Uint32Array);
+        
+        if (!positions || !indices) {
+            console.error('Geometry.subdivide(): Geometry must have positions and be indexed');
+            return this;
+        }
+    
+        for (let step = 0; step < steps; step++) {
+            if (mode === 'simple') {
+                this._simpleSubdivide();
+            } else {
+                this._catmullClarkSubdivide();
+            }
+        }
+    
+        // Recompute all attributes
+        if (this.attributes.normals) this.computeVertexNormals();
+        if (this.attributes.uv) this.calculateUVs();
+        if (this.attributes.tangent) this.computeTangents();
+        
+        this.computeBoundingBox();
+        this.computeBoundingSphere();
+        this.pack();
+        
+        return this;
+    }
+
+    private _simpleSubdivide(): void {
+        const positions = this.attributes.position?.data as Float32Array;
+        const indices = this.indices?.data as Uint16Array | Uint32Array;
+    
+        if (!positions || !indices) {
+            console.error('Geometry._simpleSubdivide(): Geometry must have positions and be indexed');
+            return;
+        }
+    
+        const newPositions: number[] = [];
+        const newIndices: number[] = [];
+        const midpointCache = new Map<string, number>();
+        const getKey = (a: number, b: number) => a < b ? `${a}_${b}` : `${b}_${a}`;
+    
+        const getMidpoint = (i0: number, i1: number): number => {
+            const key = getKey(i0, i1);
+            if (midpointCache.has(key)) {
+                return midpointCache.get(key)!;
+            }
+    
+            const v0 = positions.slice(i0 * 3, i0 * 3 + 3);
+            const v1 = positions.slice(i1 * 3, i1 * 3 + 3);
+            const midpoint = [
+                (v0[0] + v1[0]) / 2,
+                (v0[1] + v1[1]) / 2,
+                (v0[2] + v1[2]) / 2,
+            ];
+            const midIndex = newPositions.length / 3;
+            newPositions.push(...midpoint);
+            midpointCache.set(key, midIndex);
+            return midIndex;
+        };
+    
+        // Copy original positions
+        newPositions.push(...positions);
+    
+        for (let i = 0; i < indices.length; i += 3) {
+            const i0 = indices[i];
+            const i1 = indices[i + 1];
+            const i2 = indices[i + 2];
+    
+            const a = getMidpoint(i0, i1);
+            const b = getMidpoint(i1, i2);
+            const c = getMidpoint(i2, i0);
+    
+            // Create four new triangles
+            newIndices.push(i0, a, c);
+            newIndices.push(i1, b, a);
+            newIndices.push(i2, c, b);
+            newIndices.push(a, b, c);
+        }
+    
+        // Update geometry data
+        this.setAttribute('position', new Float32BufferAttribute(newPositions, 3));
+        this.setIndices(newIndices);
+    }
+
+    private _catmullClarkSubdivide(): void {
+        const positions = this.attributes.position?.data as Float32Array;
+        const indices = this.indices?.data as Uint16Array | Uint32Array;
+    
+        if (!positions || !indices) {
+            console.error('Geometry._catmullClarkSubdivide(): Geometry must have positions and be indexed');
+            return;
+        }
+    
+        const vertexFaces: Map<number, number[][]> = new Map();
+        const facePoints: number[][] = [];
+        const edgePoints: Map<string, number[]> = new Map();
+        const edgeMap: Map<string, number[][]> = new Map();
+    
+        const getKey = (a: number, b: number) => a < b ? `${a}_${b}` : `${b}_${a}`;
+    
+        // Compute face points
+        for (let i = 0; i < indices.length; i += 3) {
+            const i0 = indices[i];
+            const i1 = indices[i + 1];
+            const i2 = indices[i + 2];
+    
+            const v0 = positions.slice(i0 * 3, i0 * 3 + 3);
+            const v1 = positions.slice(i1 * 3, i1 * 3 + 3);
+            const v2 = positions.slice(i2 * 3, i2 * 3 + 3);
+    
+            const facePoint = [
+                (v0[0] + v1[0] + v2[0]) / 3,
+                (v0[1] + v1[1] + v2[1]) / 3,
+                (v0[2] + v1[2] + v2[2]) / 3,
+            ];
+            facePoints.push(facePoint);
+    
+            // Map faces to vertices
+            [i0, i1, i2].forEach((idx) => {
+                if (!vertexFaces.has(idx)) vertexFaces.set(idx, []);
+                vertexFaces.get(idx)!.push(facePoint);
+            });
+    
+            // Build edge map
+            const edges = [
+                [i0, i1],
+                [i1, i2],
+                [i2, i0],
+            ];
+    
+            edges.forEach(([a, b]) => {
+                const key = getKey(a, b);
+                if (!edgeMap.has(key)) edgeMap.set(key, []);
+                edgeMap.get(key)!.push(facePoint);
+            });
+        }
+    
+        // Compute edge points
+        edgeMap.forEach((facePoints, key) => {
+            const [a, b] = key.split('_').map(Number);
+            const v0 = positions.slice(a * 3, a * 3 + 3);
+            const v1 = positions.slice(b * 3, b * 3 + 3);
+            const avgFacePoints = facePoints.reduce((acc, fp) => {
+                acc[0] += fp[0];
+                acc[1] += fp[1];
+                acc[2] += fp[2];
+                return acc;
+            }, [0, 0, 0]).map((sum) => sum / facePoints.length);
+    
+            const edgePoint = [
+                (v0[0] + v1[0] + avgFacePoints[0]) / (2 + facePoints.length),
+                (v0[1] + v1[1] + avgFacePoints[1]) / (2 + facePoints.length),
+                (v0[2] + v1[2] + avgFacePoints[2]) / (2 + facePoints.length),
+            ];
+    
+            edgePoints.set(key, edgePoint);
+        });
+    
+        // Compute new positions for original vertices
+        const newPositions: number[] = [];
+        for (let i = 0; i < positions.length / 3; i++) {
+            const vertex = positions.slice(i * 3, i * 3 + 3);
+            const facePoints = vertexFaces.get(i)!;
+            const n = facePoints.length;
+    
+            const avgFacePoint = facePoints.reduce((acc, fp) => {
+                acc[0] += fp[0];
+                acc[1] += fp[1];
+                acc[2] += fp[2];
+                return acc;
+            }, [0, 0, 0]).map((sum) => sum / n);
+    
+            const connectedEdges = Array.from(edgeMap.entries())
+                .filter(([key]) => key.includes(`${i}_`) || key.endsWith(`_${i}`))
+                .map(([_, fps]) => fps)
+                .flat();
+    
+            const avgEdgeMidpoint = connectedEdges.reduce((acc, ep) => {
+                acc[0] += ep[0];
+                acc[1] += ep[1];
+                acc[2] += ep[2];
+                return acc;
+            }, [0, 0, 0]).map((sum) => sum / connectedEdges.length);
+    
+            const newX = (avgFacePoint[0] + 2 * avgEdgeMidpoint[0] + (n - 3) * vertex[0]) / n;
+            const newY = (avgFacePoint[1] + 2 * avgEdgeMidpoint[1] + (n - 3) * vertex[1]) / n;
+            const newZ = (avgFacePoint[2] + 2 * avgEdgeMidpoint[2] + (n - 3) * vertex[2]) / n;
+    
+            newPositions.push(newX, newY, newZ);
+        }
+    
+        // Combine new points
+        const positionMap = new Map<string, number>();
+        const allPositions = newPositions.slice();
+        const facePointIndices: number[] = facePoints.map((fp) => {
+            const index = allPositions.length / 3;
+            allPositions.push(...fp);
+            return index;
+        });
+    
+        const edgePointIndices = new Map<string, number>();
+        edgePoints.forEach((ep, key) => {
+            const index = allPositions.length / 3;
+            allPositions.push(...ep);
+            edgePointIndices.set(key, index);
+        });
+    
+        // Reconstruct faces
+        const newIndices: number[] = [];
+        let faceIndex = 0;
+        for (let i = 0; i < indices.length; i += 3) {
+            const i0 = indices[i];
+            const i1 = indices[i + 1];
+            const i2 = indices[i + 2];
+    
+            const fpIndex = facePointIndices[faceIndex++];
+    
+            const e0 = edgePointIndices.get(getKey(i0, i1))!;
+            const e1 = edgePointIndices.get(getKey(i1, i2))!;
+            const e2 = edgePointIndices.get(getKey(i2, i0))!;
+    
+            // Create new faces
+            newIndices.push(i0, e0, fpIndex, e2);
+            newIndices.push(i1, e1, fpIndex, e0);
+            newIndices.push(i2, e2, fpIndex, e1);
+            newIndices.push(e0, e1, e2, fpIndex);
+        }
+    
+        // Update geometry data
+        this.setAttribute('position', new Float32BufferAttribute(allPositions, 3));
+        this.setIndices(newIndices);
+    }
+    
+    copy(geometry: Geometry) {
+        this.attributes = geometry.attributes;
+        this.indices = geometry.indices;
+        this.groups = geometry.groups;
+        this.boundingBox = geometry.boundingBox;
+        this.boundingSphere = geometry.boundingSphere;
+        this.isIndexed = geometry.isIndexed;
+        this.indexFormat = geometry.indexFormat;
+        this.packed = geometry.packed;
         return this;
     }
 

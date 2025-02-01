@@ -83,36 +83,24 @@ export class Vector4 extends BufferData {
         return this.fromArray(matrix, index * 4);
     }
 
-    clone(): this {
-        return new Vector4(this[0], this[1], this[2], this[3]) as this;
-    }
-
-    copy(v: this): this {
-        this[0] = v[0];
-        this[1] = v[1];
-        this[2] = v[2];
-        this[3] = v[3];
-        return this;
-    }
-
     equals(v: this): boolean {
         return this[0] === v[0] && this[1] === v[1] && 
                this[2] === v[2] && this[3] === v[3];
     }
 
-    set(array: ArrayLike<number>, offset: number = 0): this {
-        this[0] = array[offset];
-        this[1] = array[offset + 1];
-        this[2] = array[offset + 2];
-        this[3] = array[offset + 3];
+    set(x: number | ArrayLike<number>, y: number = 0, z: number = 0, w: number = 0): this {
+        if (Array.isArray(x) || x instanceof Float32Array) {
+            let offset = y;
+            this[0] = x[offset];
+            this[1] = x[offset + 1];
+            this[2] = x[offset + 2];
+            this[3] = x[offset + 3];
+        } else {
+            this[0] = x as number;
+            this[1] = y as number;
+            this[2] = z as number;
+            this[3] = w as number;
+        }
         return this;
-    }
-
-    toArray(array: number[] = [], offset: number = 0): number[] {
-        array[offset] = this[0];
-        array[offset + 1] = this[1];
-        array[offset + 2] = this[2];
-        array[offset + 3] = this[3];
-        return array;
     }
 }

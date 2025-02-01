@@ -19,16 +19,6 @@ class BodyCode {
 export class ShaderChunk {
     public name: string;
     public template: string;
-    // public code: {
-    //     vertex: string;
-    //     fragment: string;
-    //     compute: string;
-    // }
-    // public orderRules: { 
-    //     fragment: string;
-    //     vertex: string; 
-    //     compute: string; 
-    // };
     public defines: string = '';
     public chunks: ShaderChunk[];
     public bindings: Binding[];
@@ -37,21 +27,9 @@ export class ShaderChunk {
     constructor(name: string, code: string) {
         this.name = name;
         this.template = code;
-        // this.code = {
-        //     vertex: '',
-        //     fragment: '',
-        //     compute: '',
-        // }
         this.chunks = [];
         this.bindings = [];
         this.bodyCodes = [];
-
-        // this.orderRules = {
-        //     fragment: '',
-        //     vertex: '',
-        //     compute: '',
-        // }
-
         this.extractCode();
         this.extractBindings();
         this.extractChunks();
@@ -99,22 +77,15 @@ export class ShaderChunk {
         let match;
         while ((match = bodyRe.exec(this.template)) !== null) {
             if (match[1] === "fragment") {
-                // this.orderRules.fragment = match[2] || "";
-                // this.code.fragment = match[3];
                 this.bodyCodes.push(new BodyCode(match[3], match[2] || "", 'fragment'));
             }
             if (match[1] === "vertex") {
-                // this.orderRules.vertex = match[2] || "";
-                // this.code.vertex = match[3];
                 this.bodyCodes.push(new BodyCode(match[3], match[2] || "", 'vertex'));
             }
             if (match[1] === "compute") {
-                // this.orderRules.compute = match[2] || "";
-                // this.code.compute = match[3];
                 this.bodyCodes.push(new BodyCode(match[3], match[2] || "", 'compute'));
             }
         }
-        console.log(this.name, this.bodyCodes);
         this.defines = this.template.replace(bindingRe, '').replace(includeRe, '').replace(bodyRe, '').trim();
     }
 }

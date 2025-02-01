@@ -4,9 +4,9 @@ import { Camera } from '../Camera';
 class FirstPersonControls {
     private camera: Camera;
     private domElement: HTMLElement;
-    private enabled: boolean;
-    private movementSpeed: number;
-    private lookSpeed: number;
+    enabled: boolean;
+    movementSpeed: number;
+    lookSpeed: number;
     private moveState: {
         up: number;
         down: number;
@@ -24,7 +24,7 @@ class FirstPersonControls {
         this.camera = camera;
         this.domElement = domElement;
         this.enabled = true;
-        this.movementSpeed = 100.0;
+        this.movementSpeed = 1.0;
         this.lookSpeed = 0.1; // Reduced for more precise control
         this.lat = 0;
         this.lon = 0;

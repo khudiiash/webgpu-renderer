@@ -227,7 +227,7 @@ export class Matrix4 extends BufferData {
         ]);
     }
 
-    setTranslation(x: number | Vector3, y: number, z: number): this {
+    setTranslation(x: number | Vector3, y?: number, z?: number): this {
         if (x instanceof Vector3) {
             y = x[1];
             z = x[2];
@@ -237,7 +237,7 @@ export class Matrix4 extends BufferData {
             1, 0, 0, 0,
             0, 1, 0, 0,
             0, 0, 1, 0,
-            x, y, z, 1
+            x, y ?? 0, z ?? 0, 1
         ]);
         return this;
     }
@@ -311,6 +311,7 @@ export class Matrix4 extends BufferData {
 		return this;
 
 	}
+
     rotateX(radians: number): this {
         return this.rotateOnAxis(new Vector3(1, 0, 0), radians);
     }
@@ -322,6 +323,20 @@ export class Matrix4 extends BufferData {
     rotateZ(radians: number): this {
         return this.rotateOnAxis(new Vector3(0, 0, 1), radians);
     }
+    
+    // Use setScaleMatrix if you need a pure scaling matrix or want to replace any existing transformations
+    setScaleMatrix(scale: Vector3): this {
+        const te = this;
+        const { x: sx, y: sy, z: sz } = scale;
+    
+        return te.set(
+            sx, 0,  0,  0,
+            0,  sy, 0,  0,
+            0,  0,  sz, 0,
+            0,  0,  0,  1
+        );
+    }
+
     rotateOnAxis(axis: Vector3, radians: number): this {
         const te = this;
         let x = axis[0];
@@ -379,12 +394,12 @@ export class Matrix4 extends BufferData {
         const c = - (far + near) / (far - near);
         const d = - (2 * far * near) / (far - near);
     
-        this.set([
+        this.set(
             x, 0, a, 0,
             0, y, b, 0,
             0, 0, c, d,
             0, 0, -1, 0
-        ]);
+        );
 
         return this;
     }
@@ -423,6 +438,7 @@ export class Matrix4 extends BufferData {
 
         return this;
     }
+
     setFromRotationMatrix(m: Matrix4): this {
         const te = this;
         te.setIdentity();
@@ -682,7 +698,6 @@ export class Matrix4 extends BufferData {
 
 		return this;
 	}
-
     setScale(x: Vector3 | number, y: number, z: number): this {
         if (x instanceof Vector3) {
             y = x[1];
@@ -722,6 +737,7 @@ export class Matrix4 extends BufferData {
             data[2] * x + data[6] * y + data[10] * z + data[14]
         ]);
     }
+
     translate(v: Vector3): this {
         const te = this;
         return this.set([te[12] + v.x, te[13] + v.y, te[14] + v.z, 1], 12); 
@@ -741,6 +757,63 @@ export class Matrix4 extends BufferData {
 		return this;
 
 	}
+
+    setRotationX(radians: number): this {
+        const c = Math.cos(radians);
+        const s = Math.sin(radians);
+        return this.set(
+            1, 0, 0, 0,
+            0, c, s, 0,
+            0, -s, c, 0,
+            0, 0, 0, 1
+        );
+    }
+
+    setRotationY(radians: number): this {
+        const c = Math.cos(radians);
+        const s = Math.sin(radians);
+        return this.set(
+            c, 0, -s, 0,
+            0, 1, 0, 0,
+            s, 0, c, 0,
+            0, 0, 0, 1
+        );
+    }
+
+    setRotationZ(radians: number): this {
+        const c = Math.cos(radians);
+        const s = Math.sin(radians);
+        return this.set([
+            c, s, 0, 0,
+            -s, c, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1
+        ]);
+    }
+
+    set(m00: number | ArrayLike<number> | Float32Array, m01?: number, m02?: number, m03?: number, m10?: number, m11?: number, m12?: number, m13?: number, m20?: number, m21?: number, m22?: number, m23?: number, m30?: number, m31?: number, m32?: number, m33?: number): this {
+        if (num(m00)) {
+            this[0] = m00 as number;
+            this[1] = m01!;
+            this[2] = m02!;
+            this[3] = m03!;
+            this[4] = m10!;
+            this[5] = m11!;
+            this[6] = m12!;
+            this[7] = m13!;
+            this[8] = m20!;
+            this[9] = m21!;
+            this[10] = m22!;
+            this[11] = m23!;
+            this[12] = m30!;
+            this[13] = m31!;
+            this[14] = m32!;
+            this[15] = m33!;
+        } else {
+            super.set(m00 as Float32Array, m01);
+        }
+        return this;
+    }
 
     toString() {
         const te = this;

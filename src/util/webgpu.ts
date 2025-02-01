@@ -25,7 +25,14 @@ export function alignTo(value: number, alignment: number): number {
 
 export function bytesToElementCount(sizeInBytes: number, bytesPerElement: number): number {
     return sizeInBytes / bytesPerElement;
-  }
+}
+
+export function arrayNeedsUint32(array: ArrayLike<number>): boolean {
+	for (let i = array.length - 1; i >= 0; -- i) {
+		if (array[i] >= 65535 ) return true;
+	}
+	return false;
+}
   
 
 /** create view from buffer, byte offset, and size in bytes */

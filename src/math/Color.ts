@@ -1,5 +1,6 @@
 import { BufferData } from '@/data/BufferData';
 import { cleanFloat } from '@/util/general';
+import { clamp } from '@/util/math';
 
 class Color extends BufferData {
     static size = 4;
@@ -10,21 +11,22 @@ class Color extends BufferData {
         }
 
         super(4);
-
-        if (typeof r === 'string') {
-            if (r[0] === '#') {
-                this.__fromHexString(r);
-            } else {
-                this.__fromHexNumber(parseInt(r));
+        
+        if (g !== undefined && typeof(r) ==='number') {
+            if (b === undefined) {
+                b = 1;
+            } 
+            if (a === undefined) {
+                a = 1;
             }
-            return this;
+            // Clamp each value to the [0, 1] range
+            this.set(clamp(r), clamp(g), clamp(b), clamp(a));
         }
-        if (typeof r === 'number' &&  g === undefined) {
-            this.__fromHexNumber(r);
-            return this;
+        else {
+            this.setHex(r);   
         }
 
-        this.set([r, g ?? 0, b ?? 0, a ?? 1]);
+        this.linearToSRGB();
     }
     
     get r() { return this[0]; }
@@ -37,11 +39,33 @@ class Color extends BufferData {
     set b(value) { this[2] = value; this.monitor.check(2, 3); }
     set a(value) { this[3] = value; this.monitor.check(3, 4); }
     
+    private checkDigits(str: string): boolean {
+        return /^\d+$/.test(str);
+    }
+
+    linearToSRGB() {
+        const gammaCorrect = (value: number) => value <= 0.0031308 ? 12.92 * value : 1.055 * Math.pow(value, 1.0 / 2.4) - 0.055;
+        this.set(gammaCorrect(this.r), gammaCorrect(this.g), gammaCorrect(this.b), this.a);
+        return this;
+    }
+
+    SRGBToLinear() {
+        const gammaCorrect = (value: number) => value <= 0.04045 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
+        this.set(gammaCorrect(this.r), gammaCorrect(this.g), gammaCorrect(this.b), this.a);
+        return this;
+    }
+
+
     private __fromHexString(string: string) {
         if (string[0] !== '#') {
             throw new Error('Color.fromString: string should start with #');
         }
-        const color = parseInt(string.slice(1), 16);
+        // Remove the '#' and check if the rest is a valid hex string
+        const hexPart = string.slice(1,16);
+        if (!/^[0-9A-Fa-f]{6}$/.test(hexPart)) {
+            throw new Error('Invalid hex string');
+        }
+        const color = parseInt(hexPart, 16);
         this.set([
             ((color >> 16) & 255) / 255,
             ((color >> 8) & 255) / 255,
@@ -61,25 +85,53 @@ class Color extends BufferData {
         return this;
     }
 
-
-
-    setHex(hex: number | string) {
-        if (typeof hex === 'string') {
-            return this.__fromHexString(hex);
+    setHex(r: number | string) {
+        if (typeof r === 'string') {
+            if (r[0] !== '#' && this.checkDigits(r)) {
+                this.__fromHexNumber(parseInt(r))
+            } else {
+                this.__fromHexString(r);
+            }
+            return this;
         }
-        if (typeof hex === 'number') {
-            return this.__fromHexNumber(hex);
+        if (typeof r === 'number') {
+            this.__fromHexNumber(r);
+            return this;
         }
+    }
+
+    lerp(a: Color, b: Color, alpha: number) {
+        this.set([
+            a.r + (b.r - a.r) * alpha,
+            a.g + (b.g - a.g) * alpha,
+            a.b + (b.b - a.b) * alpha,
+            a.a + (b.a - a.a) * alpha
+        ]);
         return this;
     }
     
     setRGB(r: number, g: number, b: number) {
-        this.set([r, g, b]);
+        // Clamp each value to the [0, 1] range
+        const clamp = (value: number) => Math.max(0, Math.min(1, value));
+        this.set(clamp(r), clamp(g), clamp(b));
         return this;
     }
 
     setRGBA(r: number, g: number, b: number, a: number) {
-        this.set([r, g, b, a]);
+        // Clamp each value to the [0, 1] range
+        this[0] = clamp(r);
+        this[1] = clamp(g);
+        this[2] = clamp(b);
+        this[3] = clamp(a);
+        return this;
+    }
+
+    set(r: number | ArrayLike<number>, g?: number, b?: number, a?: number): this {
+        if (Array.isArray(r)) {
+            this.setRGBA(r[0], r[1], r[2], r[3] || 1);
+        } else if (typeof r === 'number') {
+            this.setRGBA(r, g || this[1], b || this[2], a || this[3]);
+        }
         return this;
     }
 
