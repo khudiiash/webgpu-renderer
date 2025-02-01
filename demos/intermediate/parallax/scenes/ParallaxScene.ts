@@ -3,7 +3,7 @@ import { Mesh } from '@/core/Mesh';
 import { PerspectiveCamera } from '@/camera/PerspectiveCamera';
 import { StandardMaterial } from '@/materials/StandardMaterial';
 import { Engine } from '@/engine/Engine';
-import { BoxGeometry, Geometry, PlaneGeometry, SphereGeometry } from '@/geometry';
+import { PlaneGeometry } from '@/geometry';
 import { Texture2D } from '@/data/Texture2D';
 
 
@@ -24,7 +24,6 @@ import { Light } from '@/lights/Light';
 export class CubeScene {
     private scene!: Scene;
     private camera!: PerspectiveCamera;
-    private last: number = performance.now();
     private engine : Engine;
     light!: Light;
     controls!: OrbitControls;
@@ -50,11 +49,12 @@ export class CubeScene {
     async setupScene() {
         this.scene = new Scene({
             backgroundColor: '#aaffff',
-            ambientColor: '#000000',
+            ambientColor: '#aaffff',
+            ambientIntensity: 0.5,
             groundColor: '#000000',
             skyColor: '#aaffff',
             indirectIntensity: 0.5, 
-            fog: { color: '#aaffff', start: 10, end: 30},
+            fog: { color: '#aaffff', start: 20, end: 50},
         });
         // PLANE
         this.plane = new Mesh(new PlaneGeometry(10, 10).rotateX(-Math.PI/2), new StandardMaterial({
@@ -78,9 +78,7 @@ export class CubeScene {
     }
 
     private animate = () => {
-        const now = performance.now();
         this.controls.update();
-        this.last = now;
         this.engine.renderer.render(this.scene, this.camera);        
         requestAnimationFrame(this.animate);
     }
