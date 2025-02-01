@@ -1,20 +1,18 @@
 import { Scene } from '@/core/Scene';
 import { PerspectiveCamera } from '@/camera/PerspectiveCamera';
-import { Color, Vector3 } from '@/math';
+import { Vector3 } from '@/math';
 import { Mesh } from '@/core/Mesh';
-import { Geometry, PlaneGeometry, SphereGeometry } from '@/geometry';
+import { PlaneGeometry } from '@/geometry';
 import { StandardMaterial } from '@/materials/StandardMaterial';
 import { ShaderChunk } from '@/materials';
 import { GLTFLoader } from '@/util/loaders/GLTFLoader';
 import { PointLight } from '@/lights/PointLight';
-import { BoxGeometry } from '@/geometry/BoxGeometry';
 import { rand } from '@/util';
 import { Engine } from '@/engine/Engine';
 import { Texture2D } from '@/data';
 import { TriangleGeometry } from '@/geometry/TriangleGeometry';
 
 import ParticleMap from '../assets/textures/particle.png';
-import ShineMap from '../assets/textures/shine.png';
 import { FirstPersonControls } from '@/camera';
 
 export class SponzaScene {
@@ -44,8 +42,8 @@ export class SponzaScene {
     private setupCamera() {
         this.camera = new PerspectiveCamera(40, this.engine.settings.width / this.engine.settings.height, 0.1, 1000);
         this.controls = new FirstPersonControls(this.camera, this.engine.settings.canvas!);
+        this.camera.lookAt(Vector3.LEFT);
         this.controls.movementSpeed = 70;
-        this.camera.position.setXYZ(-200, 30, 0);
         this.scene.add(this.camera);
     }
 
@@ -93,17 +91,12 @@ export class SponzaScene {
         
         grassMat.addChunk(grassChunk);
 
-        // GRASS GEOMETRY
         const triangleGeometry = new TriangleGeometry();
-
-        // GRASS MESH
         const grass = new Mesh(triangleGeometry, grassMat, { useBillboard: true, count: 100_000 });
-
-        // GRASS TRANSFORMS
         const rangeX = 280;
         const rangeZ = 50;
-        grass.setAllPositions(Array.from({ length: grass.count }, (_, i) => [rand(-rangeX, rangeX), 0, rand(-rangeZ, rangeZ)]).flat());
-        grass.setAllScales(Array.from({ length: grass.count }, (_, i) => [rand(0.3, 0.5), rand(1, 4), 1]).flat());
+        grass.setAllPositions(Array.from({ length: grass.count }, (_) => [rand(-rangeX, rangeX), 0, rand(-rangeZ, rangeZ)]).flat());
+        grass.setAllScales(Array.from({ length: grass.count }, (_) => [rand(0.3, 0.5), rand(1, 4), 1]).flat());
         this.scene.add(grass);
     }
 
@@ -139,10 +132,10 @@ export class SponzaScene {
         if (sponza) {
             sponza.setScale(0.2);
             sponza.traverse((child) => {
-                if (child.material) {
+                if (!(child instanceof Mesh)) return;
+                if (child.material && (child.material instanceof StandardMaterial)) {
                     if (['17', '18', '19'].some((id) => child.material.name.includes(id))) {
                         child.material.addChunk(windChunk);
-                        console.log(child.material.shader.vertexSource)
                     }
                     child.material.alpha_test = 0.9;
                     child.material.invert_normal = true;
@@ -213,9 +206,8 @@ export class SponzaScene {
                     color = vec4f(diffuse, color.a * opacity);
                 }}
         `);
-        //const red = new Mesh(new BoxGeometry(10, 10, 10), new StandardMaterial({ emissive: '#00ff00', emissive_factor: 1.0 }));
-        const flameGeo = new PlaneGeometry(7, 3);
 
+        const flameGeo = new PlaneGeometry(7, 3);
         const positions = [
             new Vector3(-123, 25, 36),
             new Vector3(-123, 25, -37),
@@ -345,12 +337,10 @@ export class SponzaScene {
             }}
         `));
 
-
-
         this.particles = new Mesh(particleGeometry, particleMaterial, { count: 10_000 });
         this.particles.useBillboard = true;
-        this.particles.setAllPositions(Array.from({ length: this.particles.count }, (_, i) => [rand(-rangeX, rangeX), rand(-30, 100), rand(-rangeZ, rangeZ)]).flat());
-        this.particles.setAllScales(Array.from({ length: this.particles.count }, (_, i) => { const s = rand(0.5, 1); return [s, s, s]}).flat());
+        this.particles.setAllPositions(Array.from({ length: this.particles.count }, () => [rand(-rangeX, rangeX), rand(-30, 100), rand(-rangeZ, rangeZ)]).flat());
+        this.particles.setAllScales(Array.from({ length: this.particles.count }, () => { const s = rand(0.5, 1); return [s, s, s]}).flat());
         this.scene.add(this.particles);
     }
 
@@ -372,7 +362,7 @@ export class SponzaScene {
         }
         
         // Update camera
-        this.camera.position.x = (Math.sin(this.elapsed * 0.1) * 2.0 - 1.0) * 100;
+        this.camera.position.x = Math.cos(this.elapsed * 0.2) * 150;
         
         // Update red cube
         if (this.redCube) {

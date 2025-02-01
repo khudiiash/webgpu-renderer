@@ -129,10 +129,10 @@ class FirstPersonControls {
     };
 
     public update(dt: number): void {
-        if (!this.enabled) return;
+        if (!this.enabled || !this.isLocked) return;
 
         // Movement vector
-        this.vec.setXYZ(0, 0, 0);
+        this.vec.set(0, 0, 0);
         const actualMoveSpeed = this.movementSpeed * dt;
 
         // Update movement based on key states

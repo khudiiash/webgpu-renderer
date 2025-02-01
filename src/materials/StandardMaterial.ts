@@ -87,6 +87,7 @@ class StandardMaterial extends Material {
     specular_factor!: number;
     alpha_test!: number;
     transmission!: number;
+    invert_normal!: boolean;
 
     diffuse_map!: Texture;
     normal_map!: Texture;
