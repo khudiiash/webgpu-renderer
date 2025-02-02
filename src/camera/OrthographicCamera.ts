@@ -42,4 +42,21 @@ export class OrthographicCamera extends Camera {
         this.projectionMatrix.setOrthographic(left, right, bottom, top, this.near, this.far);
     }
 
+    copy(camera: OrthographicCamera) {
+        super.copy(camera);
+        this.leftOffset = camera.leftOffset;
+        this.rightOffset = camera.rightOffset;
+        this.bottomOffset = camera.bottomOffset;
+        this.topOffset = camera.topOffset;
+        this.near = camera.near;
+        this.far = camera.far;
+        this.zoom = camera.zoom;
+        this.updateProjectionMatrix();
+        return this;
+    }
+
+    clone() {
+        return new OrthographicCamera().copy(this);
+    }
+
 }

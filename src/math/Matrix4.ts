@@ -3,7 +3,7 @@ import { Vector3 } from "./Vector3";
 import { Quaternion } from "./Quaternion";
 import { Euler } from "./Euler";
 import { Matrix3 } from "./Matrix3";
-import { num } from "@/util/general";
+import { isArrayOrBuffer, num } from "@/util/general";
 
 export class Matrix4 extends BufferData {
     readonly length: number = 16;
@@ -29,7 +29,7 @@ export class Matrix4 extends BufferData {
 
     constructor();
     constructor(n00: number, n01: number, n02: number, n03: number, n10: number, n11: number, n12: number, n13: number, n20: number, n21: number, n22: number, n23: number, n30: number, n31: number, n32: number, n33: number);
-    constructor(values?: ArrayLike<number> | BufferData);
+    constructor(values?: ArrayLike<number> | BufferData, offset?: number);
     constructor(...args: any) {
         let result;
         if (args.length === 0) {
@@ -39,8 +39,9 @@ export class Matrix4 extends BufferData {
                 0, 0, 1, 0,
                 0, 0, 0, 1
             ]
-        } else if (args[0] instanceof BufferData || Array.isArray(args[0])) {
-            result = args[0];
+        } else if (isArrayOrBuffer(args[0])) {
+            let offset = args[1] || 0;
+            result = args[0].slice(offset, offset + 16);
         } else if (args.length === 16) {
             result = args;
         }
@@ -813,6 +814,14 @@ export class Matrix4 extends BufferData {
     toString() {
         const te = this;
         return `${te[0]} ${te[1]} ${te[2]} ${te[3]}\n${te[4]} ${te[5]} ${te[6]} ${te[7]}\n${te[8]} ${te[9]} ${te[10]} ${te[11]}\n${te[12]} ${te[13]} ${te[14]} ${te[15]}`;
+    }
+
+    copy(m: Matrix4): this {
+        return this.setSilent(m);
+    }
+
+    clone() {
+        return new Matrix4().copy(this);
     }
 } 
 const _zero = new Vector3();

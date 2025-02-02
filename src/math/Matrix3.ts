@@ -1,6 +1,6 @@
 import { BufferData } from '@/data/BufferData';
 import { Matrix4 } from './Matrix4';
-import { num } from '@/util/general';
+import { isArrayOrBuffer, num } from '@/util/general';
 
 export class Matrix3 extends BufferData {
     static readonly IDENTITY = new Matrix3();
@@ -17,8 +17,9 @@ export class Matrix3 extends BufferData {
                 0, 1, 0,
                 0, 0, 1
             ];
-        } else if (args[0] instanceof BufferData || Array.isArray(args[0])) {
-            result = args[0];
+        } else if (isArrayOrBuffer(args[0])) {
+            let offset = args[1] || 0;
+            result = args[0].slice(offset, offset + 9);
         } else if (args.length === 9) {
             result = args;
         }

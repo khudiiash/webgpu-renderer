@@ -3,6 +3,7 @@ import { Vector3 } from "./Vector3";
 import { Matrix4 } from "./Matrix4";
 import { Euler } from "./Euler";
 import { Matrix3 } from "./Matrix3";
+import { isArrayOrBuffer } from "@/util";
 
 
 export class Quaternion extends BufferData {
@@ -23,8 +24,12 @@ export class Quaternion extends BufferData {
             this[1] = args[1] ?? 0;
             this[2] = args[2] ?? 0;
             this[3] = args[3] ?? 1; 
-        } else if (args[0] instanceof BufferData || Array.isArray(args[0])) {
-            super.setSilent(args[0], args[1] || 0);
+        } else if (isArrayOrBuffer(args[0])) {
+            let offset = args[1] || 0;
+            this[0] = args[0][offset];
+            this[1] = args[0][offset + 1];
+            this[2] = args[0][offset + 2];
+            this[3] = args[0][offset + 3];
         }
     }
 
@@ -297,8 +302,12 @@ export class Quaternion extends BufferData {
             this[1] = args[1] ?? 0;
             this[2] = args[2] ?? 0;
             this[3] = args[3] ?? 1;
-        } else if (args[0] instanceof BufferData || Array.isArray(args[0])) {
-            super.setSilent(args[0], args[1] || 0);
+        } else if (isArrayOrBuffer(args[0])) {
+            let offset = args[1] || 0;
+            this[0] = args[0][offset];
+            this[1] = args[0][offset + 1];
+            this[2] = args[0][offset + 2];
+            this[3] = args[0][offset + 3];
         }
         return this;
     }
@@ -311,9 +320,17 @@ export class Quaternion extends BufferData {
             this[1] = args[1] ?? 0;
             this[2] = args[2] ?? 0;
             this[3] = args[3] ?? 1;
-        } else if (args[0] instanceof BufferData || Array.isArray(args[0])) {
-            super.setSilent(args[0], args[1] || 0);
+        } else if (isArrayOrBuffer(args[0])) {
+            let offset = args[1] || 0;
+            this[0] = args[0][offset];
+            this[1] = args[0][offset + 1];
+            this[2] = args[0][offset + 2];
+            this[3] = args[0][offset + 3];
         }
         return this;
+    }
+
+    clone(): Quaternion {
+        return new Quaternion(this);
     }
 }

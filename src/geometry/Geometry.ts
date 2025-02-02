@@ -3,7 +3,7 @@ import { Vector3 } from '@/math/Vector3';
 import { BoundingBox } from '@/math/BoundingBox';
 import { BoundingSphere } from '@/math/BoundingSphere';
 import { autobind, uuid } from '@/util/general';
-import { alignArray, arrayNeedsUint32 } from '@/util/webgpu';
+import { arrayNeedsUint32 } from '@/util/webgpu';
 import { BufferData } from '@/data';
 import { Matrix3, Matrix4, Vector2 } from '@/math';
 import { ShaderAttribute, ShaderVarying } from '@/materials';
@@ -351,7 +351,7 @@ export class Geometry {
     }
 
     lookAt(vector: Vector3) {
-        const _obj = { matrix: new Matrix4(), lookAt: (v: Vector3) => { /* mock implementation */ }, updateMatrix: () => { /* mock implementation */ } };
+        const _obj = { matrix: new Matrix4(), lookAt: (_: Vector3) => { /* mock implementation */ }, updateMatrix: () => { /* mock implementation */ } };
         _obj.lookAt(vector);
         _obj.updateMatrix();
         this.applyMatrix4(_obj.matrix);
@@ -827,7 +827,6 @@ export class Geometry {
         }
     
         // Combine new points
-        const positionMap = new Map<string, number>();
         const allPositions = newPositions.slice();
         const facePointIndices: number[] = facePoints.map((fp) => {
             const index = allPositions.length / 3;

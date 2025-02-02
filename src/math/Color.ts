@@ -1,5 +1,5 @@
 import { BufferData } from '@/data/BufferData';
-import { cleanFloat } from '@/util/general';
+import { cleanFloat, isArrayOrBuffer } from '@/util/general';
 import { clamp } from '@/util/math';
 
 class Color extends BufferData {
@@ -14,17 +14,32 @@ class Color extends BufferData {
     constructor(...args: any) {
         super(4);
         if (args.length === 0 || args[0] === undefined || args[0] === null) {
-            this.set(1, 1, 1, 1);
+            this[0] = 1;
+            this[1] = 1;
+            this[2] = 1;
+            this[3] = 1;
+
         }
-        else if (args.length === 1) {
-            this.set(args[0]);
+        else if (args.length === 1 || args.length === 2) {
+            if (typeof args[0] === 'string') {
+                this.__fromHexString(args[0]);
+            } else if (typeof args[0] === 'number') {
+                this.__fromHexNumber(args[0]);
+            } else if (isArrayOrBuffer(args[0])) {
+                let offset = args[1] || 0;
+                this[0] = clamp(args[0][offset] ?? 1);
+                this[1] = clamp(args[0][offset + 1] ?? 1);
+                this[2] = clamp(args[0][offset + 2] ?? 1);
+                this[3] = clamp(args[0][offset + 3] ?? 1);
+            }
         }
-        else if (args.length === 3) {
-            this.set(clamp(args[0]), clamp(args[1] ?? 1), clamp(args[2] ?? 1), 1);
+        else if (args.length > 1 && args.length <= 4) {
+            this[0] = clamp(args[0]);
+            this[1] = clamp(args[1]);
+            this[2] = clamp(args[2] ?? 1);
+            this[3] = clamp(args[3] ?? 1);
         }
-        else if (args.length === 4) {
-            this.set(clamp(args[0]), clamp(args[1] ?? 1), clamp(args[2] ?? 1), clamp(args[3] ?? 1));
-        } else {
+        else {
             throw new Error('Invalid number of arguments');
         }
     }

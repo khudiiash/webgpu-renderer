@@ -1,5 +1,6 @@
 import { BufferData } from "@/data/BufferData";
 import { Matrix4 } from "./Matrix4";
+import { isArrayOrBuffer } from "@/util";
 
 export class Vector4 extends BufferData {
     [index: number]: number;
@@ -108,8 +109,9 @@ export class Vector4 extends BufferData {
             this[1] = args[1] ?? 0;
             this[2] = args[2] ?? 0;
             this[3] = args[3] ?? 0;
-        } else if (args[0] instanceof BufferData || Array.isArray(args[0])) {
-            super.setSilent(args[0], args[1] || 0);
+        } else if (isArrayOrBuffer(args[0])) {
+            let offset = args[1] || 0;
+            super.setSilent(args[0].slice(offset, offset + 4), 0);
         }
         return this;
     }
@@ -126,5 +128,9 @@ export class Vector4 extends BufferData {
             super.setSilent(args[0], args[1] || 0);
         }
         return this;
+    }
+
+    clone(): Vector4 {
+        return new Vector4(this[0], this[1], this[2], this[3]);
     }
 }

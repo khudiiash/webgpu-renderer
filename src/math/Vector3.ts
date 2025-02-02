@@ -38,9 +38,24 @@ export class Vector3 extends BufferData {
     set y(value) { this[1] = value; this.monitor.check(1); }
     set z(value) { this[2] = value; this.monitor.check(2); }
 
-    constructor(x: number = 0, y: number = 0, z: number = 0) {
-        super([x, y, z], 3);
+    constructor();
+    constructor(x: number, y: number, z: number);
+    constructor(values: ArrayLike<number> | BufferData, offset?: number);
+
+    constructor(...args: any) {
+        super([0, 0, 0], 3);
+        if (typeof args[0] === 'number') {
+            this[0] = args[0];
+            this[1] = args[1] ?? 0;
+            this[2] = args[2] ?? 0;
+        } else if (isArrayOrBuffer(args[0])) {
+            let offset = args[1] || 0;
+            this[0] = args[0][offset];
+            this[1] = args[0][offset + 1];
+            this[2] = args[0][offset + 2];
+        }
     }
+    
     add(v: Vector3): this {
         this[0] += v[0];
         this[1] += v[1];
@@ -241,9 +256,14 @@ export class Vector3 extends BufferData {
     set(x: ArrayLike<number> | BufferData, offset?: number): this;
     set(...args: any) {
         if (isArrayOrBuffer(args[0])) {
-            super.set(args[0], args[1] || 0);
+            let offset = args[1] || 0;
+            this[0] = args[0][offset];
+            this[1] = args[0][offset + 1];
+            this[2] = args[0][offset + 2];
         } else {
-            super.set(args);
+            this[0] = args[0];
+            this[1] = args[1] ?? 0;
+            this[2] = args[2] ?? 0;
         }
         return this;
     }
@@ -252,9 +272,14 @@ export class Vector3 extends BufferData {
     setSilent(x: ArrayLike<number> | BufferData, offset?: number): this;
     setSilent(...args: any) {
         if (isArrayOrBuffer(args[0])) {
-            super.setSilent(args[0], args[1] || 0);
+            let offset = args[1] || 0;
+            this[0] = args[0][offset];
+            this[1] = args[0][offset + 1];
+            this[2] = args[0][offset + 2];
         } else {
-            super.setSilent(args);
+            this[0] = args[0];
+            this[1] = args[1] ?? 0;
+            this[2] = args[2] ?? 0;
         }
         return this;
     }
