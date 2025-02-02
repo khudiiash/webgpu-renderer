@@ -68,7 +68,7 @@ export class Camera extends Object3D {
     }
 
     _onResize({ aspect }: { aspect: number }) {
-        if (this.aspect === aspect) return console.log('Aspect ratio is the same');
+        if (this.aspect === aspect) return;
         this.aspect = aspect;
         this.updateProjectionMatrix();
     }

@@ -48,7 +48,6 @@ export class PerspectiveCamera extends Camera {
 
         this.projectionMatrix.setPerspective(left, left + width, top, top - height, near, this.far);
         this.projectionViewMatrix.multiplyMatrices(this.projectionMatrix, this.viewMatrix);
-        console.log('updateProjectionMatrix', this.projectionMatrix);
         this.updateFrustum();
     }
 
