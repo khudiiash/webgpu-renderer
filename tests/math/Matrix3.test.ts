@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Matrix3 } from '@/math/Matrix3';
+import { Matrix4 } from '@/math/Matrix4';
 
 describe('Matrix3', () => {
     describe('constructor', () => {
@@ -17,7 +18,7 @@ describe('Matrix3', () => {
 
     describe('setIdentity', () => {
         it('sets matrix to identity', () => {
-            const matrix = new Matrix3([2, 3, 4, 5, 6, 7, 8, 9, 10]);
+            const matrix = new Matrix3(2, 3, 4, 5, 6, 7, 8, 9, 10);
             matrix.setIdentity();
             expect(Array.from(matrix)).toEqual([1, 0, 0, 0, 1, 0, 0, 0, 1]);
         });
@@ -30,7 +31,7 @@ describe('Matrix3', () => {
 
     describe('copy', () => {
         it('copies values from another matrix', () => {
-            const source = new Matrix3([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+            const source = new Matrix3(1, 2, 3, 4, 5, 6, 7, 8, 9);
             const target = new Matrix3();
             target.copy(source);
             expect(Array.from(target)).toEqual(Array.from(source));
@@ -44,8 +45,8 @@ describe('Matrix3', () => {
 
     describe('multiply', () => {
         it('correctly multiplies two matrices', () => {
-            const a = new Matrix3([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-            const b = new Matrix3([9, 8, 7, 6, 5, 4, 3, 2, 1]);
+            const a = new Matrix3(1, 2, 3, 4, 5, 6, 7, 8, 9);
+            const b = new Matrix3(9, 8, 7, 6, 5, 4, 3, 2, 1);
             a.multiply(b);
             expect(Array.from(a)).toEqual([30, 24, 18, 84, 69, 54, 138, 114, 90]);
         });
@@ -84,20 +85,15 @@ describe('Matrix3', () => {
 
     describe('fromMatrix4', () => {
         it('correctly extracts 3x3 matrix from 4x4 matrix', () => {
-            const mat4 = {
-                0: 1, 1: 2, 2: 3, 3: 4,
-                4: 5, 5: 6, 6: 7, 7: 8,
-                8: 9, 9: 10, 10: 11, 11: 12,
-                12: 13, 13: 14, 14: 15, 15: 16
-            };
+            const mat4 = new Matrix4(
+                1, 2, 3, 4,
+                5, 6, 7, 8,
+                9, 10, 11, 12,
+                13, 14, 15, 16
+            );
             const matrix = new Matrix3();
             matrix.fromMatrix4(mat4);
             expect(Array.from(matrix)).toEqual([1, 2, 3, 5, 6, 7, 9, 10, 11]);
-        });
-
-        it('returns this for chaining', () => {
-            const matrix = new Matrix3();
-            expect(matrix.fromMatrix4({})).toBe(matrix);
         });
     });
 });

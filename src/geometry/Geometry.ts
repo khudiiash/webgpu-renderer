@@ -289,13 +289,13 @@ export class Geometry {
     applyMatrix4(matrix: Matrix4) {
 		const position = this.attributes.position;
 		if (position !== undefined) {
-			position.applyMatrix4( matrix );
+			position.applyMatrix4(matrix);
 			position.needsUpdate = true;
 		}
 
 		const normal = this.attributes.normal;
 		if (normal !== undefined) {
-			const normalMatrix = new Matrix3().getNormalMatrix( matrix );
+			const normalMatrix = new Matrix3().getNormalMatrix(matrix);
 			normal.applyNormalMatrix( normalMatrix );
 			normal.needsUpdate = true;
 		}
@@ -321,25 +321,25 @@ export class Geometry {
 	}
 
     rotateX(angle: number) {
-        const _m1 = new Matrix4().setRotationX(angle);
+        const _m1 = Matrix4.instance.setRotationX(angle);
         this.applyMatrix4(_m1);
         return this;
     }
 
     rotateY(angle: number) {
-        const _m1 = new Matrix4().setRotationY(angle);
+        const _m1 = Matrix4.instance.setRotationY(angle);
         this.applyMatrix4(_m1);
         return this;
     }
 
     rotateZ(angle: number) {
-        const _m1 = new Matrix4().setRotationZ(angle);
+        const _m1 = Matrix4.instance.setRotationZ(angle);
         this.applyMatrix4(_m1);
         return this;
     }
 
     translate(x: number, y: number, z: number) {
-        const _m1 = new Matrix4().setTranslation(x, y, z);
+        const _m1 = Matrix4.instance.setTranslation(x, y, z);
         this.applyMatrix4(_m1);
         return this;
     }
