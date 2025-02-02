@@ -24,7 +24,7 @@ export class CubeScene {
 
     private setupCamera() {
         this.camera = new PerspectiveCamera(40, this.engine.settings.width / this.engine.settings.height);
-        this.camera.position.setXYZ(0, 0, 5);
+        this.camera.position.set(0, 0, 5);
         this.scene.add(this.camera);
     }
 

@@ -309,13 +309,13 @@ export class Mesh extends Object3D {
         if (typeof scales === 'number') {
             for (let i = 0; i < this.count; i++) {
                 this.getMatrixAt(i, _mat);
-                _mat.scale(Vector3.instance.setXYZ(scales, scales, scales));
+                _mat.scale(Vector3.instance.set(scales, scales, scales));
                 this.localInstanceMatrices.setSilent(_mat, i * 16);
             }
         } else {
             for (let i = 0; i < this.count; i++) {
                 this.getMatrixAt(i, _mat);
-                _mat.scale(Vector3.instance.setXYZ(scales[i * 3], scales[i * 3 + 1], scales[i * 3 + 2]));
+                _mat.scale(Vector3.instance.set(scales[i * 3], scales[i * 3 + 1], scales[i * 3 + 2]));
                 this.localInstanceMatrices.setSilent(_mat, i * 16);
             }
         }
@@ -393,7 +393,7 @@ export class Mesh extends Object3D {
 
     translateAt(index: number, x: number, y: number, z: number) {
         this.getMatrixAt(index, _mat);
-        _mat.translate(Vector3.instance.setXYZ(x, y, z));
+        _mat.translate(Vector3.instance.set(x, y, z));
         this.localInstanceMatrices.setSilent(_mat, index * 16);
         this.updateInstanceWorldMatrix(index);
     }
@@ -401,7 +401,7 @@ export class Mesh extends Object3D {
     translateAll(translations: ArrayLike<number>) {
         for (let i = 0; i < this.count; i++) {
             this.getMatrixAt(i, _mat);
-            _mat.translate(Vector3.instance.setXYZ(translations[i * 3], translations[i * 3 + 1], translations[i * 3 + 2]));
+            _mat.translate(Vector3.instance.set(translations[i * 3], translations[i * 3 + 1], translations[i * 3 + 2]));
             this.localInstanceMatrices.setSilent(_mat, i * 16);
         }
 
