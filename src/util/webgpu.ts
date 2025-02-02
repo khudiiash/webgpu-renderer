@@ -1,4 +1,4 @@
-import { Shader } from "@/materials";
+import { Shader } from "@/materials/shaders/Shader";
 import { RenderState } from "@/renderer/RenderState";
 import { GPUPlainType, TypedArray, TypedArrayConstructorLike, } from "@/types";
 

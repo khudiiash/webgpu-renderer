@@ -5,8 +5,8 @@ export class TextureLoader {
     static #instance: TextureLoader;
     static _texturesCreated: number = 0;
 
-    static async load(url: string, options = { rotateY: false }) {
-        return TextureLoader.getInstance().load(url, options);
+    static async load(url: string): Promise<GPUTexture> {
+        return TextureLoader.getInstance().load(url);
     }
 
     static async loadFromBlob(blob: Blob) {
@@ -45,7 +45,7 @@ export class TextureLoader {
         return await createImageBitmap(blob, { colorSpaceConversion: 'none' });
     }
 
-    async load(url: string, options = { rotateY: false }) {
+    async load(url: string): Promise<GPUTexture> {
         const img = await this.getBitmap(url);
         return this.createTexture(img, { mips: true });
     }

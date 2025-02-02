@@ -5,7 +5,6 @@ import { Mesh } from '@/core/Mesh';
 import { Material } from '@/materials/Material';
 import { Geometry } from '@/geometry/Geometry';
 import { Shader } from '@/materials/shaders/Shader';
-import { Camera } from '@/camera/Camera';
 
 export class Renderable {
     public id: string;

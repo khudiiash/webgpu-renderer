@@ -1,5 +1,4 @@
 import { Geometry } from './Geometry';
-import { Float32BufferAttribute } from './BufferAttribute';
 import { Vector3 } from '../math/Vector3';
 import { Vector2 } from '../math/Vector2';
 

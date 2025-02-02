@@ -3,8 +3,6 @@ import { TextureLoader } from '@/util/loaders/TextureLoader';
 import { Engine } from '@/engine/Engine';
 
 export class Texture2D extends Texture {
-    private static default: Texture2D;
-
     static get DEFAULT() {
         return new Texture2D(Engine.device);
     } 

@@ -5,8 +5,9 @@ import { resolve } from 'path';
 export default defineConfig({
     plugins: [tsConfigPaths()],
     root: __dirname,
+    base: './',
     build: {
-        outDir: resolve(__dirname, '../../../dist'),
+        outDir: resolve(__dirname, 'dist'),
     },
     resolve: {
         alias: {

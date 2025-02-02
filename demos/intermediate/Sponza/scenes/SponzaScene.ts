@@ -4,7 +4,7 @@ import { Vector3 } from '@/math';
 import { Mesh } from '@/core/Mesh';
 import { PlaneGeometry } from '@/geometry';
 import { StandardMaterial } from '@/materials/StandardMaterial';
-import { ShaderChunk } from '@/materials';
+import { ShaderChunk } from '@/materials/shaders/ShaderChunk';
 import { GLTFLoader } from '@/util/loaders/GLTFLoader';
 import { PointLight } from '@/lights/PointLight';
 import { rand } from '@/util';

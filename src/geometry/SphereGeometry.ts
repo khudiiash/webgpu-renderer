@@ -54,7 +54,7 @@ export class SphereGeometry extends Geometry {
                 normals.push(normal.x, normal.y, normal.z);
 
                 // UV
-                uvs.push(u, 1 - v);
+                uvs.push(u + uOffset, 1 - v);
 
                 verticesRow.push(index++);
             }

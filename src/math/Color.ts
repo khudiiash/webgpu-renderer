@@ -9,6 +9,7 @@ class Color extends BufferData {
     constructor(r: number, g: number, b: number);
     constructor(hex: number | string);
     constructor(data: BufferData | ArrayLike<number>, offset?: number);
+    constructor(color: number | string | Color);
     constructor();
 
     constructor(...args: any) {
