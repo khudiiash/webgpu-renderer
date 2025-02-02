@@ -6,7 +6,7 @@ import { autobind, uuid } from '@/util/general';
 import { arrayNeedsUint32 } from '@/util/webgpu';
 import { BufferData } from '@/data';
 import { Matrix3, Matrix4, Vector2 } from '@/math';
-import { ShaderAttribute, ShaderVarying } from '@/materials';
+import { ShaderAttribute, ShaderVarying } from '@/materials/shaders';
 
 const _tempVec3 = new Vector3();
 
@@ -558,7 +558,7 @@ export class Geometry {
         tangents, 
     }: {
         positions: ArrayLike<number>, 
-        indices?: Uint16BufferAttribute | Uint32BufferAttribute | Uint16Array<ArrayBufferLike> | Uint32Array<ArrayBufferLike> | ArrayLike<number>,
+        indices?: Uint16BufferAttribute | Uint32BufferAttribute | Uint16Array | Uint32Array | ArrayLike<number>,
         normals?: ArrayLike<number>, 
         uvs?: ArrayLike<number>, 
         joints?: ArrayLike<number>, 

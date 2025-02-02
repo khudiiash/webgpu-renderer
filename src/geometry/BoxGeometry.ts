@@ -1,4 +1,3 @@
-import { BoundingBox } from "@/math/BoundingBox";
 import { Geometry } from "./Geometry";
 import { Vector3 } from "@/math/Vector3";
 import { Float32BufferAttribute } from "./BufferAttribute";

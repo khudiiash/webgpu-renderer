@@ -212,7 +212,7 @@ class Uint16BufferAttribute extends BufferAttribute {
     constructor(array: ArrayLike<number>, itemSize: number, normalized?: boolean) {
         if (array.length < 4) {
             const diff = 4 - array.length;
-            array = [...array, ...new Array(diff).fill(0)];
+            array = [...Array.from(array), ...new Array(diff).fill(0)];
         }
         super(new Uint16Array(array), itemSize, normalized);
         this.format = 'uint16';

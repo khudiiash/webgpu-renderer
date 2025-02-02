@@ -28,7 +28,7 @@ export class GridMaterial extends StandardMaterial{
         super(options);
 
 
-        this.uniforms = new UniformData(this, {
+        this.uniforms.set('material', new UniformData(this, {
             name: 'material',
             isGlobal: false,
             values: {
@@ -40,11 +40,11 @@ export class GridMaterial extends StandardMaterial{
                 grid_line_width: options.lineWidth || 0.01,
                 grid_uv_mode: options.uvMode || 0,
             }
-        });
+        }));
 
         const config = ShaderLibrary.STANDARD;
         config.chunks = ['common', 'scene', 'camera', 'model', 'diffuse_map', 'grid_material', 'pbr', 'fog'];
-        config.varyings.push({ name: 'vScale', type: 'vec3f' });
+        //config.varyings.push({ name: 'vScale', type: 'vec3f' });
         config.name = 'grid';
 
         this.createShader(config);

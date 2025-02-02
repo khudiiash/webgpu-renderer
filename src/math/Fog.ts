@@ -37,7 +37,7 @@ export class Fog extends BufferData {
             ...config
         };
 
-        this._color = new Color(config.color as Color).onChange(() => {
+        this._color = new Color(config.color || '#000000').onChange(() => {
             this.set([this._color.r, this._color.g, this._color.b, this._color.a]);
         });
 

@@ -1,4 +1,4 @@
-import { Float32BufferAttribute, Uint16BufferAttribute } from "./BufferAttribute";
+import { Float32BufferAttribute } from "./BufferAttribute";
 import { Geometry } from "./Geometry";
 
 class PlaneGeometry extends Geometry {

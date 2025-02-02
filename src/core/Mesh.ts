@@ -433,6 +433,4 @@ export class Mesh extends Object3D {
 }
 
 const _v1 = new Vector3();
-const _v2 = new Vector3();
-const _v3 = new Vector3();
 const _mat = new Matrix4();
