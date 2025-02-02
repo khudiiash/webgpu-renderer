@@ -77,7 +77,7 @@ export function num(...args: any[]): boolean {
 }
 
 export function isArrayOrBuffer(v: any): boolean {
-    return Array.isArray(v) || v instanceof BufferData;
+    return Array.isArray(v) || v instanceof Float32Array;
 }
 
 export function autobind(context: any) {

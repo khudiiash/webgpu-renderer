@@ -1,4 +1,4 @@
-import { arraysEqual, num } from "@/util/general";
+import { arraysEqual } from "@/util/general";
 import { ChangeCallback } from "./BufferData";
 
 class DataMonitor {

@@ -1,6 +1,7 @@
 import { BufferData } from "@/data/BufferData";
 import { BufferAttribute } from "@/geometry/BufferAttribute";
 import { Matrix3 } from "./Matrix3";
+import { isArrayOrBuffer } from "@/util";
 
 export class Vector2 extends BufferData {
     [index: number]: number;
@@ -22,8 +23,10 @@ export class Vector2 extends BufferData {
         if (typeof args[0] === 'number') {
             this[0] = args[0];
             this[1] = args[1] ?? 0;
-        } else if (args[0] instanceof BufferData || Array.isArray(args[0])) {
-            super.setSilent(args[0], args[1] || 0);
+        } else if (isArrayOrBuffer(args[0])) {
+            let offset = args[1] || 0;
+            this[0] = args[0][offset];
+            this[1] = args[0][offset + 1];
         }
     }
 

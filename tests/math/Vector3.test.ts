@@ -41,6 +41,27 @@ describe('Vector3', () => {
         expect(v.z).toBe(3);
     });
 
+    it('constructor initializes with array-like values', () => {
+        const v = new Vector3([1, 2, 3]);
+        expect(v.x).toBe(1);
+        expect(v.y).toBe(2);
+        expect(v.z).toBe(3);
+    })
+
+    it('constructor initializes with BufferData', () => {
+        const v = new Vector3(new Float32Array([1, 2, 3]));
+        expect(v.x).toBe(1);
+        expect(v.y).toBe(2);
+        expect(v.z).toBe(3);
+    })
+
+    it('constructor initializes with BufferData and offset', () => {
+        const v = new Vector3(new Float32Array([0, 1, 2, 3]), 1);
+        expect(v.x).toBe(1);
+        expect(v.y).toBe(2);
+        expect(v.z).toBe(3);
+    })
+
     
     it('set values', () => {
         const v = new Vector3();

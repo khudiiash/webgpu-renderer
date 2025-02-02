@@ -268,6 +268,5 @@ export class Object3D extends EventEmitter {
 
 const _target = new Vector3();
 const _position = new Vector3();
-const _quat = new Quaternion();
 const _m1 = new Matrix4();
 const _q1 = new Quaternion();

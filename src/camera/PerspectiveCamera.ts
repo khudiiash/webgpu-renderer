@@ -48,7 +48,25 @@ export class PerspectiveCamera extends Camera {
 
         this.projectionMatrix.setPerspective(left, left + width, top, top - height, near, this.far);
         this.projectionViewMatrix.multiplyMatrices(this.projectionMatrix, this.viewMatrix);
+        console.log('updateProjectionMatrix', this.projectionMatrix);
         this.updateFrustum();
+    }
+
+    copy(camera: PerspectiveCamera) {
+        this.fov = camera.fov;
+        this.zoom = camera.zoom;
+        this.near = camera.near;
+        this.far = camera.far;
+        this.up.copy(camera.up);
+        this.projectionMatrix.copy(camera.projectionMatrix);
+        this.projectionMatrixInverse.copy(camera.projectionMatrixInverse);
+        return this;
+    }
+
+    clone() {
+        const camera = new PerspectiveCamera();
+        camera.copy(this);
+        return camera;
     }
     
 }
