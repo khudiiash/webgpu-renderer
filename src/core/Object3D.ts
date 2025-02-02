@@ -176,9 +176,9 @@ export class Object3D extends EventEmitter {
         if (x instanceof Vector3) {
             this.scale.copy(x);
         } else if (num(x) && !num(y, z)) {
-            this.scale.set([x, x, x]);
+            this.scale.set(x, x, x);
         } else if (num(x, y, z)) {
-            this.scale.set([x, y as number, z as number]);
+            this.scale.set(x, y as number, z as number);
         }
         return this;
     }

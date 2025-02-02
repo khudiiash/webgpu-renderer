@@ -134,7 +134,7 @@ export class OrbitControls extends EventEmitter {
     this.sphericalDelta.theta = 0;
     this.sphericalDelta.phi = 0;
     this.scale = 1;
-    this.panOffset.set([0, 0, 0]);
+    this.panOffset.set(0, 0, 0);
   }
 
   // Mouse event handlers
@@ -142,15 +142,15 @@ export class OrbitControls extends EventEmitter {
     switch (event.button) {
       case 0: // Left button - rotate
         this.state = State.ROTATE;
-        this.rotateStart.set([event.clientX, event.clientY]);
+        this.rotateStart.set(event.clientX, event.clientY);
         break;
       case 1: // Middle button - zoom
         this.state = State.DOLLY;
-        this.zoomStart.set([event.clientX, event.clientY]);
+        this.zoomStart.set(event.clientX, event.clientY);
         break;
       case 2: // Right button - pan
         this.state = State.PAN;
-        this.panStart.set([event.clientX, event.clientY]);
+        this.panStart.set(event.clientX, event.clientY);
         break;
     }
   }
@@ -158,7 +158,7 @@ export class OrbitControls extends EventEmitter {
   onMouseMove(event: MouseEvent) {
     switch (this.state) {
       case State.ROTATE:
-        this.rotateEnd.set([event.clientX, event.clientY]);
+        this.rotateEnd.set(event.clientX, event.clientY);
         this.rotateDelta
           .subVectors(this.rotateEnd, this.rotateStart)
           .scale((2 * Math.PI) / this.domElement.clientHeight)

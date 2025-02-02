@@ -124,9 +124,9 @@ describe('Matrix4', () => {
         expect(scale.z).toBeGreaterThan(0);
     });
 
-    it('set position', () => {
+    it('set translation', () => {
         const m = new Matrix4();
-        m.setPosition(new Vector3(1, 2, 3));
+        m.setTranslation(new Vector3(1, 2, 3));
         expect(Array.from(m)).toEqual([
             1, 0, 0, 0,
             0, 1, 0, 0,
@@ -660,7 +660,7 @@ describe('Matrix4', () => {
     it('should correctly get the position from the matrix', () => {
         // Create a matrix and set translation (position)
         const matrix = new Matrix4();
-        matrix.setPosition(new Vector3(5, -3, 10)); // Set the translation values (for example)
+        matrix.setTranslation(new Vector3(5, -3, 10)); // Set the translation values (for example)
 
         // Create a Vector3 to store the result
         const v = new Vector3();
@@ -676,7 +676,7 @@ describe('Matrix4', () => {
 
     it('should return a new Vector3 if no argument is provided', () => {
         const matrix = new Matrix4();
-        matrix.setPosition(new Vector3(5, -3, 10));
+        matrix.setTranslation(new Vector3(5, -3, 10));
 
         // Call getPosition with no argument
         const position = matrix.getPosition();
@@ -833,7 +833,7 @@ describe('Matrix4', () => {
         describe('setPosition', () => {
             it('should set position from Vector3', () => {
                 const pos = new Vector3(1, 2, 3);
-                m.setPosition(pos);
+                m.setTranslation(pos);
                 
                 expect(m[12]).toBeCloseTo(1);
                 expect(m[13]).toBeCloseTo(2);
@@ -841,7 +841,7 @@ describe('Matrix4', () => {
             });
     
             it('should set position from x, y, z numbers', () => {
-                m.setPosition(4, 5, 6);
+                m.setTranslation(4, 5, 6);
                 
                 expect(m[12]).toBeCloseTo(4);
                 expect(m[13]).toBeCloseTo(5);
@@ -849,7 +849,7 @@ describe('Matrix4', () => {
             });
     
             it('should return this for chaining', () => {
-                const result = m.setPosition(1, 2, 3);
+                const result = m.setTranslation(1, 2, 3);
                 expect(result).toBe(m);
             });
         });
@@ -1031,6 +1031,4 @@ describe('Matrix4', () => {
             });
         });
     });
-
-    
 });

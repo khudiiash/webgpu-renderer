@@ -1,14 +1,29 @@
 import { BufferData } from '@/data/BufferData';
 import { Matrix4 } from './Matrix4';
+import { num } from '@/util/general';
 
 export class Matrix3 extends BufferData {
     static readonly IDENTITY = new Matrix3();
     static instance = new Matrix3();
 
-    constructor(values?: number[]) {
-        super(new Float32Array(9));
-        if (values) this.set(values);
-        else this.setIdentity();
+    constructor();
+    constructor(n00: number, n01: number, n02: number, n10: number, n11: number, n12: number, n20: number, n21: number, n22: number);
+    constructor(values?: ArrayLike<number> | BufferData);
+    constructor(...args: any) {
+        let result;
+        if (args.length === 0) {
+            result = [
+                1, 0, 0,
+                0, 1, 0,
+                0, 0, 1
+            ];
+        } else if (args[0] instanceof BufferData || Array.isArray(args[0])) {
+            result = args[0];
+        } else if (args.length === 9) {
+            result = args;
+        }
+
+        super(result, 9);
     }
 
     setIdentity(): this {
@@ -19,7 +34,7 @@ export class Matrix3 extends BufferData {
     }
 
     copy(m: Matrix3): this {
-        return this.set(m as unknown as number[]);
+        return this.setSilent(m as unknown as number[]);
     }
 
     getNormalMatrix(m: Matrix4) {
@@ -28,11 +43,11 @@ export class Matrix3 extends BufferData {
 
     transpose(): this {
         const a = this;
-        this.set([
+        this.setSilent(
             a[0], a[3], a[6],
             a[1], a[4], a[7],
             a[2], a[5], a[8]
-        ]);
+        );
         return this;
     }
 
@@ -45,7 +60,7 @@ export class Matrix3 extends BufferData {
         const b10 = b[3], b11 = b[4], b12 = b[5];
         const b20 = b[6], b21 = b[7], b22 = b[8];
 
-        this.set([
+        this.setSilent(
             a00 * b00 + a01 * b10 + a02 * b20,
             a00 * b01 + a01 * b11 + a02 * b21,
             a00 * b02 + a01 * b12 + a02 * b22,
@@ -55,7 +70,7 @@ export class Matrix3 extends BufferData {
             a20 * b00 + a21 * b10 + a22 * b20,
             a20 * b01 + a21 * b11 + a22 * b21,
             a20 * b02 + a21 * b12 + a22 * b22
-        ]);
+        );
         return this;
     }
 
@@ -74,7 +89,7 @@ export class Matrix3 extends BufferData {
         if (!det) return this.setIdentity();
 
         const invDet = 1 / det;
-        this.set([
+        this.setSilent(
             b01 * invDet,
             (-a22 * a01 + a02 * a21) * invDet,
             (a12 * a01 - a02 * a11) * invDet,
@@ -84,16 +99,36 @@ export class Matrix3 extends BufferData {
             b03 * invDet,
             (-a21 * a00 + a01 * a20) * invDet,
             (a11 * a00 - a01 * a10) * invDet
-        ]);
+        );
         return this;
     }
 
     fromMatrix4(mat4: { [key: number]: number }): this {
-        this.set([
+        this.setSilent(
             mat4[0], mat4[1], mat4[2],
             mat4[4], mat4[5], mat4[6],
             mat4[8], mat4[9], mat4[10]
-        ]);
+        );
         return this;
+    }
+
+    set(n00: number, n01: number, n02: number, n10: number, n11: number, n12: number, n20: number, n21: number, n22: number): this;
+    set(n: ArrayLike<number> | BufferData, offset?: number): this
+    set(...args: any) {
+        if (num(args[0])) {
+            return super.set(args);
+        } else {
+            return super.set(args[0] as ArrayLike<number>, args[1]);
+        }
+    }
+
+    setSilent(n00: number, n01: number, n02: number, n10: number, n11: number, n12: number, n20: number, n21: number, n22: number): this;
+    setSilent(n: ArrayLike<number> | BufferData, offset?: number): this;
+    setSilent(...args: any) {
+        if (num(args[0])) {
+            return super.setSilent(args);
+        } else {
+            return super.setSilent(args[0] as ArrayLike<number>, args[1]);
+        }
     }
 }

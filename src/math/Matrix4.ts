@@ -27,8 +27,25 @@ export class Matrix4 extends BufferData {
     ]);
 
 
-    constructor(values: number[] = [ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 ]) {
-        super(values);
+    constructor();
+    constructor(n00: number, n01: number, n02: number, n03: number, n10: number, n11: number, n12: number, n13: number, n20: number, n21: number, n22: number, n23: number, n30: number, n31: number, n32: number, n33: number);
+    constructor(values?: ArrayLike<number> | BufferData);
+    constructor(...args: any) {
+        let result;
+        if (args.length === 0) {
+            result = [
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
+            ]
+        } else if (args[0] instanceof BufferData || Array.isArray(args[0])) {
+            result = args[0];
+        } else if (args.length === 16) {
+            result = args;
+        }
+
+        super(result, 16);
     }
 
     add(m: Matrix4): this {
@@ -233,7 +250,7 @@ export class Matrix4 extends BufferData {
             z = x[2];
             x = x[0];
         }
-        this.set([
+        this.setSilent([
             1, 0, 0, 0,
             0, 1, 0, 0,
             0, 0, 1, 0,
@@ -243,7 +260,9 @@ export class Matrix4 extends BufferData {
     }
 
 
-    scale( v: Vector3 ): this {
+
+
+    scale(v: Vector3): this {
 		const te = this;
 		const x = v.x, y = v.y, z = v.z;
 
@@ -254,9 +273,6 @@ export class Matrix4 extends BufferData {
 
 		return this;
 	}
-
-
-
 
 	multiply( m: Matrix4 ): this {
 		return this.multiplyMatrices( this, m );
@@ -329,7 +345,7 @@ export class Matrix4 extends BufferData {
         const te = this;
         const { x: sx, y: sy, z: sz } = scale;
     
-        return te.set(
+        return te.setSilent(
             sx, 0,  0,  0,
             0,  sy, 0,  0,
             0,  0,  sz, 0,
@@ -376,12 +392,12 @@ export class Matrix4 extends BufferData {
         const m22 = te[10];
         const m23 = te[11];
 
-        this.set([
+        this.setSilent(
             r00 * m00 + r01 * m10 + r02 * m20, r00 * m01 + r01 * m11 + r02 * m21, r00 * m02 + r01 * m12 + r02 * m22, r00 * m03 + r01 * m13 + r02 * m23,
             r10 * m00 + r11 * m10 + r12 * m20, r10 * m01 + r11 * m11 + r12 * m21, r10 * m02 + r11 * m12 + r12 * m22, r10 * m03 + r11 * m13 + r12 * m23,
             r20 * m00 + r21 * m10 + r22 * m20, r20 * m01 + r21 * m11 + r22 * m21, r20 * m02 + r21 * m12 + r22 * m22, r20 * m03 + r21 * m13 + r22 * m23,
             te[12], te[13], te[14], te[15]
-        ])
+        );
 
         return this;
     }
@@ -394,7 +410,7 @@ export class Matrix4 extends BufferData {
         const c = - (far + near) / (far - near);
         const d = - (2 * far * near) / (far - near);
     
-        this.set(
+        this.setSilent(
             x, 0, a, 0,
             0, y, b, 0,
             0, 0, c, d,
@@ -442,12 +458,12 @@ export class Matrix4 extends BufferData {
     setFromRotationMatrix(m: Matrix4): this {
         const te = this;
         te.setIdentity();
-        return this.set([
+        return this.setSilent(
             m[0], m[1], m[2], 0,
             m[4], m[5], m[6], 0,
             m[8], m[9], m[10], 0,
             0, 0, 0, 1
-        ]);
+        );
     }
 
     setRotationFromQuaternion(q: Quaternion): this {
@@ -495,12 +511,12 @@ export class Matrix4 extends BufferData {
 
     setFromMatrix3(m: Matrix3): this {
         const me = m;
-        this.set([
+        this.setSilent(
             me[0], me[3], me[6], 0,
             me[1], me[4], me[7], 0,
             me[2], me[5], me[8], 0,
             0, 0, 0, 1
-        ]);
+        );
         return this;
     }
 
@@ -512,12 +528,12 @@ export class Matrix4 extends BufferData {
     }
 
     setBasis(xAxis: Vector3, yAxis: Vector3, zAxis: Vector3): this {
-        this.set([
+        this.setSilent(
             xAxis.x, yAxis.x, zAxis.x, 0,
             xAxis.y, yAxis.y, zAxis.y, 0,
             xAxis.z, yAxis.z, zAxis.z, 0,
             0, 0, 0, 1
-        ])
+        )
         return this;
     }
 
@@ -642,12 +658,12 @@ export class Matrix4 extends BufferData {
     }
 
     setIdentity(): this {
-        return this.set([
+        return this.set(
             1, 0, 0, 0,
             0, 1, 0, 0,
             0, 0, 1, 0,
             0, 0, 0, 1
-        ])
+        )
     }
     setOrthographic(left: number, right: number, bottom: number, top: number, near: number, far: number): this {
         const w = 1.0 / (right - left);
@@ -658,12 +674,12 @@ export class Matrix4 extends BufferData {
         const y = (top + bottom) * h;
         const z = near * p;
 
-        return this.set([
+        return this.setSilent(
             2 * w, 0, 0, 0,
             0, 2 * h, 0, 0,
             0, 0, -1 * p, 0,
             -x, -y, -z, 1
-        ]);
+        );
     }
     setPerspective(left: number, right: number, top: number, bottom: number, near: number, far: number): this {
         const x = 2 * near / (right - left);
@@ -675,41 +691,25 @@ export class Matrix4 extends BufferData {
         const c = -far / (far - near);
         const d = (-far * near) / (far - near);
 
-        return this.set([
+        return this.setSilent(
             x, 0, 0, 0,
             0, y, 0, 0,
             a, b, c, -1,
             0, 0, d, 0
-        ]);
+        );
     }
-    setPosition( x: Vector3 | number, y?: number, z?: number ) {
-		const te = this;
-
-		if ( x instanceof Vector3 ) {
-			te[ 12 ] = x.x;
-			te[ 13 ] = x.y;
-			te[ 14 ] = x.z;
-
-		} else if (num(x, y, z)) {
-			te[12] = x as number;
-			te[13] = y as number;
-			te[14] = z as number;
-		}
-
-		return this;
-	}
-    setScale(x: Vector3 | number, y: number, z: number): this {
+    setScale(x: Vector3 | number, y?: number, z?: number): this {
         if (x instanceof Vector3) {
             y = x[1];
             z = x[2];
             x = x[0];
         }
-        this.set([
+        this.setSilent(
             x, 0, 0, 0,
-			0, y, 0, 0,
-			0, 0, z, 0,
+			0, y??1, 0, 0,
+			0, 0, z??1, 0,
 			0, 0, 0, 1
-        ]);
+        );
         return this;
     }
     setRotation(q: Quaternion): this {
@@ -719,28 +719,28 @@ export class Matrix4 extends BufferData {
         const yy = y * y2, yz = y * z2, zz = z * z2;
         const wx = w * x2, wy = w * y2, wz = w * z2;
 
-        return this.set([
+        return this.set(
             1 - (yy + zz), xy - wz, xz + wy, 0,
             xy + wz, 1 - (xx + zz), yz - wx, 0,
             xz - wy, yz + wx, 1 - (xx + yy), 0,
             0, 0, 0, 1
-        ]);
+        );
     }
     transformPoint(v: Vector3): Vector3 {
         const x = v.x;
         const y = v.y;
         const z = v.z;
         const data = this;
-        return v.set([
+        return v.set(
             data[0] * x + data[4] * y + data[8] * z + data[12],
             data[1] * x + data[5] * y + data[9] * z + data[13],
             data[2] * x + data[6] * y + data[10] * z + data[14]
-        ]);
+        );
     }
 
     translate(v: Vector3): this {
         const te = this;
-        return this.set([te[12] + v.x, te[13] + v.y, te[14] + v.z, 1], 12); 
+        return this.setSilent([te[12] + v.x, te[13] + v.y, te[14] + v.z, 1], 12); 
     }
     transpose() {
 		const te = this;
@@ -755,13 +755,12 @@ export class Matrix4 extends BufferData {
 		tmp = te[ 11 ]; te[ 11 ] = te[ 14 ]; te[ 14 ] = tmp;
 
 		return this;
-
 	}
 
     setRotationX(radians: number): this {
         const c = Math.cos(radians);
         const s = Math.sin(radians);
-        return this.set(
+        return this.setSilent(
             1, 0, 0, 0,
             0, c, s, 0,
             0, -s, c, 0,
@@ -772,7 +771,7 @@ export class Matrix4 extends BufferData {
     setRotationY(radians: number): this {
         const c = Math.cos(radians);
         const s = Math.sin(radians);
-        return this.set(
+        return this.setSilent(
             c, 0, -s, 0,
             0, 1, 0, 0,
             s, 0, c, 0,
@@ -783,43 +782,39 @@ export class Matrix4 extends BufferData {
     setRotationZ(radians: number): this {
         const c = Math.cos(radians);
         const s = Math.sin(radians);
-        return this.set([
+        return this.setSilent(
             c, s, 0, 0,
             -s, c, 0, 0,
             0, 0, 1, 0,
             0, 0, 0, 1
-        ]);
+        );
     }
 
-    set(m00: number | ArrayLike<number> | Float32Array, m01?: number, m02?: number, m03?: number, m10?: number, m11?: number, m12?: number, m13?: number, m20?: number, m21?: number, m22?: number, m23?: number, m30?: number, m31?: number, m32?: number, m33?: number): this {
-        if (num(m00)) {
-            this[0] = m00 as number;
-            this[1] = m01!;
-            this[2] = m02!;
-            this[3] = m03!;
-            this[4] = m10!;
-            this[5] = m11!;
-            this[6] = m12!;
-            this[7] = m13!;
-            this[8] = m20!;
-            this[9] = m21!;
-            this[10] = m22!;
-            this[11] = m23!;
-            this[12] = m30!;
-            this[13] = m31!;
-            this[14] = m32!;
-            this[15] = m33!;
+    set(n00: number, n01: number, n02: number, n03: number, n10: number, n11: number, n12: number, n13: number, n20: number, n21: number, n22: number, n23: number, n30: number, n31: number, n32: number, n33: number): this
+    set(n: ArrayLike<number> | BufferData, offset?: number): this
+    set(...args: any) {
+        if (num(args[0])) {
+            return super.set(args);
         } else {
-            super.set(m00 as Float32Array, m01);
+            return super.set(args[0] as ArrayLike<number>, args[1]);
         }
-        return this;
+    }
+
+    setSilent(n00: number, n01: number, n02: number, n03: number, n10: number, n11: number, n12: number, n13: number, n20: number, n21: number, n22: number, n23: number, n30: number, n31: number, n32: number, n33: number): this;
+    setSilent(n: ArrayLike<number> | BufferData, offset?: number): this;
+    setSilent(...args: any) {
+        if (num(args[0])) {
+            return super.setSilent(args);
+        } else {
+            return super.setSilent(args[0] as ArrayLike<number>, args[1]);
+        }
     }
 
     toString() {
         const te = this;
         return `${te[0]} ${te[1]} ${te[2]} ${te[3]}\n${te[4]} ${te[5]} ${te[6]} ${te[7]}\n${te[8]} ${te[9]} ${te[10]} ${te[11]}\n${te[12]} ${te[13]} ${te[14]} ${te[15]}`;
     }
-}
+} 
 const _zero = new Vector3();
 const _one = new Vector3(1, 1, 1);
 const _m1 = new Matrix4();
