@@ -7,8 +7,24 @@ export class Vector2 extends BufferData {
     readonly length: number = 2;
     readonly isVector2: boolean = true;
 
-    constructor(x: number = 0, y: number = 0) {
-        super([x, y]);
+    get x() { return this[0]; }
+    get y() { return this[1]; }
+
+    set x(value) { this[0] = value; this.monitor.check(0); }
+    set y(value) { this[1] = value; this.monitor.check(1); }
+
+    constructor();
+    constructor(x: number, y: number);
+    constructor(values: ArrayLike<number> | BufferData, offset?: number);
+
+    constructor(...args: any) {
+        super([0, 0], 2);
+        if (typeof args[0] === 'number') {
+            this[0] = args[0];
+            this[1] = args[1] ?? 0;
+        } else if (args[0] instanceof BufferData || Array.isArray(args[0])) {
+            super.setSilent(args[0], args[1] || 0);
+        }
     }
 
     add(v: Vector2): this {
@@ -132,9 +148,4 @@ export class Vector2 extends BufferData {
         return Math.sqrt(this[0] * this[0] + this[1] * this[1]);
     }
 
-    get x() { return this[0]; }
-    get y() { return this[1]; }
-
-    set x(value) { this[0] = value; this.monitor.check(0); }
-    set y(value) { this[1] = value; this.monitor.check(1); }
 }

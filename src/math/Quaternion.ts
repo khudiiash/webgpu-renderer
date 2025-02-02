@@ -3,7 +3,6 @@ import { Vector3 } from "./Vector3";
 import { Matrix4 } from "./Matrix4";
 import { Euler } from "./Euler";
 import { Matrix3 } from "./Matrix3";
-import { B } from "vitest/dist/chunks/benchmark.geERunq4.js";
 
 
 export class Quaternion extends BufferData {
@@ -18,7 +17,7 @@ export class Quaternion extends BufferData {
     constructor(values: ArrayLike<number> | BufferData, offset?: number);
 
     constructor(...args: any) {
-        super([0, 0, 0, 1]);
+        super([0, 0, 0, 1], 4);
         if (typeof args[0] === 'number') {
             this[0] = args[0];
             this[1] = args[1] ?? 0;

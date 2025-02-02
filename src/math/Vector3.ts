@@ -39,7 +39,7 @@ export class Vector3 extends BufferData {
     set z(value) { this[2] = value; this.monitor.check(2); }
 
     constructor(x: number = 0, y: number = 0, z: number = 0) {
-        super([x, y, z]);
+        super([x, y, z], 3);
     }
     add(v: Vector3): this {
         this[0] += v[0];

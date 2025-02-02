@@ -16,8 +16,20 @@ export class Vector4 extends BufferData {
     set z(value) { this[2] = value; this.monitor.check(2); }
     set w(value) { this[3] = value; this.monitor.check(3); }
 
-    constructor(x: number = 0, y: number = 0, z: number = 0, w: number = 0) {
-        super([x, y, z, w]);
+    constructor();
+    constructor(x: number, y: number, z: number, w: number);
+    constructor(values: ArrayLike<number> | BufferData, offset?: number);
+
+    constructor(...args: any) {
+        super([0, 0, 0, 0], 4);
+        if (typeof args[0] === 'number') {
+            this[0] = args[0];
+            this[1] = args[1] ?? 0;
+            this[2] = args[2] ?? 0;
+            this[3] = args[3] ?? 0;
+        } else if (args[0] instanceof BufferData || Array.isArray(args[0])) {
+            super.setSilent(args[0], args[1] || 0);
+        }
     }
 
     add(v: Vector4): this {
@@ -88,18 +100,30 @@ export class Vector4 extends BufferData {
                this[2] === v[2] && this[3] === v[3];
     }
 
-    set(x: number | ArrayLike<number>, y: number = 0, z: number = 0, w: number = 0): this {
-        if (Array.isArray(x) || x instanceof Float32Array) {
-            let offset = y;
-            this[0] = x[offset];
-            this[1] = x[offset + 1];
-            this[2] = x[offset + 2];
-            this[3] = x[offset + 3];
-        } else {
-            this[0] = x as number;
-            this[1] = y as number;
-            this[2] = z as number;
-            this[3] = w as number;
+    set(x: number, y: number, z: number, w: number): this;
+    set(v: ArrayLike<number> | BufferData, offset?: number): this;
+    set(...args: any): this {
+        if (typeof args[0] === 'number') {
+            this[0] = args[0];
+            this[1] = args[1] ?? 0;
+            this[2] = args[2] ?? 0;
+            this[3] = args[3] ?? 0;
+        } else if (args[0] instanceof BufferData || Array.isArray(args[0])) {
+            super.setSilent(args[0], args[1] || 0);
+        }
+        return this;
+    }
+
+    setSilent(x: number, y: number, z: number, w: number): this;
+    setSilent(v: ArrayLike<number> | BufferData, offset?: number): this;
+    setSilent(...args: any): this {
+        if (typeof args[0] === 'number') {
+            this[0] = args[0];
+            this[1] = args[1] ?? 0;
+            this[2] = args[2] ?? 0;
+            this[3] = args[3] ?? 0;
+        } else if (args[0] instanceof BufferData || Array.isArray(args[0])) {
+            super.setSilent(args[0], args[1] || 0);
         }
         return this;
     }
