@@ -3,12 +3,12 @@ import { Matrix4 } from "./Matrix4";
 import { BufferAttribute } from "@/geometry/BufferAttribute";
 import { Matrix3 } from "./Matrix3";
 import { Quaternion } from "./Quaternion";
+import { isArrayOrBuffer } from "@/util";
 
 export class Vector3 extends BufferData {
     [index: number]: number;
     readonly length: number = 3;
     readonly isVector3: boolean = true;
-    private locked: boolean = false;
 
     static get zero(): Vector3 { return new Vector3(0, 0, 0); }
     static get one(): Vector3 { return new Vector3(1, 1, 1); }
@@ -34,62 +34,42 @@ export class Vector3 extends BufferData {
     get y() { return this[1]; }
     get z() { return this[2]; }
 
-    set x(value) { if (!this.locked) { this[0] = value; this.monitor.check(0); } }
-    set y(value) { if (!this.locked) { this[1] = value; this.monitor.check(1); } }
-    set z(value) { if (!this.locked) { this[2] = value; this.monitor.check(2); } }
+    set x(value) { this[0] = value; this.monitor.check(0); }
+    set y(value) { this[1] = value; this.monitor.check(1); }
+    set z(value) { this[2] = value; this.monitor.check(2); }
 
     constructor(x: number = 0, y: number = 0, z: number = 0) {
         super([x, y, z]);
     }
-
-    lock(): this {
-        this.locked = true;
-        return this;
-    }
-
-    unlock(): this {
-        this.locked = false;
-        return this;
-    }
-
     add(v: Vector3): this {
-        if (!this.locked) {
-            this[0] += v[0];
-            this[1] += v[1];
-            this[2] += v[2];
-        }
+        this[0] += v[0];
+        this[1] += v[1];
+        this[2] += v[2];
         return this;
     }
 
     addVectors(a: Vector3, b: Vector3): Vector3 {
-        if (!this.locked) {
-            this[0] = a[0] + b[0];
-            this[1] = a[1] + b[1];
-            this[2] = a[2] + b[2];
-        }
+        this[0] = a[0] + b[0];
+        this[1] = a[1] + b[1];
+        this[2] = a[2] + b[2];
         return this;
     }
 
     sub(v: Vector3): this {
-        if (!this.locked) {
-            this[0] -= v[0];
-            this[1] -= v[1];
-            this[2] -= v[2];
-        }
+        this[0] -= v[0];
+        this[1] -= v[1];
+        this[2] -= v[2];
         return this;
     }
 
     subVectors(a: Vector3, b: Vector3): Vector3 {
-        if (!this.locked) {
-            this[0] = a[0] - b[0];
-            this[1] = a[1] - b[1];
-            this[2] = a[2] - b[2];
-        }
+        this[0] = a[0] - b[0];
+        this[1] = a[1] - b[1];
+        this[2] = a[2] - b[2];
         return this;
     }
 
     divide(v: Vector3 | number): this {
-        if (this.locked) return this;
         if (v instanceof Vector3) {
             if (v[0] === 0 || v[1] === 0 || v[2] === 0) {
                 throw new Error('Division by zero');
@@ -110,60 +90,50 @@ export class Vector3 extends BufferData {
     }
     
     multiply(v: Vector3): this {
-        if (!this.locked) {
-            this[0] *= v[0];
-            this[1] *= v[1];
-            this[2] *= v[2];
-        }
+        this[0] *= v[0];
+        this[1] *= v[1];
+        this[2] *= v[2];
         return this;
     }
 
     multiplyVectors(a: Vector3, b: Vector3): this {
-        if (!this.locked) {
-            this[0] = a[0] * b[0];
-            this[1] = a[1] * b[1];
-            this[2] = a[2] * b[2];
-        }
+        this[0] = a[0] * b[0];
+        this[1] = a[1] * b[1];
+        this[2] = a[2] * b[2];
         return this;
     }
 
     scale(scalar: number | Vector3): this {
-        if (!this.locked) {
-            if (scalar instanceof Vector3) {
-                this[0] *= scalar[0];
-                this[1] *= scalar[1];
-                this[2] *= scalar[2];
-            } else {
-                this[0] *= scalar;
-                this[1] *= scalar;
-                this[2] *= scalar;
-            }
+        if (scalar instanceof Vector3) {
+            this[0] *= scalar[0];
+            this[1] *= scalar[1];
+            this[2] *= scalar[2];
+        } else {
+            this[0] *= scalar;
+            this[1] *= scalar;
+            this[2] *= scalar;
         }
         return this;
     }
 
     cross(v: Vector3): this {
-        if (!this.locked) {
-            const x = this[0];
-            const y = this[1];
-            const z = this[2];
+        const x = this[0];
+        const y = this[1];
+        const z = this[2];
 
-            this[0] = y * v[2] - z * v[1];
-            this[1] = z * v[0] - x * v[2];
-            this[2] = x * v[1] - y * v[0];
-        }
+        this[0] = y * v[2] - z * v[1];
+        this[1] = z * v[0] - x * v[2];
+        this[2] = x * v[1] - y * v[0];
         return this;
     }
 
     crossVectors(a: Vector3, b: Vector3): this {
-        if (!this.locked) {
-            const ax = a[0], ay = a[1], az = a[2];
-            const bx = b[0], by = b[1], bz = b[2];
+        const ax = a[0], ay = a[1], az = a[2];
+        const bx = b[0], by = b[1], bz = b[2];
 
-            this[0] = ay * bz - az * by;
-            this[1] = az * bx - ax * bz;
-            this[2] = ax * by - ay * bx;
-        }
+        this[0] = ay * bz - az * by;
+        this[1] = az * bx - ax * bz;
+        this[2] = ax * by - ay * bx;
         return this;
     }
 
@@ -172,11 +142,9 @@ export class Vector3 extends BufferData {
     }
 
     clamp(min: Vector3, max: Vector3): this {
-        if (!this.locked) {
-            this[0] = Math.max(min[0], Math.min(max[0], this[0]));
-            this[1] = Math.max(min[1], Math.min(max[1], this[1]));
-            this[2] = Math.max(min[2], Math.min(max[2], this[2]));
-        }
+        this[0] = Math.max(min[0], Math.min(max[0], this[0]));
+        this[1] = Math.max(min[1], Math.min(max[1], this[1]));
+        this[2] = Math.max(min[2], Math.min(max[2], this[2]));
         return this;
     }
 
@@ -188,14 +156,12 @@ export class Vector3 extends BufferData {
     }
 
     applyMatrix4(m: Matrix4): this {
-        if (!this.locked) {
-            const x = this.x, y = this.y, z = this.z;
-            const e = m;
-            const w = 1 / ( e[ 3 ] * x + e[ 7 ] * y + e[ 11 ] * z + e[ 15 ] );
-            this[0] = ( e[ 0 ] * x + e[ 4 ] * y + e[ 8 ] * z + e[ 12 ] ) * w;
-            this[1] = ( e[ 1 ] * x + e[ 5 ] * y + e[ 9 ] * z + e[ 13 ] ) * w;
-            this[2] = ( e[ 2 ] * x + e[ 6 ] * y + e[ 10 ] * z + e[ 14 ] ) * w;
-        }
+        const x = this.x, y = this.y, z = this.z;
+        const e = m;
+        const w = 1 / ( e[ 3 ] * x + e[ 7 ] * y + e[ 11 ] * z + e[ 15 ] );
+        this[0] = ( e[ 0 ] * x + e[ 4 ] * y + e[ 8 ] * z + e[ 12 ] ) * w;
+        this[1] = ( e[ 1 ] * x + e[ 5 ] * y + e[ 9 ] * z + e[ 13 ] ) * w;
+        this[2] = ( e[ 2 ] * x + e[ 6 ] * y + e[ 10 ] * z + e[ 14 ] ) * w;
         return this;
     }
 
@@ -205,7 +171,7 @@ export class Vector3 extends BufferData {
 		const tx = 2 * ( qy * vz - qz * vy );
 		const ty = 2 * ( qz * vx - qx * vz );
 		const tz = 2 * ( qx * vy - qy * vx );
-		this.setXYZ(
+		this.setSilent(
             vx + qw * tx + qy * tz - qz * ty,
 		    vy + qw * ty + qz * tx - qx * tz,
 		    vz + qw * tz + qx * ty - qy * tx,
@@ -214,41 +180,35 @@ export class Vector3 extends BufferData {
     }
 
     transformDirection(m: Matrix4): this {
-        if (!this.locked) {
-            const x = this[0];
-            const y = this[1];
-            const z = this[2];
+        const x = this[0];
+        const y = this[1];
+        const z = this[2];
 
-            const e = m;
+        const e = m;
 
-            this[0] = e[0] * x + e[4] * y + e[8] * z;
-            this[1] = e[1] * x + e[5] * y + e[9] * z;
-            this[2] = e[2] * x + e[6] * y + e[10] * z;
-        }
+        this[0] = e[0] * x + e[4] * y + e[8] * z;
+        this[1] = e[1] * x + e[5] * y + e[9] * z;
+        this[2] = e[2] * x + e[6] * y + e[10] * z;
         return this;
     }
 
     applyMatrix3(m: Matrix3): this {
-        if (!this.locked) {
-            const x = this[0];
-            const y = this[1];
-            const z = this[2];
+        const x = this[0];
+        const y = this[1];
+        const z = this[2];
 
-            const e = m;
+        const e = m;
 
-            this[0] = e[0] * x + e[3] * y + e[6] * z;
-            this[1] = e[1] * x + e[4] * y + e[7] * z;
-            this[2] = e[2] * x + e[5] * y + e[8] * z;
-        }
+        this[0] = e[0] * x + e[3] * y + e[6] * z;
+        this[1] = e[1] * x + e[4] * y + e[7] * z;
+        this[2] = e[2] * x + e[5] * y + e[8] * z;
         return this;
     }
 
     negate(): this {
-        if (!this.locked) {
-            this[0] = -this[0];
-            this[1] = -this[1];
-            this[2] = -this[2];
-        }
+        this[0] = -this[0];
+        this[1] = -this[1];
+        this[2] = -this[2];
         return this;
     }
 
@@ -271,52 +231,43 @@ export class Vector3 extends BufferData {
     }
 
     setFromBufferAttribute(attribute: BufferAttribute, index: number): this {
-        if (!this.locked) {
-            this[0] = attribute.getX(index);
-            this[1] = attribute.getY(index);
-            this[2] = attribute.getZ(index);
+        this[0] = attribute.getX(index);
+        this[1] = attribute.getY(index);
+        this[2] = attribute.getZ(index);
+        return this;
+    }
+
+    set(x: number, y: number, z: number): this;
+    set(x: ArrayLike<number> | BufferData, offset?: number): this;
+    set(...args: any) {
+        if (isArrayOrBuffer(args[0])) {
+            super.set(args[0], args[1] || 0);
+        } else {
+            super.set(args);
         }
         return this;
     }
 
-    set(x: number | ArrayLike<number>, y?: number, z?: number): this {
-        if (!this.locked) {
-            if (Array.isArray(x)) {
-                this[0] = x[0];
-                this[1] = x[1];
-                this[2] = x[2];
-            } else {
-                this[0] = x as number;
-                this[1] = y as number;
-                this[2] = z as number;
-            }
-            this.monitor.check();
+    setSilent(x: number, y: number, z: number): this;
+    setSilent(x: ArrayLike<number> | BufferData, offset?: number): this;
+    setSilent(...args: any) {
+        if (isArrayOrBuffer(args[0])) {
+            super.setSilent(args[0], args[1] || 0);
+        } else {
+            super.setSilent(args);
         }
         return this;
     }
 
     setFromMatrixColumn(matrix: Matrix4, index: number): this {
-        if (!this.locked) {
-            if (index < 0 || index > 3) {
-                throw new Error('Index out of bounds');
-            }
-            return this.fromArray(matrix, index * 4);
+        if (index < 0 || index > 3) {
+            throw new Error('Index out of bounds');
         }
-        return this;
+        return this.fromArray(matrix, index * 4);
     }
 
     setFromMatrixPosition(matrix: Matrix4): this {
-        if (!this.locked) {
-            return this.fromArray(matrix, 12);
-        }
-        return this;
-    }
-
-    setXYZ(x: number, y: number, z: number): this {
-        if (!this.locked) {
-            this.set([x, y, z]);
-        }
-        return this;
+        return this.fromArray(matrix, 12);
     }
 
     static lerp(v1: Vector3, v2: Vector3, t: number): Vector3 {
@@ -336,12 +287,14 @@ export class Vector3 extends BufferData {
     }
 
     normalize(): this {
-        if (this.locked) return this;
-        const length = this.magnitude();
+        const length = Math.sqrt(this[0] * this[0] + this[1] * this[1] + this[2] * this[2]);
         if (length === 0) {
             return this;
         }
-        return this.divide(this.magnitude());
+        this[0] /= length;
+        this[1] /= length;
+        this[2] /= length;
+        return this;
     }
 
     clone(): this {

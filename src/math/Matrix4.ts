@@ -150,7 +150,7 @@ export class Matrix4 extends BufferData {
 
     getPosition(v?: Vector3): Vector3 {
         v = v || new Vector3();
-        return v.setXYZ(this[12], this[13], this[14]);
+        return v.set(this[12], this[13], this[14]);
     }
 
     getMaxScaleOnAxis(): number {

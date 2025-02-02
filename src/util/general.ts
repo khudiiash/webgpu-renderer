@@ -76,6 +76,10 @@ export function num(...args: any[]): boolean {
     return true;
 }
 
+export function isArrayOrBuffer(v: any): boolean {
+    return Array.isArray(v) || v instanceof BufferData;
+}
+
 export function autobind(context: any) {
     Object.getOwnPropertyNames(Object.getPrototypeOf(context))
         .filter((key) => {
