@@ -241,6 +241,7 @@ describe('Quaternion', () => {
     });
 
     it('should warn for undefined Euler order', () => {
+        // @ts-ignore
         const euler = new Euler(Math.PI / 4, Math.PI / 4, Math.PI / 4, 'UNDEFINED');
         const q = new Quaternion();
         const p = q.clone().setFromEuler(euler);
