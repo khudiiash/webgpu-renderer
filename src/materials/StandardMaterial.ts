@@ -114,7 +114,6 @@ class StandardMaterial extends Material {
             topology: options.topology || 'triangle-list',
             frontFace: options.frontFace || 'ccw',
 		}).onChange(() => {
-            console.log(this.renderState);
             this.rebuild()
         }); 
 
