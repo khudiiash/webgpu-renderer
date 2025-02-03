@@ -1,27 +1,13 @@
-import { ShaderLibrary, ShaderDefines } from './ShaderLibrary';
-
-export type TemplateBinding = {
-    group: number;
-    binding: number;
-    buffer: string;
-    access: string;
-    name: string;
-    type: string;
-}
-
-export type TemplateDefines = {
-    [key: string]: boolean;
-}
-
-export type TemplateVars = {
-    [key: string]: number | string | boolean;
-}
-
+import { ShaderChunk } from './ShaderChunk';
+import { ShaderLibrary } from './ShaderLibrary';
+import { Struct } from '@/data/Struct';
+import { Binding } from '@/data/Binding';
 
 export class TemplateProcessor {
-
     static #instance: TemplateProcessor;
-
+    private chunks = new Set<ShaderChunk>();
+    private bindings = new Set<Binding>();
+    private type: 'vertex' | 'fragment' | 'compute' = 'vertex'
     constructor() {
         if (TemplateProcessor.#instance) {
             return TemplateProcessor.#instance;
@@ -37,130 +23,148 @@ export class TemplateProcessor {
     }
 
 
-    static processTemplate(template: string, defines: ShaderDefines, bindings: TemplateBinding[]) {
-        return TemplateProcessor.getInstance().processTemplate(template, defines, bindings);
+    static processTemplate(template: string, chunks: string[]) {
+        return TemplateProcessor.getInstance().processTemplate(template, chunks);
     }
 
-    processTemplate(template: string, defines: ShaderDefines, bindings: TemplateBinding[]) {
-        let processed = template;
-        processed = this.processIfBlocks(processed, defines);
-        const includeNames = this.parseIncludes(processed);
-        processed = this.processIncludes(processed, includeNames);
-        processed = this.processFunctions(processed);
-        processed = this.processIfBlocks(processed, defines);
-        processed = this.processVars(processed, defines);
-        this.processBindings(processed, bindings);
-        return processed;
+    static getBindings() {
+        return TemplateProcessor.getInstance().getBindings();
     }
 
-    processVars(template: string, defines: TemplateDefines): string {
-        const varRegex = /\${(\w+)}/g;
-        let match;
-        while ((match = varRegex.exec(template)) !== null) {
-            const [_, key] = match;
-            if (defines[key] !== undefined) {
-                template = template.replace(`\${${key}}`, defines[key].toString());
-            }
+    static getChunks() {
+        return TemplateProcessor.getInstance().getChunks();
+    }
+
+    static processDefines(defines: Record<string, boolean>, template: string) {
+        if (!template || !template.includes('#if')) return template; 
+        for (const [key, value] of Object.entries(defines)) {
+            if (!template.includes(key)) continue;
+            const re = new RegExp(`#if ${key} {([\\s\\S]*?)}`, 'g');
+            template = template.replace(re, value ? '$1' : '');
         }
-
         return template;
     }
 
-    processIfBlocks(template: string, defines: ShaderDefines) {
-        let result = '';
-        let pos = 0;
-        
-        while (pos < template.length) {
-            const ifStart = template.indexOf('#if', pos);
-            if (ifStart === -1) {
-                result += template.slice(pos);
-                break;
-            }
-            
-            result += template.slice(pos, ifStart);
-            
-            const featureStart = ifStart + 3;
-            let featureEnd = template.indexOf('{', featureStart);
-            const feature = template.slice(featureStart, featureEnd).trim();
-            
-            // find matching closing brace
-            let braceCount = 1;
-            let contentStart = featureEnd + 1;
-            let contentEnd = contentStart;
-            
-            while (braceCount > 0 && contentEnd < template.length) {
-                if (template[contentEnd] === '{') {
-                    braceCount++;
-                } else if (template[contentEnd] === '}') {
-                    braceCount--;
-                }
-                contentEnd++;
-            }
-            
-            const content = template.slice(contentStart, contentEnd - 1);
-            
-            if (defines[feature] === true) {
-                result += content;
-            }
-            
-            pos = contentEnd;
+    processTemplate(template: string, chunks: string[]) {
+        let processed = template;
+        this.type = processed.match(/@(vertex|fragment|compute)/)?.[1] as 'vertex' | 'fragment' | 'compute';
+        this.chunks.clear();
+        this.bindings.clear();
+        for (const chunkName of chunks) {
+            this.processChunk(chunkName);
         }
-        
-        return result;
+        processed = this.processMain(processed);
+        return processed;
+    }
+    private processChunk = (chunkName: string) => {
+        const chunk = ShaderLibrary.getChunk(chunkName);
+        if (!chunk || !chunk.shouldInsert(this.type)) return;
+        this.chunks.add(chunk);
+        for (const binding of chunk.bindings) {
+            binding.shouldInsert(this.type) && this.bindings.add(binding);
+        }
+        for (const subChunk of chunk.chunks) {
+            this.processChunk(subChunk.name);
+        }
+    };
+
+    getBindings() {
+        return Array.from(this.bindings);
     }
 
-    processFunctions(template: string) {
-        const fnRegex = /@([\w]+)\(([\w]+)\) -> ([\w]+) {/g;
-        return template.replace(fnRegex, (_, type) => {
+    getChunks() {
+        return Array.from(this.chunks);
+    }
+
+    processMain(template: string) {
+        const mainRe = /@([\w]+)\(([\w]+)\) -> ([\w]+) {/g;
+        const bodyRe = new RegExp(`{{${this.type}}}`, 'g');
+        // prepend bindings
+        const sortedBindings = Array.from(this.bindings).sort((a, b) => {
+            if (a.description.group === b.description.group) {
+                return a.description.binding - b.description.binding;
+            }
+            return a.description.group - b.description.group;
+        });
+        let bindingsStr = '';
+        for (const binding of sortedBindings) {
+            let wgsl = binding.toWGSL();
+            const struct = Struct.get(binding.description.varType);
+            if (struct) {
+                wgsl = `\n${struct.toWGSL()}\n${wgsl}\n`;
+            }
+            bindingsStr += `${wgsl}\n`;
+        }
+
+        // prepend chunks defines
+        const chunks = Array.from(this.chunks);
+        let chunksStr = '';
+        for (const chunk of chunks) {
+            chunksStr += `${chunk.defines}\n`;
+        }
+
+        // main
+        template = template.replace(mainRe, (_, type) => {
             const capType = type.charAt(0).toUpperCase() + type.slice(1);
             return `@${type}\nfn main(input: ${capType}Input) -> ${capType}Output {\nvar output: ${capType}Output;`;
         });
-    }
 
-    processBindings(template: string, bindings: TemplateBinding[]) {
-        const bindingRegex = /@group\((\d+)\)\s@binding\((\d+)\)\svar(?:<(\w+)(?:,\s(\w+))?>)? (\w+)\: (\w+(?:<.*>)?);/g;
-        let match;
-        
-        while ((match = bindingRegex.exec(template)) !== null) {
-            const [_, groupStr, bindingStr, buffer, access, name, type] = match;
-            const group = parseInt(groupStr);
-            const binding = parseInt(bindingStr);
-            
-            if (!bindings.some(b => b.group === group && b.binding === binding)) {
-                bindings.push({ group, binding, buffer, access, name, type });
+        // insert body chunks without order rules
+        const body = chunks.map(chunk => chunk.getBodyCodesUnordered(this.type)).flat().map(bodyCode => bodyCode.code);
+        let bodyStr = body.join('\n');
+
+        // sort ordered chunks
+        const orderedBodyCodes = chunks.map(chunk => chunk.getBodyCodesOrdered(this.type)).flat().sort((a, b) => {
+            const aRule = a.order;
+            const bRule = b.order;
+            if (aRule === 'first') return -1;
+            if (bRule === 'first') return 1;
+            if (aRule === 'last') return 1;
+            if (bRule === 'last') return -1;
+            return 0;
+        });
+        // insert ordered chunks
+        let firstStr = '';
+        let lastStr = '';
+        for (const bodyCode of orderedBodyCodes) {
+            const rule = bodyCode.order;
+            if (rule === 'first') {
+                firstStr += bodyCode.code + '\n';
+            }
+            if (rule === 'last') {
+                lastStr += bodyCode.code + '\n';
+            }
+            if (rule.includes('before')) {
+                const [_, marker] = rule.split(':');
+                const splitBody = bodyStr.split('\n');
+                const index = splitBody.findIndex(line => new RegExp(`// ?${marker}`).test(line));
+                if (index !== -1) {
+                    splitBody.splice(index, 0, bodyCode.code);
+                } else {
+                    splitBody.push(bodyCode.code);
+                }
+                bodyStr = splitBody.join('\n');
+            }
+            if (rule.includes('after')) {
+                const [_, marker] = rule.split(':');
+                const splitBody = bodyStr.split('\n');
+                const index = splitBody.findIndex(line => new RegExp(`// ?${marker}`).test(line));
+                if (index !== -1) {
+                    // find next marker
+                    const nextMarkerIndex = splitBody.slice(index + 1).findIndex(line => /\/\/\s?\w+/.test(line)) + (index + 1);
+                    if (nextMarkerIndex !== -1 && nextMarkerIndex < splitBody.length) {
+                        // insert before next marker
+                        splitBody.splice(nextMarkerIndex, 0, bodyCode.code);
+                    } else {
+                        // if no next marker, insert at the end
+                        splitBody.push(bodyCode.code);
+                    }
+                    bodyStr = splitBody.join('\n');
+                }
             }
         }
-    }
-
-    parseIncludes(template: string): Set<string> {
-        const includeRegex = /#include <([\w_]+)>/g;
-        const includes: Set<string> = new Set();
-        let match;
-
-        while ((match = includeRegex.exec(template)) !== null) {
-            const chunkName = match[1];
-            includes.add(chunkName);
-        }
-        template = template.replace(includeRegex, '');
-        return includes;
-    }
-
-    processIncludes(template: string, includesSet: Set<string>) {
-        const includes = [...includesSet];
-        const codeRe = /{{(?:fragment|vertex|compute)}}/;
-        const includeRe = /#include <([\w_]+)>/g;
-        const body = [];
-        const defines = [];
-        for (const include of includes) {
-            const chunk = ShaderLibrary.getChunk(include);
-            if (!chunk) { continue; }
-            body.push(chunk.code);
-            defines.push(chunk.defines);
-        }
-        template = template.replace(includeRe, '');
-        template = `${defines.join('\n')}\n${template}`;
-        template = template.replace(codeRe, body.join('\n'));
+        template = template.replace(bodyRe, `${firstStr}\n${bodyStr}\n${lastStr}`);
+        template = `${bindingsStr}\n${chunksStr}\n${template}`;
         return template;
     }
-
 }

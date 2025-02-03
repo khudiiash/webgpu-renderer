@@ -2,6 +2,8 @@ import { BufferData } from "@/data/BufferData";
 import { Vector3 } from "./Vector3";
 import { Matrix4 } from "./Matrix4";
 import { Euler } from "./Euler";
+import { Matrix3 } from "./Matrix3";
+import { isArrayOrBuffer } from "@/util";
 
 
 export class Quaternion extends BufferData {
@@ -11,8 +13,24 @@ export class Quaternion extends BufferData {
     readonly length: number = 4;
     readonly isQuaternion: boolean = true;
 
-    constructor(x: number = 0, y: number = 0, z: number = 0, w: number = 1) {
-        super([x, y, z, w]);
+    constructor();
+    constructor(x: number, y: number, z: number, w: number);
+    constructor(values: ArrayLike<number> | BufferData, offset?: number);
+
+    constructor(...args: any) {
+        super([0, 0, 0, 1], 4);
+        if (typeof args[0] === 'number') {
+            this[0] = args[0];
+            this[1] = args[1] ?? 0;
+            this[2] = args[2] ?? 0;
+            this[3] = args[3] ?? 1; 
+        } else if (isArrayOrBuffer(args[0])) {
+            let offset = args[1] || 0;
+            this[0] = args[0][offset];
+            this[1] = args[0][offset + 1];
+            this[2] = args[0][offset + 2];
+            this[3] = args[0][offset + 3];
+        }
     }
 
     get x(): number { return this[0]; }
@@ -20,10 +38,10 @@ export class Quaternion extends BufferData {
     get z(): number { return this[2]; }
     get w(): number { return this[3]; }
 
-    set x(value: number) { this[0] = value; this.monitor.check(); }
-    set y(value: number) { this[1] = value; this.monitor.check(); }
-    set z(value: number) { this[2] = value; this.monitor.check(); }
-    set w(value: number) { this[3] = value; this.monitor.check(); }
+    set x(value: number) { this[0] = value; this.monitor.check(0); }
+    set y(value: number) { this[1] = value; this.monitor.check(1); }
+    set z(value: number) { this[2] = value; this.monitor.check(2); }
+    set w(value: number) { this[3] = value; this.monitor.check(3); }
 
 
     slerp(q: Quaternion, alpha: number): this {
@@ -34,10 +52,10 @@ export class Quaternion extends BufferData {
         let cosHalfTheta = w * q.w + x * q.x + y * q.y + z * q.z;
 
         if (cosHalfTheta < 0) {
-            this.w = -q.w;
-            this.x = -q.x;
-            this.y = -q.y;
-            this.z = -q.z;
+            this[3] = -q.w;
+            this[0] = -q.x;
+            this[1] = -q.y;
+            this[2] = -q.z;
             cosHalfTheta = -cosHalfTheta;
         } else {
             this.copy(q);
@@ -48,27 +66,27 @@ export class Quaternion extends BufferData {
         const halfTheta = Math.acos(cosHalfTheta);
         const sinHalfTheta = Math.sqrt(1.0 - cosHalfTheta * cosHalfTheta);
 
-        if (Math.abs(sinHalfTheta) < 0.001) {
-            this.w = 0.5 * (w + this.w);
-            this.x = 0.5 * (x + this.x);
-            this.y = 0.5 * (y + this.y);
-            this.z = 0.5 * (z + this.z);
+        if (Math.abs(sinHalfTheta) < 0.0015) {
+            this[3] = 0.5 * (w + this.w);
+            this[0] = 0.5 * (x + this.x);
+            this[1] = 0.5 * (y + this.y);
+            this[2] = 0.5 * (z + this.z);
             return this;
         }
 
         const ratioA = Math.sin((1 - alpha) * halfTheta) / sinHalfTheta;
         const ratioB = Math.sin(alpha * halfTheta) / sinHalfTheta;
 
-        this.w = (w * ratioA + this.w * ratioB);
-        this.x = (x * ratioA + this.x * ratioB);
-        this.y = (y * ratioA + this.y * ratioB);
-        this.z = (z * ratioA + this.z * ratioB);
+        this[3] = (w * ratioA + this.w * ratioB);
+        this[0] = (x * ratioA + this.x * ratioB);
+        this[1] = (y * ratioA + this.y * ratioB);
+        this[2] = (z * ratioA + this.z * ratioB);
 
         return this;
     }
 
-    inverse(): this {
-        return this.conjugate().normalize();
+    invert(): this {
+        return this.negate().normalize();
     }
 
     dot(q: Quaternion): number {
@@ -77,36 +95,36 @@ export class Quaternion extends BufferData {
     }
 
     add(q: Quaternion): this {
-        this.x += q.x;
-        this.y += q.y;
-        this.z += q.z;
-        this.w += q.w;
+        this[0] += q[0];
+        this[1] += q[1];
+        this[2] += q[2];
+        this[3] += q[3];
         return this;
     }
 
     sub(q: Quaternion): this {
-        this.x -= q.x;
-        this.y -= q.y;
-        this.z -= q.z;
-        this.w -= q.w;
+        this[0] -= q[0];
+        this[1] -= q[1];
+        this[2] -= q[2];
+        this[3] -= q[3];
         return this;
     }
 
     multiply(q: Quaternion): this {
-        const x = this.x, y = this.y, z = this.z, w = this.w;
-        this.x = w * q.x + x * q.w + y * q.z - z * q.y;
-        this.y = w * q.y - x * q.z + y * q.w + z * q.x;
-        this.z = w * q.z + x * q.y - y * q.x + z * q.w;
-        this.w = w * q.w - x * q.x - y * q.y - z * q.z;
+        const x = this[0], y = this[1], z = this[2], w = this[3];
+        this[0] = w * q[0] + x * q[3] + y * q[2] - z * q[1];
+        this[1] = w * q[1] - x * q[2] + y * q[3] + z * q[0];
+        this[2] = w * q[2] + x * q[1] - y * q[0] + z * q[3];
+        this[3] = w * q[3] - x * q[0] - y * q[1] - z * q[2];
         return this;
     }
 
     premultiply(q: Quaternion): this {
-        const x = this.x, y = this.y, z = this.z, w = this.w;
-        this.x = q.w * x + q.x * w + q.y * z - q.z * y;
-        this.y = q.w * y - q.x * z + q.y * w + q.z * x;
-        this.z = q.w * z + q.x * y - q.y * x + q.z * w;
-        this.w = q.w * w - q.x * x - q.y * y - q.z * z;
+        const x = this[0], y = this[1], z = this[2], w = this[3];
+        this[0] = q[3] * x + q[0] * w + q[1] * z - q[2] * y;
+        this[1] = q[3] * y - q[0] * z + q[1] * w + q[2] * x;
+        this[2] = q[3] * z + q[0] * y - q[1] * x + q[2] * w;
+        this[3] = q[3] * w - q[0] * x - q[1] * y - q[2] * z;
         return this;
     }
 
@@ -182,44 +200,46 @@ export class Quaternion extends BufferData {
     setFromAxisAngle(axis: Vector3, angle: number): this {
         const halfAngle = angle / 2;
         const s = Math.sin(halfAngle);
-        this.x = axis.x * s;
-        this.y = axis.y * s;
-        this.z = axis.z * s;
-        this.w = Math.cos(halfAngle);
+        this[0] = axis.x * s;
+        this[1] = axis.y * s;
+        this[2] = axis.z * s;
+        this[3] = Math.cos(halfAngle);
         return this;
     }
 
-    setFromRotationMatrix(m: Matrix4): this {
+    setFromRotationMatrix(m: Matrix4 | Matrix3): this {
+        // http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/index.htm
+        // assumes the upper 3x3 of m is a pure rotation matrix (i.e, unscaled)
+
         const m11 = m[0], m12 = m[4], m13 = m[8],
               m21 = m[1], m22 = m[5], m23 = m[9],
-              m31 = m[2], m32 = m[6], m33 = m[10];
-
-        const trace = m11 + m22 + m33;
+              m31 = m[2], m32 = m[6], m33 = m[10],
+              trace = m11 + m22 + m33;
 
         if (trace > 0) {
             const s = 0.5 / Math.sqrt(trace + 1.0);
-            this.w = 0.25 / s;
-            this.x = (m32 - m23) * s;
-            this.y = (m13 - m31) * s;
-            this.z = (m21 - m12) * s;
+            this[3] = 0.25 / s;
+            this[0] = (m32 - m23) * s;
+            this[1] = (m13 - m31) * s;
+            this[2] = (m21 - m12) * s;
         } else if (m11 > m22 && m11 > m33) {
             const s = 2.0 * Math.sqrt(1.0 + m11 - m22 - m33);
-            this.w = (m32 - m23) / s;
-            this.x = 0.25 * s;
-            this.y = (m12 + m21) / s;
-            this.z = (m13 + m31) / s;
+            this[3] = (m32 - m23) / s;
+            this[0] = 0.25 * s;
+            this[1] = (m12 + m21) / s;
+            this[2] = (m13 + m31) / s;
         } else if (m22 > m33) {
             const s = 2.0 * Math.sqrt(1.0 + m22 - m11 - m33);
-            this.w = (m13 - m31) / s;
-            this.x = (m12 + m21) / s;
-            this.y = 0.25 * s;
-            this.z = (m23 + m32) / s;
+            this[3] = (m13 - m31) / s;
+            this[0] = (m12 + m21) / s;
+            this[1] = 0.25 * s;
+            this[2] = (m23 + m32) / s;
         } else {
             const s = 2.0 * Math.sqrt(1.0 + m33 - m11 - m22);
-            this.w = (m21 - m12) / s;
-            this.x = (m13 + m31) / s;
-            this.y = (m23 + m32) / s;
-            this.z = 0.25 * s;
+            this[3] = (m21 - m12) / s;
+            this[0] = (m13 + m31) / s;
+            this[1] = (m23 + m32) / s;
+            this[2] = 0.25 * s;
         }
 
         return this;
@@ -227,32 +247,29 @@ export class Quaternion extends BufferData {
 
     setFromUnitVectors(vFrom: Vector3, vTo: Vector3): this {
         let r = vFrom.dot(vTo) + 1;
+        
         if (r < Number.EPSILON) {
-            r = 0;
-            if (Math.abs(vFrom.x) > Math.abs(vFrom.z)) {
-                this.x = -vFrom.y;
-                this.y = vFrom.x;
-                this.z = 0;
-                this.w = r;
-            } else {
-                this.x = 0;
-                this.y = -vFrom.z;
-                this.z = vFrom.y;
-                this.w = r;
-            }
-        } else {
-            this.x = vFrom.y * vTo.z - vFrom.z * vTo.y;
-            this.y = vFrom.z * vTo.x - vFrom.x * vTo.z;
-            this.z = vFrom.x * vTo.y - vFrom.y * vTo.x;
-            this.w = r;
+            // Explicit case for opposite vectors (180 degree rotation)
+            this[0] = 0;
+            this[1] = 0;
+            this[2] = 0;
+            this[3] = -1;  // Representing a 180 degree rotation (reflection)
+            return this.normalize();
         }
+        
+        // Normal computation for non-opposite vectors
+        this[0] = vFrom.y * vTo.z - vFrom.z * vTo.y;
+        this[1] = vFrom.z * vTo.x - vFrom.x * vTo.z;
+        this[2] = vFrom.x * vTo.y - vFrom.y * vTo.x;
+        this[3] = r;
+        
         return this.normalize();
-    }
+    }    
 
-    conjugate(): this {
-        this.x *= -1;
-        this.y *= -1;
-        this.z *= -1;
+    negate(): this {
+        this[0] *= -1;
+        this[1] *= -1;
+        this[2] *= -1;
         return this;
     }
 
@@ -261,19 +278,59 @@ export class Quaternion extends BufferData {
     }
 
     normalize(): this {
-        let l = this.magnitude();
+        let l = Math.sqrt(this[0] * this[0] + this[1] * this[1] + this[2] * this[2] + this[3] * this[3]);
         if (l === 0) {
-            this.x = 0;
-            this.y = 0;
-            this.z = 0;
-            this.w = 1;
+            this[0] = 0;
+            this[1] = 0;
+            this[2] = 0;
+            this[3] = 1;
         } else {
             l = 1 / l;
-            this.x *= l;
-            this.y *= l;
-            this.z *= l;
-            this.w *= l;
+            this[0] *= l;
+            this[1] *= l;
+            this[2] *= l;
+            this[3] *= l;
         }
         return this;
+    }
+
+    set(x: number, y: number, z: number, w: number): this;
+    set(values: ArrayLike<number> | BufferData, offset?: number): this;
+    set(...args: any): this {
+        if (typeof args[0] === 'number') {
+            this[0] = args[0];
+            this[1] = args[1] ?? 0;
+            this[2] = args[2] ?? 0;
+            this[3] = args[3] ?? 1;
+        } else if (isArrayOrBuffer(args[0])) {
+            let offset = args[1] || 0;
+            this[0] = args[0][offset];
+            this[1] = args[0][offset + 1];
+            this[2] = args[0][offset + 2];
+            this[3] = args[0][offset + 3];
+        }
+        return this;
+    }
+
+    setSilent(x: number, y: number, z: number, w: number): this;
+    setSilent(values: ArrayLike<number> | BufferData, offset?: number): this;
+    setSilent(...args: any): this {
+        if (typeof args[0] === 'number') {
+            this[0] = args[0];
+            this[1] = args[1] ?? 0;
+            this[2] = args[2] ?? 0;
+            this[3] = args[3] ?? 1;
+        } else if (isArrayOrBuffer(args[0])) {
+            let offset = args[1] || 0;
+            this[0] = args[0][offset];
+            this[1] = args[0][offset + 1];
+            this[2] = args[0][offset + 2];
+            this[3] = args[0][offset + 3];
+        }
+        return this;
+    }
+
+    clone(): Quaternion {
+        return new Quaternion(this);
     }
 }

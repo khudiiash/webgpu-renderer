@@ -3,9 +3,10 @@ import { TextureMipGenerator } from './TextureMipGenerator';
 export class TextureLoader {
     private mipGenerator!: TextureMipGenerator;
     static #instance: TextureLoader;
+    static _texturesCreated: number = 0;
 
-    static async load(url: string, options = { rotateY: false }) {
-        return TextureLoader.getInstance().load(url, options);
+    static async load(url: string): Promise<GPUTexture> {
+        return TextureLoader.getInstance().load(url);
     }
 
     static async loadFromBlob(blob: Blob) {
@@ -44,7 +45,7 @@ export class TextureLoader {
         return await createImageBitmap(blob, { colorSpaceConversion: 'none' });
     }
 
-    async load(url: string, options = { rotateY: false }) {
+    async load(url: string): Promise<GPUTexture> {
         const img = await this.getBitmap(url);
         return this.createTexture(img, { mips: true });
     }
@@ -58,8 +59,9 @@ export class TextureLoader {
         return 1 + Math.floor(Math.log2(Math.max(...sizes)));
     }
 
-    private createTexture(source: ImageBitmap, options: { mips?: boolean } = {}) {
+    private createTexture(source: ImageBitmap, options: { mips?: boolean, name?: string } = {}) {
         const texture = this.device.createTexture({
+            label: options.name || 'Texture_' + TextureLoader._texturesCreated++,
             size: [source.width, source.height],
             format: 'rgba8unorm',
             mipLevelCount: options.mips ? this.numMipLevels(source.width, source.height) : 1,

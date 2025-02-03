@@ -1,18 +1,51 @@
 import { BufferData } from "@/data/BufferData";
 
-export function arraysEqual(a: BufferData | Float32Array | ArrayLike<number>, b: BufferData | Float32Array | ArrayLike<number>, precision: number = 1e-6): boolean {
-    if (a === b) return true;
-    if (a == null || b == null) return false;
-    if (a.length !== b.length) return false;
 
-    for (let i = 0; i < a.length; ++i) {
-        if (!Number.isFinite(a[i]) || !Number.isFinite(b[i])) {
-            console.error('Non-finite number in array', a[i], b[i]);
+const weakMap = new WeakMap();
+
+export function arraysEqual(a: BufferData | Float32Array | ArrayLike<number>, b: BufferData | Float32Array | ArrayLike<number>, start: number = 0, end: number = a?.length ?? 0, precision: number = 1e-6): boolean {
+    // Early returns for obvious cases
+    // 1e-6 is the default precision (0.000001)
+
+    if (a === b) return true;
+    if (!a || !b) return false;
+    
+    const len = a.length;
+    if (len !== b.length) return false;
+    if (weakMap.has(a)) {
+        const i = weakMap.get(a);
+        if (Math.abs(a[i] - b[i]) > precision) {
             return false;
         }
-        if (Math.abs(a[i] - b[i]) > precision) return false;
     }
+
+    for (let i = start; i < end; i++) {
+        if (Math.abs(a[i] - b[i]) > precision) {
+            weakMap.set(a, i);
+            return false;
+        }
+    }
+
     return true;
+}
+
+export function snakeCase(str: string): string {
+    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+}
+
+export function capCase(str: string): string {
+    return str.replace(/_./g, (match) => match.charAt(1).toUpperCase());
+}
+
+export function camelCase(str: string): string {
+    return str.replace(/_./g, (match) => match.charAt(1).toUpperCase());
+}
+
+export function boolToNum(value: any, defaultValue: number = 0): number {
+    if (value === undefined) {
+        return defaultValue;
+    }
+    return value === true ? 1 : 0;
 }
 
 export function objectsEqual(a: { [key: string]: any }, b: { [key: string]: any }): boolean {
@@ -43,10 +76,22 @@ export function num(...args: any[]): boolean {
     return true;
 }
 
+export function isArrayOrBuffer(v: any): boolean {
+    return Array.isArray(v) || v instanceof Float32Array;
+}
+
 export function autobind(context: any) {
     Object.getOwnPropertyNames(Object.getPrototypeOf(context))
-        .filter(key => key !== 'constructor' && typeof context[key] === 'function')
-        .forEach(key => {
+        .filter((key) => {
+            const desc = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(context), key);
+            return key !== 'constructor' && desc && typeof desc.value === 'function';
+        })
+        .forEach((key) => {
             context[key] = context[key].bind(context);
         });
 }
+
+export function capString(str: string): string {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+

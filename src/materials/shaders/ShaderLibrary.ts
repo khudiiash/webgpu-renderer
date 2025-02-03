@@ -20,17 +20,17 @@ export type ShaderDefines = {
 
 export type ShaderConfig = {
     name: string;
-    attributes: ShaderAttribute[];
-    varyings: ShaderVarying[];
+    attributes?: ShaderAttribute[];
+    varyings?: ShaderVarying[];
+    chunks: string[];
     vertexTemplate: string;
     fragmentTemplate: string;
 }
 
 export class ShaderLibrary {
     static init() {
-        const lib = new ShaderLibrary();
         for (const [name, code] of Object.entries(chunks)) {
-            lib.addChunk(new ShaderChunk(name, code));
+            new ShaderChunk(name, code);
         }
     }
     static #instance: ShaderLibrary;
@@ -42,6 +42,13 @@ export class ShaderLibrary {
         }
         this.chunks = new Map(); 
         ShaderLibrary.#instance = this;
+    }
+
+    static addChunk(chunk: ShaderChunk) {
+        if (!this.#instance) {
+            this.#instance = new ShaderLibrary();
+        }
+        this.#instance.addChunk(chunk);
     }
 
     static getChunk(name: string) {
@@ -58,58 +65,18 @@ export class ShaderLibrary {
     static get STANDARD(): ShaderConfig {
         return {
             name: 'standard',
-            attributes: [
-                { name: 'position', type: 'vec3f' },
-                { name: 'normal', type: 'vec3f' },
-                { name: 'uv', type: 'vec2f' },
-            ],
-            varyings: [
-                { name: 'vPosition', type: 'vec3f' },
-                { name: 'vNormal', type: 'vec3f' },
-                { name: 'vPositionW', type: 'vec3f' },
-                { name: 'vNormalW', type: 'vec3f' },
-                { name: 'vUv', type: 'vec2f' },
-            ],
+            chunks: ['Mesh', 'StandardMaterial'],
             vertexTemplate: `
-                #include <scene>
-                #include <camera>
-                #include <model>
-
                 @vertex(input) -> output {
-                    var position: vec3f = input.position;
-                    var normal: vec3f = input.normal;
-                    var uv: vec2f = input.uv;
-                    var worldPosition: vec3f;
-                    var screenPosition: vec4f;
-                    var worldNormal: vec3f;
 
                     {{vertex}}
 
-                    output.position = screenPosition;
-                    output.vNormal = normal;
-                    output.vNormalW = worldNormal;
-                    output.vPosition = position;
-                    output.vPositionW = worldPosition;
-                    output.vUv = uv;
                     return output;
                 }
             `,
             fragmentTemplate: `
-                #include <scene>
-                #include <camera>
-                #include <diffuse_map>
-                #include <standard>
-                #include <noise>
-
-                #if USE_FOG {
-                    #include <fog>
-                }
-                #if USE_GAMMA {
-                    #include <gamma>
-                }
-
                 @fragment(input) -> output {
-                    var color: vec4f = material.diffuse;
+                    var color: vec4f;
 
                     {{fragment}}
 

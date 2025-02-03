@@ -3,10 +3,10 @@ import { Frustum } from '@/math/Frustum';
 import { Matrix4 } from '@/math/Matrix4';
 import { Vector3 } from '@/math/Vector3';
 
-import { UniformData, UniformDataConfig } from '@/data/UniformData';
+import { UniformData } from '@/data/UniformData';
 import { uuid } from '@/util/general';
 import { Renderer } from '@/renderer/Renderer';
-import { ResourceManager } from '@/engine/ResourceManager';
+import { Struct } from '@/data/Struct';
 
 
 export class Camera extends Object3D {
@@ -21,8 +21,14 @@ export class Camera extends Object3D {
     public projectionViewMatrix: Matrix4;
     public rightDirection: Vector3;
     public frustum: Frustum;
-    public uniforms: UniformData;
-    public aspect: number;
+    public aspect: number = 1;
+
+    static struct = new Struct('Camera', {
+        view: 'mat4x4f',
+        projection: 'mat4x4f',
+        position: 'vec3f',
+        direction: 'vec3f',
+    });
 
     constructor() {
         super();
@@ -39,21 +45,19 @@ export class Camera extends Object3D {
         this.rightDirection = new Vector3();
         this.frustum = new Frustum();
 
-        const uniformConfig: UniformDataConfig = {
-            name: 'camera',
-            isGlobal: true,
-            values: {
-                projection: this.projectionMatrix,
-                view: this.viewMatrix,
-                position: this.position,
-                direction: this.target.clone().sub(this.position).normalize(),
-            }
-        };
-        this.uniforms = new UniformData(this, uniformConfig).onChange(() => {
-            ResourceManager.updateBuffer(this.uniforms.id);
-        });
-
-        this.aspect = 1; // Default aspect ratio
+        this.uniforms = new Map<string, UniformData>();
+        this.uniforms.set('Camera', new UniformData(this, {
+                name: 'Camera',
+                isGlobal: true,
+                struct: Camera.struct,
+                values: {
+                    projection: this.projectionMatrix,
+                    view: this.matrixWorldInverse,
+                    position: this.position,
+                    direction: this.forward,
+                }
+            }),
+        );
 
         Renderer.on('resize', this._onResize, this);
     }
@@ -69,7 +73,7 @@ export class Camera extends Object3D {
         this.updateProjectionMatrix();
     }
 
-    copy(source: Camera, recursive: boolean = true) {
+    copy(source: Camera) {
         super.copy(source);
         this.matrixWorldInverse.copy(source.matrixWorldInverse);
         this.projectionMatrix.copy(source.projectionMatrix);
@@ -77,35 +81,15 @@ export class Camera extends Object3D {
         return this;
     }
 
-    setPosition(x: number | Vector3, y: number = 0, z: number = 0) {
-        if (x instanceof Vector3) {
-            this.target.add(_vector.copy(x).sub(this.position));
-        } else {
-            const diff = _vector.set([x - this.position.x, y - this.position.y, z - this.position.z]);
-            this.target.add(diff);
-        }
-        super.setPosition(x, y, z);
+    updateMatrixWorld(fromParent: boolean = false) {
+        super.updateMatrixWorld(fromParent);
+        this.matrixWorldInverse.copy(this.matrixWorld).invert();
     }
 
-    updateViewMatrix() {
-        this.viewMatrix.lookAt(this.position, this.target, this.up);
-        this.matrixWorldInverse.copy(this.viewMatrix).invert();
-        this.rightDirection.set([this.viewMatrix[0], this.viewMatrix[1], this.viewMatrix[2]]);
-        this.projectionViewMatrix.multiplyMatrices(this.projectionMatrix, this.viewMatrix);
-    }
 
     updateProjectionMatrix() {
         // Implemented in subclasses
     }
 
-    updateMatrixWorld(fromParent: boolean = false) {
-        super.updateMatrixWorld(fromParent);
-        this.updateViewMatrix();
-    }
-
-    // clone() {
-    //     return new this.constructor().copy(this);
-    // }
 }
 const _projScreenMatrix = new Matrix4();
-const _vector = new Vector3();

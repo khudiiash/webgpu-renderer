@@ -8,7 +8,7 @@ export interface RenderStateOptions {
     depthWrite?: boolean;
     depthCompare?: 'less' | 'greater' | 'equal' | 'not-equal' | 'always' | 'never';
     stencilTest?: boolean;
-    blending?: 'normal' | 'additive' | 'multiply';
+    blending?: 'normal' | 'additive' | 'additive-alpha' | 'multiply' | 'screen' | 'darken' | 'lighten' | 'subtract';
     transparent?: boolean;
 }
 
@@ -20,7 +20,7 @@ export class RenderState {
     depthWrite: boolean = true;
     depthCompare: 'less' | 'greater' | 'equal' | 'not-equal' | 'always' | 'never' = 'less';
     stencilTest: boolean = false;
-    blending: 'normal' | 'additive' | 'multiply' = 'normal';
+    blending: 'normal' | 'additive' | 'multiply' | 'screen' | 'darken' | 'lighten' | 'subtract' = 'normal';
     transparent: boolean = false;
 
     private callbacks: ((state: RenderState) => {})[] = [];
@@ -52,46 +52,96 @@ export class RenderState {
             return undefined;
         }
 
-
         const blendModes = {
             additive: {
-            color: {
-                srcFactor: 'src-alpha' as GPUBlendFactor,
-                dstFactor: 'one' as GPUBlendFactor,
-                operation: 'add' as GPUBlendOperation
+                color: {
+                    operation: 'add',
+                    srcFactor: 'one',
+                    dstFactor: 'one',
+                },
+                alpha: {
+                    operation: 'add',
+                    srcFactor: 'one',
+                    dstFactor: 'one',
+                }
             },
-            alpha: {
-                srcFactor: 'one' as GPUBlendFactor,
-                dstFactor: 'one' as GPUBlendFactor,
-                operation: 'add' as GPUBlendOperation
-            }
-            },
-            multiply: {
-            color: {
-                srcFactor: 'dst' as GPUBlendFactor,
-                dstFactor: 'one-minus-src-alpha' as GPUBlendFactor,
-                operation: 'add' as GPUBlendOperation
-            },
-            alpha: {
-                srcFactor: 'one' as GPUBlendFactor,
-                dstFactor: 'one-minus-src-alpha' as GPUBlendFactor,
-                operation: 'add' as GPUBlendOperation
-            }
+            'additive-alpha': {
+                color: {
+                    operation: 'add',
+                    srcFactor: 'src-alpha',
+                    dstFactor: 'one',
+                },
+                alpha: {
+                    operation: 'add',
+                    srcFactor: 'src-alpha',
+                    dstFactor: 'one',
+                }
             },
             normal: {
-            color: {
-                srcFactor: 'src-alpha' as GPUBlendFactor,
-                dstFactor: 'one-minus-src-alpha' as GPUBlendFactor,
-                operation: 'add' as GPUBlendOperation
+                color: {
+                    operation: 'add',
+                    srcFactor: 'src-alpha',
+                    dstFactor: 'one-minus-src-alpha',
+                },
+                alpha: {
+                    operation: 'add',
+                    srcFactor: 'one',
+                    dstFactor: 'one-minus-src-alpha',
+                }
             },
-            alpha: {
-                srcFactor: 'one' as GPUBlendFactor,
-                dstFactor: 'one-minus-src-alpha' as GPUBlendFactor,
-                operation: 'add' as GPUBlendOperation
-            }
-            }
+            multiply: {
+                color: {
+                    operation: 'add',
+                    srcFactor: 'zero',
+                    dstFactor: 'src',
+                },
+                alpha: {
+                    operation: 'add',
+                    srcFactor: 'zero',
+                    dstFactor: 'one',
+                }
+            },
+            screen: {
+                color: {
+                    operation: 'add',
+                    srcFactor: 'one-minus-dst',
+                    dstFactor: 'one',
+                },
+                alpha: {
+                    operation: 'add',
+                    srcFactor: 'zero',
+                    dstFactor: 'one',
+                }
+            },
+            darken: {
+                color: {
+                    operation: 'min',
+                },
+                alpha: {
+                    operation: 'min',
+                }
+            },
+            lighten: {
+                color: {
+                    operation: 'max',
+                },
+                alpha: {
+                    operation: 'max',
+                }
+            },
+            subtract: {
+                color: {
+                    operation: 'reverse-subtract',
+                    srcFactor: 'one',
+                    dstFactor: 'one',
+                },
+                alpha: {
+                    operation: 'add',
+                    srcFactor: 'zero',
+                    dstFactor: 'one',
+                }
+            },
         };
-
         return blendModes[this.blending] || blendModes.normal;
     }
 
@@ -105,8 +155,6 @@ export class RenderState {
     }
     
     getDepthStencil(): GPUDepthStencilState | undefined {
-        if (!this.depthTest) return undefined;
-    
         return {
             depthWriteEnabled: this.depthWrite,
             depthCompare: this.depthCompare,
@@ -130,17 +178,19 @@ export class RenderState {
         }
     }
 
-    onChange(callback: () => this) {
+    onChange(callback: () => any): this {
         if (callback && !this.callbacks.includes(callback)) {
             this.callbacks.push(callback);
         }
+        return this;
     }
 
-    offChange(callback: () => this) {
+    offChange(callback: () => any): this {
         const index = this.callbacks.indexOf(callback);
         if (index >= 0) {
             this.callbacks.splice(index, 1);
         }
+        return this;
     }
 
 

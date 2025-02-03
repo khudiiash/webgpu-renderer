@@ -4,6 +4,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 8080",
+    "demo:parallax": "vite --host 0.0.0.0 --port 8080 --config demos/intermediate/parallax/vite.config.ts",
+    "demo:sponza": "vite --host 0.0.0.0 --port 8080 --config demos/intermediate/sponza/vite.config.ts",
+    "demo:cube": "vite --host 0.0.0.0 --port 8080 --config demos/basic/cube/vite.config.ts",
+    "build:cube": "vite build --config demos/basic/cube/vite.config.ts",
+    "build:parallax": "vite build --config demos/intermediate/parallax/vite.config.ts",
+    "build:sponza": "vite build --config demos/intermediate/sponza/vite.config.ts",
     "test": "vitest --coverage",
     "build": "tsc && vite build",
     "preview": "vite preview"
@@ -19,6 +25,7 @@
   },
   "dependencies": {
     "@loaders.gl/core": "^4.3.3",
-    "@loaders.gl/gltf": "^4.3.3"
+    "@loaders.gl/gltf": "^4.3.3",
+    "wgpu-matrix": "^3.3.0"
   }
 }

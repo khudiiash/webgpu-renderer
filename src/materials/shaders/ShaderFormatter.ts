@@ -1,7 +1,7 @@
 export class ShaderFormatter {
 
     static #instance: ShaderFormatter;
-    config: any
+    config: { indentSize: number; } = { indentSize: 4 };
 
     constructor() {
         if (ShaderFormatter.#instance) {
@@ -22,6 +22,7 @@ export class ShaderFormatter {
     }
 
     static format(code: string) {
+        if (!code) return '';
         return ShaderFormatter.getInstance().format(code);
     }
 
