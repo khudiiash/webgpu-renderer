@@ -207,14 +207,8 @@ class GLTFLoader {
                 const gltfMaterial = gltf.materials[primitive.material];
                 const pbr = gltfMaterial.pbrMetallicRoughness || {};
 
-
-                if (gltf.alphaMode === 'BLEND') {
+                if (gltfMaterial.alphaMode === 'BLEND' || gltfMaterial.alphaMode === 'MASK') {
                     material.renderState.transparent = true;
-                    material.renderState.blending = 'normal';
-                }
-                if (gltf.alphaMode === 'MASK') {
-                    material.renderState.transparent = true;
-                    material.alpha_test = 0.5;
                 }
                 if (gltfMaterial.doubleSided) {
                     material.renderState.cullMode = 'none';
@@ -223,8 +217,6 @@ class GLTFLoader {
                     const texture = await this.loadTexture(gltf, buffers, pbr.baseColorTexture.index);
                     material.diffuse_map?.setTexture(texture);
                 }
-
-
                 if (pbr.baseColorFactor !== undefined) {
                     material.diffuse.fromArray(pbr.baseColorFactor);
                 }
