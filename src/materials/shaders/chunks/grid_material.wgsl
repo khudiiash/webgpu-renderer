@@ -24,7 +24,7 @@ fn getScale(model: mat4x4f) -> vec3f {
 }}
 
 @fragment() {{
-    let world_pos = input.vPositionW;
+    let world_pos = input.positionW;
     let normal = normalize(input.vNormal);
     
     var grid_pos: vec2f;

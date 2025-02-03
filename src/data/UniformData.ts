@@ -1,4 +1,4 @@
-import { num, uuid } from '@/util/general';
+import { autobind, num, uuid } from '@/util/general';
 import { BufferData } from './BufferData';
 import { Texture } from './Texture';
 import { Struct, StructValue } from './Struct';
@@ -76,6 +76,7 @@ export class UniformData {
   private rebuildCallbacks: UniformRebuildCallback[] = [];
 
   constructor(parent: any, config: UniformDataConfig) {
+    autobind(this);
     const { name, isGlobal, struct, values, type = 'uniform' } = config;
     this.parent = parent;
     this.name = name;
@@ -98,8 +99,8 @@ export class UniformData {
     }
     this.initializeLayoutAndBuffer();
     this.views = this.createViews(this.layout, this.arrayBuffer);
-    this.defineProperties();
     this.setValues(this.items);
+    this.defineProperties();
   }
 
   /** Initializes the layout and buffer based on the struct or values */
@@ -251,6 +252,7 @@ export class UniformData {
       }
     } else if (data instanceof Texture) {
       this.textures.set(key, data);
+      data.onLoaded(this.notifyRebuild);
     } else {
       console.warn(`Invalid data type for key "${key}"`);
     }
@@ -302,6 +304,12 @@ export class UniformData {
     if (num(value)) {
       const view = this.views[name] as TypedArray;
       if (view[0] === value) return;
+    }
+
+    if (typeof value === 'boolean') {
+      const view = this.views[name] as TypedArray;
+      value = Number(value);
+      if (view[0] === Number(value)) return;
     }
 
     this.setValue(name, value, start, end);
@@ -369,6 +377,8 @@ export class UniformData {
 
   /** Defines a property on the parent for a texture */
   private defineTextureProperty(name: string): void {
+    const texture = this.textures.get(name);
+    texture?.onLoaded(() => this.notifyRebuild());
     Object.defineProperty(this.parent, name, {
       get: () => this.textures.get(name),
       set: (newValue: Texture) => {
@@ -447,7 +457,11 @@ private defineBufferProperty(name: string, bufferData: BufferData): void {
   }
 
   /** Unregisters a previously registered rebuild callback */
-  public offRebuild(callback: UniformRebuildCallback): this {
+  public offRebuild(callback?: UniformRebuildCallback): this {
+    if (!callback) {
+      this.rebuildCallbacks = [];
+      return this;
+    }
     const index = this.rebuildCallbacks.indexOf(callback);
     if (index !== -1) {
       this.rebuildCallbacks.splice(index, 1);
@@ -494,8 +508,8 @@ private defineBufferProperty(name: string, bufferData: BufferData): void {
   public rebuild(): void {
       this.initializeLayoutAndBuffer(); 
       this.views = this.createViews(this.layout, this.arrayBuffer);
-      this.defineProperties();
       this.setValues(this.items);
+      this.defineProperties();
       this.notifyRebuild();
   }
 

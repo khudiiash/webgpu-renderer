@@ -22,6 +22,7 @@ export class ShaderFormatter {
     }
 
     static format(code: string) {
+        if (!code) return '';
         return ShaderFormatter.getInstance().format(code);
     }
 

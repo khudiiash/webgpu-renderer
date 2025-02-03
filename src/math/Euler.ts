@@ -20,8 +20,20 @@ export class Euler extends BufferData {
 
     static instance = new Euler();
 
-    constructor(x = 0, y = 0, z = 0, order = Euler.DEFAULT_ORDER) {
-        super([x, y, z, Euler.ORDERS.indexOf(order)]);
+	constructor();
+	constructor(x: number, y: number, z: number, order?: EulerOrder);
+	constructor(data: ArrayLike<number> | BufferData, offset?: number);
+
+
+    constructor(...args: any) {
+		super([0, 0, 0, Euler.ORDERS.indexOf(Euler.DEFAULT_ORDER)]);
+		if (args[0] instanceof BufferData || Array.isArray(args[0])) {
+			super.setSilent(args[0], args[1] || 0);
+		} else if (args.length === 3) {
+			this.set(args[0], args[1], args[2], Euler.DEFAULT_ORDER);
+		} else if (args.length === 4) {
+			this.set(args[0], args[1], args[2], args[3]);
+		}
     }
 
     get x() { return this[0]; }
@@ -144,5 +156,40 @@ export class Euler extends BufferData {
         Quaternion.instance.setFromEuler(this);
         return this.setFromQuaternion(Quaternion.instance, order);
     }
+
+	// set(x: number | ArrayLike<number>, y?: number, z?: number, order = this.order): this {
+	// 	if (Array.isArray(x)) {
+	// 		return super.set(x);
+	// 	}
+	// 	if (typeof x === 'number') {
+	// 		return super.set([x, y as number, z as number, this.__getOrderNum(order)]);
+	// 	}
+	// 	return this;
+	// }
     
+	set(x: number, y: number, z: number, order: EulerOrder): this;
+	set(x: number, y: number, z: number): this;
+	set(data: ArrayLike<number> | BufferData, offset?: number): this;
+	set(...args: any): this {
+		if (Array.isArray(args[0]) || args[0] instanceof BufferData) {
+			return super.set(args[0]);
+		}
+		if (typeof args[0] === 'number') {
+			return super.set([args[0], args[1], args[2], this.__getOrderNum(args[3] ?? this.order)]);
+		}
+		return this;
+	}
+
+	setSilent(x: number, y: number, z: number, order: EulerOrder): this;
+	setSilent(x: number, y: number, z: number): this;
+	setSilent(data: ArrayLike<number> | BufferData, offset?: number): this;
+	setSilent(...args: any): this {
+		if (Array.isArray(args[0]) || args[0] instanceof BufferData) {
+			return super.setSilent(args[0]);
+		}
+		if (typeof args[0] === 'number') {
+			return super.setSilent([args[0], args[1], args[2], this.__getOrderNum(args[3] ?? this.order)]);
+		}
+		return this;
+	}
 }

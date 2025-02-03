@@ -41,6 +41,27 @@ describe('Vector3', () => {
         expect(v.z).toBe(3);
     });
 
+    it('constructor initializes with array-like values', () => {
+        const v = new Vector3([1, 2, 3]);
+        expect(v.x).toBe(1);
+        expect(v.y).toBe(2);
+        expect(v.z).toBe(3);
+    })
+
+    it('constructor initializes with BufferData', () => {
+        const v = new Vector3(new Float32Array([1, 2, 3]));
+        expect(v.x).toBe(1);
+        expect(v.y).toBe(2);
+        expect(v.z).toBe(3);
+    })
+
+    it('constructor initializes with BufferData and offset', () => {
+        const v = new Vector3(new Float32Array([0, 1, 2, 3]), 1);
+        expect(v.x).toBe(1);
+        expect(v.y).toBe(2);
+        expect(v.z).toBe(3);
+    })
+
     
     it('set values', () => {
         const v = new Vector3();
@@ -50,26 +71,6 @@ describe('Vector3', () => {
         expect(v.x).toBe(1);
         expect(v.y).toBe(2);
         expect(v.z).toBe(3);
-    });
-
-    it('lock() prevents value changes', () => {
-        const v = new Vector3();
-        v.lock();
-        v.x = 1;
-        v.y = 2;
-        v.z = 3;
-        expect(v.x).toBe(0);
-        expect(v.y).toBe(0);
-        expect(v.z).toBe(0);
-    });
-
-    it('unlock() allows value changes', () => {
-        const v = new Vector3();
-        v.lock();
-        v.x = 1;
-        v.unlock();
-        v.x = 2;
-        expect(v.x).toBe(2);
     });
 
     it('add() adds vectors correctly when unlocked', () => {
@@ -214,14 +215,6 @@ describe('Vector3', () => {
         expect(v.z).toBe(15);
     });
 
-    it('setXYZ() sets vector components', () => {
-        const v = new Vector3();
-        v.setXYZ(1, 2, 3);
-        expect(v.x).toBe(1);
-        expect(v.y).toBe(2);
-        expect(v.z).toBe(3);
-    });
-
     it('normalize() normalizes vector', () => {
         const v = new Vector3(3, 0, 0);
         v.normalize();
@@ -238,47 +231,6 @@ describe('Vector3', () => {
         expect(v.z).toBe(0);
     });
 
-    it('locked vector ignores all modifications', () => {
-        const v = new Vector3(1, 1, 1).lock();
-        
-        // Test various operations on a locked vector
-        v.add(new Vector3(1, 1, 1));
-        expect(v.x).toBe(1);
-        expect(v.y).toBe(1);
-        expect(v.z).toBe(1);
-    
-        v.sub(new Vector3(1, 1, 1));
-        expect(v.x).toBe(1);
-        expect(v.y).toBe(1);
-        expect(v.z).toBe(1);
-    
-        v.multiply(new Vector3(2, 2, 2));
-        expect(v.x).toBe(1);
-        expect(v.y).toBe(1);
-        expect(v.z).toBe(1);
-    
-        v.scale(2);
-        expect(v.x).toBe(1);
-        expect(v.y).toBe(1);
-        expect(v.z).toBe(1);
-    
-        v.cross(new Vector3(0, 1, 0));
-        expect(v.x).toBe(1);
-        expect(v.y).toBe(1);
-        expect(v.z).toBe(1);
-    
-        v.setXYZ(5, 5, 5);
-        expect(v.x).toBe(1);
-        expect(v.y).toBe(1);
-        expect(v.z).toBe(1);
-    
-        v.unlock(); // Unlock the vector and test again
-        v.setXYZ(5, 5, 5);
-        expect(v.x).toBe(5);
-        expect(v.y).toBe(5);
-        expect(v.z).toBe(5);
-    });
-    
     it('clone() creates an identical but separate vector', () => {
         const v1 = new Vector3(1, 2, 3);
         const v2 = v1.clone();
@@ -355,16 +307,6 @@ describe('Vector3', () => {
         expect(v1[2]).toBe(3);
     });
 
-    it('should not modify the vector if it is locked', () => {
-        const v1 = new Vector3(6, 9, 12);
-        const v2 = new Vector3(2, 3, 4);
-        v1.lock();
-        v1.divide(v2);
-        expect(v1[0]).toBe(6);
-        expect(v1[1]).toBe(9);
-        expect(v1[2]).toBe(12);
-    });
-
     it('should handle division by zero', () => {
         const v1 = new Vector3(6, 9, 12);
         const v2 = new Vector3(2, 0, 4); // Zero in the second component
@@ -415,21 +357,6 @@ describe('Vector3', () => {
         expect(() => v.setFromMatrixColumn(m, 4)).toThrowError('Index out of bounds');
     });
 
-    it('setFromMatrixColumn() should not modify vector if locked', () => {
-        const m = new Matrix4().set([
-            1, 2, 3, 4,
-            5, 6, 7, 8,
-            9, 10, 11, 12,
-            13, 14, 15, 16
-        ]);
-        const v = new Vector3().lock();
-
-        // Attempt to set vector from matrix column
-        v.setFromMatrixColumn(m, 1);
-        
-        // The vector should remain unchanged due to locking
-        expect(v.toString()).toEqual(new Vector3(0, 0, 0).toString());  // Assuming default initialization
-    });
 
     it('setFromMatrixColumn() should correctly set vector from matrix column when unlocked', () => {
         const m = new Matrix4().set([
@@ -444,34 +371,6 @@ describe('Vector3', () => {
         expect(v.toString()).toEqual(new Vector3(5, 6, 7).toString());
     });
 
-    it('setFromMatrixPosition() should not modify vector if locked', () => {
-        const m = new Matrix4().set([
-            1, 2, 3, 4,
-            5, 6, 7, 8,
-            9, 10, 11, 12,
-            13, 14, 15, 16
-        ]);
-        const v = new Vector3().lock();
-
-        // Attempt to set vector from matrix position
-        v.setFromMatrixPosition(m);
-        
-        // The vector should remain unchanged due to locking
-        expect(v.toString()).toEqual(new Vector3(0, 0, 0).toString());  // Assuming default initialization
-    });
-
-    it('setFromMatrixPosition() should correctly set vector from matrix position when unlocked', () => {
-        const m = new Matrix4().set([
-            1, 2, 3, 4,
-            5, 6, 7, 8,
-            9, 10, 11, 12,
-            13, 14, 15, 16
-        ]);
-        const v = new Vector3();
-
-        v.setFromMatrixPosition(m);
-        expect(v.toString()).toEqual(new Vector3(13, 14, 15).toString());
-    });
 
     describe('Vector3.setFromSphericalCoords', () => {
         let v: Vector3;

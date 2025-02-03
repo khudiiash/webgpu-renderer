@@ -1,9 +1,9 @@
-import { Struct } from "@/data/Struct";
+import { Struct, StructLayoutEntry } from "@/data/Struct";
 
 export class StructVisualizer {
     name: string;
     size: number;
-    layout: Map<string, import("/Users/khudiiash/Documents/JS/webgpu-renderer/src/data/Struct").LayoutEntry>;
+    layout: Map<string, StructLayoutEntry>;
 
     constructor(struct: Struct) {
         this.name = struct.name;

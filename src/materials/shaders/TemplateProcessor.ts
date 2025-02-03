@@ -35,6 +35,16 @@ export class TemplateProcessor {
         return TemplateProcessor.getInstance().getChunks();
     }
 
+    static processDefines(defines: Record<string, boolean>, template: string) {
+        if (!template || !template.includes('#if')) return template; 
+        for (const [key, value] of Object.entries(defines)) {
+            if (!template.includes(key)) continue;
+            const re = new RegExp(`#if ${key} {([\\s\\S]*?)}`, 'g');
+            template = template.replace(re, value ? '$1' : '');
+        }
+        return template;
+    }
+
     processTemplate(template: string, chunks: string[]) {
         let processed = template;
         this.type = processed.match(/@(vertex|fragment|compute)/)?.[1] as 'vertex' | 'fragment' | 'compute';
@@ -100,13 +110,13 @@ export class TemplateProcessor {
         });
 
         // insert body chunks without order rules
-        const body = chunks.filter(chunk => !chunk.hasOrderRules(this.type)).map(chunk => chunk.code[this.type]);
+        const body = chunks.map(chunk => chunk.getBodyCodesUnordered(this.type)).flat().map(bodyCode => bodyCode.code);
         let bodyStr = body.join('\n');
 
         // sort ordered chunks
-        const orderedChunks = chunks.filter(chunk => chunk.hasOrderRules(this.type)).sort((a, b) => {
-            const aRule = a.orderRules[this.type];
-            const bRule = b.orderRules[this.type];
+        const orderedBodyCodes = chunks.map(chunk => chunk.getBodyCodesOrdered(this.type)).flat().sort((a, b) => {
+            const aRule = a.order;
+            const bRule = b.order;
             if (aRule === 'first') return -1;
             if (bRule === 'first') return 1;
             if (aRule === 'last') return 1;
@@ -116,22 +126,24 @@ export class TemplateProcessor {
         // insert ordered chunks
         let firstStr = '';
         let lastStr = '';
-        for (const chunk of orderedChunks) {
-            const rule = chunk.orderRules[this.type];
+        for (const bodyCode of orderedBodyCodes) {
+            const rule = bodyCode.order;
             if (rule === 'first') {
-                firstStr += chunk.code[this.type] + '\n';
+                firstStr += bodyCode.code + '\n';
             }
             if (rule === 'last') {
-                lastStr += chunk.code[this.type] + '\n';
+                lastStr += bodyCode.code + '\n';
             }
             if (rule.includes('before')) {
                 const [_, marker] = rule.split(':');
                 const splitBody = bodyStr.split('\n');
                 const index = splitBody.findIndex(line => new RegExp(`// ?${marker}`).test(line));
                 if (index !== -1) {
-                    splitBody.splice(index, 0, chunk.code[this.type]);
-                    bodyStr = splitBody.join('\n');
+                    splitBody.splice(index, 0, bodyCode.code);
+                } else {
+                    splitBody.push(bodyCode.code);
                 }
+                bodyStr = splitBody.join('\n');
             }
             if (rule.includes('after')) {
                 const [_, marker] = rule.split(':');
@@ -142,10 +154,10 @@ export class TemplateProcessor {
                     const nextMarkerIndex = splitBody.slice(index + 1).findIndex(line => /\/\/\s?\w+/.test(line)) + (index + 1);
                     if (nextMarkerIndex !== -1 && nextMarkerIndex < splitBody.length) {
                         // insert before next marker
-                        splitBody.splice(nextMarkerIndex, 0, chunk.code[this.type]);
+                        splitBody.splice(nextMarkerIndex, 0, bodyCode.code);
                     } else {
                         // if no next marker, insert at the end
-                        splitBody.push(chunk.code[this.type]);
+                        splitBody.push(bodyCode.code);
                     }
                     bodyStr = splitBody.join('\n');
                 }

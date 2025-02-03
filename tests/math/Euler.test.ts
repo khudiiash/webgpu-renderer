@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { Euler, EulerOrder } from '../../src/math/Euler'
+import { Euler } from '../../src/math/Euler'
 import { Quaternion } from '../../src/math/Quaternion'
 import { Vector3 } from '../../src/math/Vector3'
 import { Matrix4 } from '../../src/math/Matrix4'
@@ -246,6 +246,7 @@ describe('Euler', () => {
         const initialZ = euler.z;
     
         // Call setFromRotationMatrix with an unknown order
+        // @ts-ignore
         euler.setFromRotationMatrix(matrix, 'INVALID_ORDER');
     
         // Check that the Euler angles have not been modified

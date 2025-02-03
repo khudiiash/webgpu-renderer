@@ -8,7 +8,7 @@ export interface RenderStateOptions {
     depthWrite?: boolean;
     depthCompare?: 'less' | 'greater' | 'equal' | 'not-equal' | 'always' | 'never';
     stencilTest?: boolean;
-    blending?: 'normal' | 'additive' | 'multiply' | 'screen' | 'darken' | 'lighten' | 'subtract';
+    blending?: 'normal' | 'additive' | 'additive-alpha' | 'multiply' | 'screen' | 'darken' | 'lighten' | 'subtract';
     transparent?: boolean;
 }
 
@@ -52,7 +52,6 @@ export class RenderState {
             return undefined;
         }
 
-
         const blendModes = {
             additive: {
                 color: {
@@ -63,6 +62,18 @@ export class RenderState {
                 alpha: {
                     operation: 'add',
                     srcFactor: 'one',
+                    dstFactor: 'one',
+                }
+            },
+            'additive-alpha': {
+                color: {
+                    operation: 'add',
+                    srcFactor: 'src-alpha',
+                    dstFactor: 'one',
+                },
+                alpha: {
+                    operation: 'add',
+                    srcFactor: 'src-alpha',
                     dstFactor: 'one',
                 }
             },
@@ -167,17 +178,19 @@ export class RenderState {
         }
     }
 
-    onChange(callback: () => this) {
+    onChange(callback: () => any): this {
         if (callback && !this.callbacks.includes(callback)) {
             this.callbacks.push(callback);
         }
+        return this;
     }
 
-    offChange(callback: () => this) {
+    offChange(callback: () => any): this {
         const index = this.callbacks.indexOf(callback);
         if (index >= 0) {
             this.callbacks.splice(index, 1);
         }
+        return this;
     }
 
 
