@@ -12,8 +12,8 @@ export class BoundingBox {
 
     public setFromAttribute(attribute: BufferAttribute) {
         const { data, itemSize } = attribute;
-        this.min.set([Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY]);
-        this.max.set([Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY]);
+        this.min.set(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
+        this.max.set(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY);
 
         for (let i = 0; i < data.length; i += itemSize) {
             const x = data[i];

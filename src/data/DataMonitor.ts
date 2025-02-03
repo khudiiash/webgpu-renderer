@@ -1,4 +1,4 @@
-import { arraysEqual, num } from "@/util/general";
+import { arraysEqual } from "@/util/general";
 import { ChangeCallback } from "./BufferData";
 
 class DataMonitor {
@@ -10,7 +10,7 @@ class DataMonitor {
         for (const prop of Object.getOwnPropertyNames(proto)) {
             const descriptor = Object.getOwnPropertyDescriptor(proto, prop);
             
-            if (prop === 'constructor' || descriptor?.get || descriptor?.set || /onChange|offChange|Silent/i.test(prop)) {
+            if (prop === 'constructor' || descriptor?.get || descriptor?.set || /onChange|offChange|Silent|__/i.test(prop)) {
                 continue;
             }
             

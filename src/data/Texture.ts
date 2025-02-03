@@ -1,6 +1,16 @@
 import { uuid } from "@/util/general";
 import { ObjectMonitor } from "./ObjectMonitor";
 
+export interface TextureOptions {
+    magFilter?: 'linear' | 'nearest';
+    minFilter?: 'linear' | 'nearest';
+    mipmapFilter?: 'linear' | 'nearest';
+    addressModeU?: GPUAddressMode;
+    addressModeV?: GPUAddressMode;
+    addressModeW?: GPUAddressMode;
+    invertY: boolean;
+}
+
 export class Texture {
     public width: number = 0;
     public height: number = 0;
@@ -43,6 +53,16 @@ export class Texture {
         });
     }
 
+    setOptions(options: TextureOptions) {
+        if (!options) return;
+        if (options.magFilter) this.magFilter = options.magFilter;
+        if (options.minFilter) this.minFilter = options.minFilter;
+        if (options.mipmapFilter) this.mipmapFilter = options.mipmapFilter;
+        if (options.addressModeU) this.addressModeU = options.addressModeU;
+        if (options.addressModeV) this.addressModeV = options.addressModeV;
+        if (options.addressModeW) this.addressModeW = options.addressModeW;
+    }
+
     getSamplerDescriptor(): GPUSamplerDescriptor {
         return {
             magFilter: this.magFilter,
@@ -58,26 +78,32 @@ export class Texture {
         return this.texture?.createView();
     }
 
-    onLoaded(callback: Function) {
+    onLoaded(callback: Function): this {
         if (typeof callback !== 'function') {
             console.error('Texture: Invalid onLoaded callback')
-            return;
+            return this;
         }
         if (this.loadCbs.includes(callback)) {
             console.warn('Texture: load callback already added');
-            return;
+            return this;
         }
 
         this.loadCbs.push(callback);
+        return this;
     }
 
-    offLoaded(callback: Function) {
+    offLoaded(callback?: Function): this {
+        if (!callback) {
+            this.loadCbs = [];
+            return this;
+        }
         const index = this.loadCbs.indexOf(callback);
         if (index === -1) {
             console.warn('Texture: load callback not found');
-            return;
+            return this;
         }
         this.loadCbs.splice(this.loadCbs.indexOf(callback), 1);
+        return this;
     }
 
     notifyChange() {

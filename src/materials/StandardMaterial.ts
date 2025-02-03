@@ -7,6 +7,7 @@ import { RenderState, RenderStateOptions } from "@/renderer/RenderState";
 import { Texture2D } from "@/data/Texture2D";
 import { Struct } from '@/data/Struct';
 import { boolToNum } from '@/util/general';
+import { Vector2 } from '@/math';
 
 
 export interface StandardMaterialOptions extends RenderStateOptions {
@@ -23,6 +24,9 @@ export interface StandardMaterialOptions extends RenderStateOptions {
     specular_factor?: number;
     alpha_test?: number;
     transmission?: number;
+    uv_scale?: [number, number];
+    height_scale?: number;
+    invert_normal?: boolean;
 
     diffuse_map?: Texture;
     normal_map?: Texture;
@@ -60,6 +64,10 @@ class StandardMaterial extends Material {
         alpha_test: 'f32',
         transmission: 'f32',
 
+        height_scale: 'f32',
+        uv_scale: 'vec2f',
+        invert_normal: 'u32',
+
         useLight: 'u32',
         usePBR: 'u32',
         useEmissive: 'u32',
@@ -78,6 +86,8 @@ class StandardMaterial extends Material {
     emissive_factor!: number;
     specular_factor!: number;
     alpha_test!: number;
+    transmission!: number;
+    invert_normal!: boolean;
 
     diffuse_map!: Texture;
     normal_map!: Texture;
@@ -103,26 +113,31 @@ class StandardMaterial extends Material {
             depthCompare: options.depthCompare || 'less',
             topology: options.topology || 'triangle-list',
             frontFace: options.frontFace || 'ccw',
-		}); 
+		}).onChange(() => {
+            this.rebuild()
+        }); 
 
         this.uniforms.set('StandardMaterial', new UniformData(this, { 
                 name: 'StandardMaterial',
                 struct: StandardMaterial.struct,
                 isGlobal: false,
                 values: {
-                    ambient: new Color(options.ambient),
-                    diffuse: new Color(options.diffuse),
-                    specular: new Color(options.specular),
+                    ambient: new Color(options.ambient || '#000000'),
+                    diffuse: new Color(options.diffuse || '#FFFFFF'),
+                    specular: new Color(options.specular || '#FFFFFF'),
                     emissive: new Color(options.emissive || '#000000'),
-                    sheen: new Color(options.sheen),
-                    ao: new Color(options.ao),
+                    sheen: new Color(options.sheen || '#000000'),
+                    ao: new Color(options.ao || '#FFFFFF'),
                     opacity: options.opacity || 1.0,
-                    metalness: options.metalness || 0.0,
-                    roughness: options.roughness || 0.5,
-                    emissive_factor: options.emissive_factor || 1.0,
-                    specular_factor: options.specular_factor || 1.0,
-                    alpha_test: options.alpha_test || 0.5,
-                    transmission: options.transmission || 0.0,
+                    metalness: options.metalness ?? 0.0,
+                    roughness: options.roughness ?? 0.5,
+                    emissive_factor: options.emissive_factor ?? 1.0,
+                    specular_factor: options.specular_factor ?? 1.0,
+                    alpha_test: options.alpha_test ?? 0.027,
+                    transmission: options.transmission ?? 0.0,
+                    uv_scale: options.uv_scale ? new Vector2(...options.uv_scale) : new Vector2(1, 1),
+                    height_scale: options.height_scale ?? 0.1,
+                    invert_normal: boolToNum(options.invert_normal, 0),
 
                     useLight: boolToNum(options.useLight, 1),
                     usePBR: boolToNum(options.usePBR, 1),

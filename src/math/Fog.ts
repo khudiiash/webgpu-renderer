@@ -27,7 +27,7 @@ export class Fog extends BufferData {
     private _color: Color;
 
     constructor(config: FogConfig = {}) {
-        super(4 + 1 + 1 + 1 + 1);
+        super(4 + 1 + 1 + 1 + 1, 8);
         config = {
             color: 0xffffff,
             type: Fog.LINEAR,
@@ -37,7 +37,7 @@ export class Fog extends BufferData {
             ...config
         };
 
-        this._color = new Color(config.color).onChange(() => {
+        this._color = new Color(config.color || '#000000').onChange(() => {
             this.set([this._color.r, this._color.g, this._color.b, this._color.a]);
         });
 
