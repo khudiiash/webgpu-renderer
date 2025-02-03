@@ -166,7 +166,6 @@ class Color extends BufferData {
         } else {
             super.setSilent(args);
         }
-        return this;
     }
     
     copy(color: Color) {
