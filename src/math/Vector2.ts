@@ -1,33 +1,12 @@
 import { BufferData } from "@/data/BufferData";
-import { BufferAttribute } from "@/geometry/BufferAttribute";
-import { Matrix3 } from "./Matrix3";
-import { isArrayOrBuffer } from "@/util";
 
 export class Vector2 extends BufferData {
     [index: number]: number;
     readonly length: number = 2;
     readonly isVector2: boolean = true;
 
-    get x() { return this[0]; }
-    get y() { return this[1]; }
-
-    set x(value) { this[0] = value; this.monitor.check(0); }
-    set y(value) { this[1] = value; this.monitor.check(1); }
-
-    constructor();
-    constructor(x: number, y: number);
-    constructor(values: ArrayLike<number> | BufferData, offset?: number);
-
-    constructor(...args: any) {
-        super([0, 0], 2);
-        if (typeof args[0] === 'number') {
-            this[0] = args[0];
-            this[1] = args[1] ?? 0;
-        } else if (isArrayOrBuffer(args[0])) {
-            let offset = args[1] || 0;
-            this[0] = args[0][offset];
-            this[1] = args[0][offset + 1];
-        }
+    constructor(x: number = 0, y: number = 0) {
+        super([x, y]);
     }
 
     add(v: Vector2): this {
@@ -36,54 +15,9 @@ export class Vector2 extends BufferData {
         return this;
     }
 
-    addVectors(a: Vector2, b: Vector2): this {
-        this[0] = a[0] + b[0];
-        this[1] = a[1] + b[1];
-        return this;
-    }
-
     sub(v: Vector2): this {
         this[0] -= v[0];
         this[1] -= v[1];
-        return this;
-    }
-
-    applyMatrix3(m: Matrix3): this {
-        const x = this[0], y = this[1];
-        const e = m;
-        this[0] = e[0] * x + e[1] * y + e[2];
-        this[1] = e[3] * x + e[4] * y + e[5];
-        return this;
-    }
-
-    set(x: number | ArrayLike<number>, y: number): this {
-        if (Array.isArray(x) || x instanceof Float32Array) {
-            this[0] = x[0];
-            this[1] = x[1];
-        } else {
-            this[0] = x as number;
-            this[1] = y as number;
-        }
-        return this;
-    }
-
-    applyMatrix4(m: Matrix3): this {
-        const x = this[0], y = this[1];
-        const e = m;
-        this[0] = e[0] * x + e[1] * y + e[2];
-        this[1] = e[3] * x + e[4] * y + e[5];
-        return this;
-    }
-
-    setFromBufferAttribute(attribute: BufferAttribute, index: number): this {
-        this[0] = attribute.getX(index);
-        this[1] = attribute.getY(index);
-        return this;
-    }
-
-    subVectors(a: Vector2, b: Vector2): this {
-        this[0] = a[0] - b[0];
-        this[1] = a[1] - b[1];
         return this;
     }
 
@@ -103,6 +37,20 @@ export class Vector2 extends BufferData {
         return this[0] * v[0] + this[1] * v[1];
     }
 
+    toArray(array?: number[], offset?: number): number[] {
+        if (array === undefined) array = [];
+        if (offset === undefined) offset = 0;
+
+        array[offset] = this[0];
+        array[offset + 1] = this[1];
+
+        return array;
+    }
+
+    clone(): this {
+        return new Vector2(this[0], this[1]) as this;
+    }
+
     copy(v: this): this {
         this[0] = v[0];
         this[1] = v[1];
@@ -111,6 +59,12 @@ export class Vector2 extends BufferData {
 
     equals(v: this): boolean {
         return this[0] === v[0] && this[1] === v[1];
+    }
+
+    set(array: ArrayLike<number>, offset: number = 0): this {
+        this[0] = array[offset];
+        this[1] = array[offset + 1];
+        return this;
     }
 
     setX(x: number): this {
@@ -123,32 +77,13 @@ export class Vector2 extends BufferData {
         return this;
     }
 
-    setXY(x: number, y: number): this {
-        this[0] = x;
-        this[1] = y;
-        return this;
-    }
-
-    scale(x: Vector2 | number, y?: number): this {
-        if (x instanceof Vector2) {
-            this[0] *= x[0];
-            this[1] *= x[1];
-        } else if (y == undefined) {
-            this[0] *= x;
-            this[1] *= x;
-        } else {
-            this[0] *= x;
-            this[1] *= y!;
-        }
-        return this;
-    }
-
-    clone(): this {
-        return new Vector2(this[0], this[1]) as this;
-    }
-
     magnitude(): number {
         return Math.sqrt(this[0] * this[0] + this[1] * this[1]);
     }
 
+    get x() { return this[0]; }
+    get y() { return this[1]; }
+
+    set x(value) { this[0] = value; this.monitor.check(); }
+    set y(value) { this[1] = value; this.monitor.check(); }
 }

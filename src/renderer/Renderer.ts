@@ -119,7 +119,6 @@ export class Renderer extends EventEmitter {
             this.draw(child, camera, pass);
         }
     }
-
     private initRenderPassDescriptor() {
         this.renderPassDescriptor = {
             colorAttachments: [
@@ -152,7 +151,6 @@ export class Renderer extends EventEmitter {
     public render(scene: Scene, camera: Camera) {
         const commandEncoder = this.device.createCommandEncoder();
         const textureView = this.context.getCurrentTexture().createView();
-        scene.update();
 
         if (!this.renderPassDescriptor) {
             this.initRenderPassDescriptor();

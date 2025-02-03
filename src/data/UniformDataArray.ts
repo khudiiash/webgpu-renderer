@@ -1,20 +1,21 @@
+//import { BufferData, UniformData, DataMonitor } from "@/data";
 import { BufferData } from "./BufferData";
 import { DataMonitor } from "./DataMonitor";
 import { UniformData } from "./UniformData";
-import { Struct } from "./Struct";
 
 export class UniformDataArray extends BufferData {
     itemSize: number;
     maxItems: number;
     items: UniformData[];
     monitor: DataMonitor;
-    struct: Struct;
-
-    constructor(struct: Struct, maxItems: number) {
-        const itemSize = struct.size / 4;
-        super(maxItems * itemSize);
-        this.itemSize = itemSize;
-        this.struct = struct;
+    /**
+     * @param {number} maxItems  maximum number of items
+     * @param {number} itemSize  length of item's data
+     * @param {number} padding  padding between items (default to 4) as it is better for data alignment in gpu
+     */
+    constructor(maxItems: number, itemSize: number, padding: number = 4) {
+        super(maxItems * (itemSize + padding));
+        this.itemSize = itemSize + padding;
         this.maxItems = maxItems;
         this.items = [];
         this.monitor = new DataMonitor(this, this);
@@ -33,11 +34,12 @@ export class UniformDataArray extends BufferData {
             return;
         }
         const index = this.size * this.itemSize;
-        item.onChange((_, start, end) => { // start and end are in uniform scope
-            this.set(item.subarray(start, end), index + start);
+        this.set(item.data, index);
+        item.onChange(() => {
+            this.set(item.data, index)
+            this.monitor.dispatch();
         })
         this.items.push(item);
-        this.set(item.subarray(), index);
     }
 
     /**
@@ -67,7 +69,7 @@ export class UniformDataArray extends BufferData {
         } else {
             // not at the end of the list, so need to rearrange data
             for (let i = 0; i < this.items.length; i++) {
-                this.set(this.items[i].subarray(), i * this.itemSize);
+                this.set(this.items[i].data, i * this.itemSize);
             }
         }
     }

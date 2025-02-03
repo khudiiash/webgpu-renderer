@@ -1,5 +1,4 @@
-import { arraysEqual } from "@/util/general";
-import { ChangeCallback } from "./BufferData";
+import { arraysEqual, num } from "@/util/general";
 
 class DataMonitor {
     parent: any;
@@ -10,38 +9,34 @@ class DataMonitor {
         for (const prop of Object.getOwnPropertyNames(proto)) {
             const descriptor = Object.getOwnPropertyDescriptor(proto, prop);
             
-            if (prop === 'constructor' || descriptor?.get || descriptor?.set || /onChange|offChange|Silent|__/i.test(prop)) {
+            if (prop === 'constructor' || descriptor?.get || descriptor?.set || /silent/i.test(prop)) {
                 continue;
             }
             
             if (typeof proto[prop] === 'function') {
                 const original = proto[prop] as Function;
                 instance[prop] = function(this: typeof instance, ...args: unknown[]): unknown {
-                    const result = original.apply(this, args);
-                    if (prop === 'set') {
-                        monitor.check(args[1] as number || 0, (args[0] as ArrayLike<number>).length); 
-                    } else {
-                        monitor.check();
-                    }
-                    return result;
+                const result = original.apply(this, args);
+                monitor.check();
+                return result;
                 };
             }
         }
 
         if (instance.onChange) {
             const original = instance.onChange;
-            instance.onChange = function(callback: ChangeCallback) {
+            instance.onChange = function(callback: Function) {
                 monitor.add(callback);
                 return original.call(instance, callback);
             }
-            instance.offChange = function(callback?: ChangeCallback) {
+            instance.offChange = function(callback?: Function) {
                 monitor.remove(callback);
                 return instance;
             }
         } else {
             Object.defineProperties(instance, {
                 onChange: {
-                    value: function(callback: ChangeCallback) {
+                    value: function(callback: Function) {
                         monitor.add(callback);
                         return instance;
                     },
@@ -49,7 +44,7 @@ class DataMonitor {
                 },
                 
                 offChange: {
-                    value: function(callback: ChangeCallback) {
+                    value: function(callback: Function) {
                         monitor.remove(callback);
                         return instance;
                     },
@@ -63,7 +58,7 @@ class DataMonitor {
         return instance;
     }
 
-    private callbacks: ChangeCallback[];
+    private callbacks: Function[];
     private data: Float32Array;
     private lastData: Float32Array;
 
@@ -75,17 +70,16 @@ class DataMonitor {
         DataMonitor.extendWithDataMonitor(this, parent);
     }
 
-    check(start: number = 0, end: number = this.data.length): boolean {
-        if (!this.callbacks.length) return false;
-        const shouldDispatch = !arraysEqual(this.lastData, this.data, start, end);
+    check() {
+        if (!this.callbacks.length) return;
+        const shouldDispatch = !arraysEqual(this.lastData, this.data);
         this.lastData.set(this.data);
         if (shouldDispatch) {
-            this.dispatch(start, end);
+            this.dispatch();
         }
-        return shouldDispatch;
     }
 
-    add(callback: ChangeCallback) {
+    add(callback: Function) {
         if (callback === undefined) {
             throw new Error('Callback is undefined');
         }
@@ -94,7 +88,7 @@ class DataMonitor {
         }
     }
 
-    remove(callback?: ChangeCallback) {
+    remove(callback?: Function) {
         if (callback === undefined) {
             this.callbacks = [];
             return;
@@ -105,9 +99,9 @@ class DataMonitor {
         }
     }
 
-    dispatch(start: number, end: number) {
+    dispatch() {
         for (let i = 0; i < this.callbacks.length; i++) {
-            this.callbacks[i](this.data, start, end);
+            this.callbacks[i](this.data);
         }
     }
 }

@@ -18,7 +18,6 @@ export class BoundingSphere {
     }
 
     copy(sphere: BoundingSphere): this {
-        if (!sphere) return this;
         this.center.copy(sphere.center);
         this.radius = sphere.radius;
         return this;

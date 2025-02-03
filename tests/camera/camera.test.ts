@@ -25,8 +25,10 @@ describe('Camera', () => {
 
     it('should update aspect ratio and projection matrix', () => {
         const cam = new Camera();
+        const oldProjectionMatrix = cam.projectionMatrix.clone();
         cam._onResize({ aspect: 2 });
         expect(cam.aspect).toBe(2);
+        expect(cam.projectionMatrix.equals(oldProjectionMatrix)).toBe(false);
     });
 
     it('clone should create a copy with same properties', () => {

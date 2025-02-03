@@ -1,6 +1,5 @@
 import { Color } from '@/math/Color';
 import { BufferData } from '@/data/BufferData';
-import { Struct } from '@/data/Struct';
 
 export type FogConfig = {
     color?: Color | string | number,
@@ -12,14 +11,6 @@ export type FogConfig = {
 
 export class Fog extends BufferData {
 
-    static struct = new Struct('Fog', {
-        color: 'vec4f',
-        fogType: 'f32',
-        start: 'f32',
-        end: 'f32',
-        density: 'f32',
-    });
-
     static LINEAR: number = 0;
     static EXPONENTIAL: number = 1;
     static EXPONENTIAL_SQUARED: number = 2;
@@ -27,7 +18,7 @@ export class Fog extends BufferData {
     private _color: Color;
 
     constructor(config: FogConfig = {}) {
-        super(4 + 1 + 1 + 1 + 1, 8);
+        super(4 + 1 + 1 + 1 + 1);
         config = {
             color: 0xffffff,
             type: Fog.LINEAR,
@@ -37,8 +28,9 @@ export class Fog extends BufferData {
             ...config
         };
 
-        this._color = new Color(config.color || '#000000').onChange(() => {
+        this._color = new Color(config.color).onChange(() => {
             this.set([this._color.r, this._color.g, this._color.b, this._color.a]);
+            this.monitor.check();
         });
 
 
@@ -60,10 +52,10 @@ export class Fog extends BufferData {
     get density() { return this[7]; }
     get color() { return this._color; }
 
-    set type(value) { this[4] = value; this.monitor.check(4, 5); }
-    set start(value) { this[5] = value; this.monitor.check(5, 6); }
-    set end(value) { this[6] = value; this.monitor.check(6, 7); }
-    set density(value) { this[7] = value; this.monitor.check(7, 8); }
+    set type(value) { this[4] = value; this.monitor.check(); }
+    set start(value) { this[5] = value; this.monitor.check(); }
+    set end(value) { this[6] = value; this.monitor.check(); }
+    set density(value) { this[7] = value; this.monitor.check(); }
 
     set color(value) { 
         this._color.offChange();
@@ -71,7 +63,9 @@ export class Fog extends BufferData {
         this.set([this._color.r, this._color.g, this._color.b, this._color.a]);
         this._color.onChange(() => {
             this.set([this._color.r, this._color.g, this._color.b, this._color.a]);
+            this.monitor.check();
         });
+        this.monitor.check(); 
     }
     
 }

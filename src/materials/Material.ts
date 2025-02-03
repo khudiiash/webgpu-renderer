@@ -1,9 +1,12 @@
 import { Mesh } from "@/core/Mesh";
 import { autobind, uuid } from "@/util/general";
-import { Shader, ShaderChunk, ShaderConfig } from "@/materials/shaders"
+import { BufferData } from "@/data/BufferData";
+import { Shader, ShaderConfig } from "@/materials/shaders"
 import { UniformData } from "@/data/UniformData";
+import { Texture } from "@/data/Texture";
 import { RenderState } from "@/renderer/RenderState";
 import { EventEmitter } from "@/core/EventEmitter";
+import { ObjectMonitor } from "@/data/ObjectMonitor";
 
 export type MaterialOptions = {
     name?: string;
@@ -15,8 +18,9 @@ export class Material extends EventEmitter {
     public id: string = uuid('material');
     public shader!: Shader;
     public meshes: Mesh[] = [];
-    public uniforms: Map<string, UniformData> = new Map();
+    public uniforms!: UniformData;
     public renderState: RenderState;
+    public defines: ObjectMonitor;
     private _shaderConfig!: ShaderConfig;
 
     constructor(options: MaterialOptions = {}) {
@@ -24,6 +28,15 @@ export class Material extends EventEmitter {
         autobind(this);
         this.name = options.name ?? this.name;
         this.renderState = new RenderState();
+
+        this.defines = new ObjectMonitor({
+            USE_LIGHT: false,
+            USE_SHADOW: false,
+            USE_FOG: false,
+            MAX_INSTANCES: 1,
+        }).onChange(() => {
+            this.createShader();
+        });
     }
 
     get shaderConfig() {
@@ -34,25 +47,18 @@ export class Material extends EventEmitter {
         this.createShader(config);
     }
   
+    setParameter(name: string, value: BufferData | Texture) {
+        this.uniforms.set(name, value);
+    }
+
+    getParameter(name: string) {
+        return this.uniforms.get(name);
+    }
 
     createShader(config: ShaderConfig = this._shaderConfig) {
         this._shaderConfig = config;
-        this.shader = Shader.create(this._shaderConfig, this.shader?.defines);
-        this.rebuild();
-    }
-
-    addChunk(chunk: ShaderChunk): this {
-        this.shaderConfig.chunks.push(chunk.name);
-        this.createShader();
-        return this;
-    }
-
-
-    removeChunk(chunkName: string) {
-        const index = this.shaderConfig.chunks.indexOf(chunkName);
-        if (index === -1) return;
-        this.shaderConfig.chunks.splice(index, 1);
-        this.createShader();
+        this.shader = Shader.create(this._shaderConfig, this.defines);
+        this.fire('rebuild', this);
     }
 
     addMesh(mesh: Mesh) {
@@ -77,10 +83,6 @@ export class Material extends EventEmitter {
     copy(source: Material) {
         this.name = source.name;
         return this;
-    }
-
-    rebuild() {
-        this.fire('rebuild', this);
     }
   
 }

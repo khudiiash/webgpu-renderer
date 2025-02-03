@@ -1,62 +1,26 @@
 import { arraysEqual } from '@/util/general';
 import { DataMonitor } from './DataMonitor';
-import { GPUPlainType } from '@/types';
-import { Struct } from './Struct';
 
-export type ChangeCallback = (data: BufferData | Float32Array, start: number, end: number) => void;
+export type ChangeCallback = (instance: any, data: BufferData) => void;
 
 export class BufferData extends Float32Array {
     [index: number]: number;
     monitor!: DataMonitor;
-    protected arrayStride: number;
-    static count = 0;
 
-    onChange(_: ChangeCallback): this { return this; }
-    offChange(_?: ChangeCallback): this { return this; }
+    onChange(callback: ChangeCallback): this { return this; }
+    offChange(callback?: ChangeCallback): this { return this; }
 
-    constructor(arg: ArrayLike<number> | number, arrayStride?: number) {
+    constructor(arg: ArrayLike<number> | ArrayBuffer | number) {
         if (typeof arg === 'number') {
-            if (!Number.isInteger(arg)) {
-                console.error('BufferData: length must be an integer', arg);
-            }
-            if (arrayStride === undefined) {
-                super(arg);
-            } else {
-                super(arg * arrayStride);
-            }
+            super(arg);
         } else {
             super(arg);
         }
-        this.arrayStride = arrayStride ?? this.length;
         this.monitor = new DataMonitor(this, this);
     }
 
-    get format(): GPUPlainType | string {
-        if ((this.constructor as any).struct as Struct) {
-            return (this.constructor as any).struct.name;
-        }
-        switch (this.arrayStride) {
-            case 1: return 'f32';
-            case 2: return 'vec2f';
-            case 3: return 'vec3f';
-            case 4: return 'vec4f';
-            case 9: return 'mat3x3f';
-            case 16: return 'mat4x4f';
-            default: return 'f32';
-        }
-    }
-
-    get arraySize() {
-        return this.length / this.arrayStride;
-    }
-
     set(array: ArrayLike<number> | BufferData, offset: number = 0): this {
-        if (Array.from(array).some((v => isNaN(v)))) {
-            console.error('NaN detected in array', array); // eslint-disable-line no-
-            debugger
-        }
         super.set(array, offset);
-        this.monitor.check(offset, offset + array.length);
         return this;
     }
 
@@ -68,7 +32,6 @@ export class BufferData extends Float32Array {
 
     copy(data: BufferData): this {
         super.set(data);
-        this.monitor.check();
         return this;
     }
 
@@ -77,12 +40,12 @@ export class BufferData extends Float32Array {
         return this;
     }
 
-    clone(): BufferData {
-        return new (this.constructor as any)(this) as BufferData;
+    clone(): this {
+        return new (this.constructor as any)(...this) as this;
     }
 
-    equals(data: BufferData): boolean {
-        return arraysEqual(this, data, 0, this.length);
+    equals(data: BufferData, precision: number = 1e-6): boolean {
+        return arraysEqual(this, data, precision);
     }
 
     fromArray(array: ArrayLike<number> | BufferData, start: number = 0, end: number = array.length - 1): this {
@@ -90,7 +53,6 @@ export class BufferData extends Float32Array {
         for (let i = 0; i < length; i++) {
             this[i] = array[start + i];
         }
-        this.monitor.check();
         return this;
     }
 
@@ -112,14 +74,6 @@ export class BufferData extends Float32Array {
 
     magnitude(): number {
         return Math.sqrt(this.reduce((sum, value) => sum + value ** 2, 0));
-    }
-
-    magnitudeSquared(): number {
-        return this.reduce((sum, value) => sum + value ** 2, 0);
-    }
-
-    subarray(start: number, end: number): this {
-        return new Float32Array(this.buffer, start * 4, end - start) as this;
     }
 
 }

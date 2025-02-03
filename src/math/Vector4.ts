@@ -1,6 +1,5 @@
 import { BufferData } from "@/data/BufferData";
 import { Matrix4 } from "./Matrix4";
-import { isArrayOrBuffer } from "@/util";
 
 export class Vector4 extends BufferData {
     [index: number]: number;
@@ -12,25 +11,13 @@ export class Vector4 extends BufferData {
     get z() { return this[2]; }
     get w() { return this[3]; }
 
-    set x(value) { this[0] = value; this.monitor.check(0); }
-    set y(value) { this[1] = value; this.monitor.check(1); }
-    set z(value) { this[2] = value; this.monitor.check(2); }
-    set w(value) { this[3] = value; this.monitor.check(3); }
+    set x(value) { this[0] = value; this.monitor.check(); }
+    set y(value) { this[1] = value; this.monitor.check(); }
+    set z(value) { this[2] = value; this.monitor.check(); }
+    set w(value) { this[3] = value; this.monitor.check(); }
 
-    constructor();
-    constructor(x: number, y: number, z: number, w: number);
-    constructor(values: ArrayLike<number> | BufferData, offset?: number);
-
-    constructor(...args: any) {
-        super([0, 0, 0, 0], 4);
-        if (typeof args[0] === 'number') {
-            this[0] = args[0];
-            this[1] = args[1] ?? 0;
-            this[2] = args[2] ?? 0;
-            this[3] = args[3] ?? 0;
-        } else if (args[0] instanceof BufferData || Array.isArray(args[0])) {
-            super.setSilent(args[0], args[1] || 0);
-        }
+    constructor(x: number = 0, y: number = 0, z: number = 0, w: number = 0) {
+        super([x, y, z, w]);
     }
 
     add(v: Vector4): this {
@@ -96,41 +83,36 @@ export class Vector4 extends BufferData {
         return this.fromArray(matrix, index * 4);
     }
 
+    clone(): this {
+        return new Vector4(this[0], this[1], this[2], this[3]) as this;
+    }
+
+    copy(v: this): this {
+        this[0] = v[0];
+        this[1] = v[1];
+        this[2] = v[2];
+        this[3] = v[3];
+        return this;
+    }
+
     equals(v: this): boolean {
         return this[0] === v[0] && this[1] === v[1] && 
                this[2] === v[2] && this[3] === v[3];
     }
 
-    set(x: number, y: number, z: number, w: number): this;
-    set(v: ArrayLike<number> | BufferData, offset?: number): this;
-    set(...args: any): this {
-        if (typeof args[0] === 'number') {
-            this[0] = args[0];
-            this[1] = args[1] ?? 0;
-            this[2] = args[2] ?? 0;
-            this[3] = args[3] ?? 0;
-        } else if (isArrayOrBuffer(args[0])) {
-            let offset = args[1] || 0;
-            super.setSilent(args[0].slice(offset, offset + 4), 0);
-        }
+    set(array: ArrayLike<number>, offset: number = 0): this {
+        this[0] = array[offset];
+        this[1] = array[offset + 1];
+        this[2] = array[offset + 2];
+        this[3] = array[offset + 3];
         return this;
     }
 
-    setSilent(x: number, y: number, z: number, w: number): this;
-    setSilent(v: ArrayLike<number> | BufferData, offset?: number): this;
-    setSilent(...args: any): this {
-        if (typeof args[0] === 'number') {
-            this[0] = args[0];
-            this[1] = args[1] ?? 0;
-            this[2] = args[2] ?? 0;
-            this[3] = args[3] ?? 0;
-        } else if (args[0] instanceof BufferData || Array.isArray(args[0])) {
-            super.setSilent(args[0], args[1] || 0);
-        }
-        return this;
-    }
-
-    clone(): Vector4 {
-        return new Vector4(this[0], this[1], this[2], this[3]);
+    toArray(array: number[] = [], offset: number = 0): number[] {
+        array[offset] = this[0];
+        array[offset + 1] = this[1];
+        array[offset + 2] = this[2];
+        array[offset + 3] = this[3];
+        return array;
     }
 }

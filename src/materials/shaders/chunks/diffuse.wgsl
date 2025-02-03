@@ -1,3 +1,0 @@
-@fragment() {{
-    color = material.diffuse;
-}}

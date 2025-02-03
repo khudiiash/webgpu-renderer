@@ -4,9 +4,6 @@ import { Quaternion } from "@/math/Quaternion";
 import { Matrix4 } from "@/math/Matrix4";
 import { uuid, num } from "@/util/general";
 import { EventEmitter } from "./EventEmitter";
-import { UniformData } from "@/data";
-import { Matrix3 } from "@/math/Matrix3";
-import { Scene } from "./Scene";
 
 export class Object3D extends EventEmitter {
     public position: Vector3;
@@ -15,24 +12,16 @@ export class Object3D extends EventEmitter {
     public quaternion: Quaternion;
     public matrix: Matrix4;
     public matrixWorld: Matrix4;
-    public normalMatrix: Matrix3;
     public children: Object3D[];
     public parent: Object3D | null;
     public name: string = 'Object';
-    public up: Vector3 = Vector3.UP;
+    public up: Vector3 = Vector3.up;
     public id: string;
-    public uniforms: Map<string, UniformData> = new Map();
-    public scene!: Scene;
-    readonly forward = new Vector3(0, 0, -1);
-    readonly right = new Vector3(1, 0, 0);
+    public direction = new Vector3(0, 0, -1);
 
     private matrixUpdateInProgress: boolean = false;
-
     public isCamera: boolean = false;
     public isLight: boolean = false;
-    public isDirectionalLight: boolean = false;
-    public isPointLight: boolean = false;
-    public isSpotLight: boolean = false;
     public isMesh: boolean = false;
 
     constructor() {
@@ -56,39 +45,44 @@ export class Object3D extends EventEmitter {
         this.id = uuid('object');
         this.matrix = new Matrix4();
         this.matrixWorld = new Matrix4();
-        this.normalMatrix = new Matrix3();
         this.children = [];
         this.parent = null;
     }
 
-    lookAt(x: number | Vector3, y?: number, z?: number): void {
-        // This method does not support objects having non-uniformly-scaled parent(s)
-        
-        if (x instanceof Vector3) {
-            _target.copy(x);
-        } else {
-            _target.set(x, y!, z!);
+    lookAt(x: number | Vector3 | Object3D, y: number, z: number): void {
+        if (x instanceof Object3D) {
+            x.updateMatrixWorld();
+            _target.copy(x.position);
+        } else if (x instanceof Vector3 ) {
+			_target.copy(x);
+		} else if (num(x, y, z)) {
+			_target.setXYZ(x, y, z);
+		} else {
+            console.error( `Object3D.lookAt(): Invalid target ${x}, ${y}, ${z}` );
+            return;
         }
 
-        const parent = this.parent;
+		const parent = this.parent;
 
-        this.updateMatrixWorld(true);
+		this.updateMatrixWorld();
 
-        _position.setFromMatrixPosition(this.matrixWorld);
+		_position.setFromMatrixPosition( this.matrixWorld );
 
-        if (this.isCamera || this.isLight) {
-            _m1.lookAt(_position, _target, this.up);
-        } else {
-            _m1.lookAt(_target, _position, this.up);
-        }
+		if (this.isCamera || this.isLight) {
+			_m1.lookAt( _position, _target, this.up );
+		} else {
+			_m1.lookAt( _target, _position, this.up );
 
-        this.quaternion.setFromRotationMatrix(_m1);
+		}
 
-        if (parent) {
-            _m1.extractRotation(parent.matrixWorld);
-            _q1.setFromRotationMatrix(_m1);
-            this.quaternion.premultiply(_q1.invert());
-        }
+		this.quaternion.setFromRotationMatrix( _m1 );
+
+		if ( parent ) {
+            _m1.setFromRotationMatrix( parent.matrixWorld );
+			_q1.setFromRotationMatrix( _m1 );
+			this.quaternion.premultiply( _q1.inverse() );
+
+		}
     }
     updateMatrix() {
         if (this.matrixUpdateInProgress) return;
@@ -96,11 +90,6 @@ export class Object3D extends EventEmitter {
         this.matrix.compose(this.position, this.quaternion, this.scale);
         this.updateMatrixWorld();
         this.matrixUpdateInProgress = false;
-    }
-
-    getWorldScale(vector: Vector3 = Vector3.instance): Vector3 {
-        this.matrixWorld.getScale(vector);
-        return vector;
     }
 
     updateMatrixWorld(fromParent: boolean = false) {
@@ -117,50 +106,26 @@ export class Object3D extends EventEmitter {
             child.updateMatrixWorld(true);
         });
 
-        if (this.isLight || this.isCamera) {
-            this.forward.set([ -this.matrixWorld[8], -this.matrixWorld[9], -this.matrixWorld[10] ]).normalize();
-        }  else {
-            this.forward.set([ this.matrixWorld[8], this.matrixWorld[9], this.matrixWorld[10] ]).normalize();
-        }
-        this.right.set([ this.matrixWorld[0], this.matrixWorld[1], this.matrixWorld[2] ]).normalize();
+        this.direction.set([ this.matrixWorld[8], this.matrixWorld[9], this.matrixWorld[10] ]).normalize();
 
         this.matrixUpdateInProgress = false;
     }
 
     add(child: Object3D) {
-        if (!(child instanceof Object3D)) {
-            console.error(`Object.add: object not an instance of Object3D.`, child);
-            return this;
-        }
         if (child.parent) {
             child.parent.remove(child);
         }
         child.parent = this;
         this.children.push(child);
-        child.updateMatrixWorld(true);
-
-        if (child.isLight && this.scene && this.scene.isScene) {
-            this.scene.addLight(child);
-        }
-        return this;
+        child.updateMatrixWorld();
     }
 
     remove(child: Object3D) {
-        if (!(child instanceof Object3D)) {
-            console.error(`Object.remove: object not an instance of Object3D.`, child);
-            return this;
-        }
-        if (child.parent !== this) {
-            console.error(`Object.remove: object not a child of this.`, child);
-            return this;
-        }
-
         const index = this.children.indexOf(child);
         if (index !== -1) {
             child.parent = null;
             this.children.splice(index, 1);
         }
-        return this;
     }
 
     setPosition(x: number | Vector3, y: number = 0, z: number = 0) {
@@ -169,100 +134,31 @@ export class Object3D extends EventEmitter {
         } else if (num(x, y, z)) {
             this.position.set([x, y, z]);
         }
-        return this;
     }
 
-    setScale(x: number | Vector3, y?: number, z?: number) {
+    setScale(x: number | Vector3, y: number = 0, z: number = 0) {
         if (x instanceof Vector3) {
             this.scale.copy(x);
         } else if (num(x) && !num(y, z)) {
-            this.scale.set(x, x, x);
+            this.scale.set([x, x, x]);
         } else if (num(x, y, z)) {
-            this.scale.set(x, y as number, z as number);
+            this.scale.set([x, y, z]);
         }
+    }
+
+    copy(source: Object3D) {
+        this.position.copy(source.position);
+        this.rotation.copy(source.rotation);
+        this.scale.copy(source.scale);
+        this.quaternion.copy(source.quaternion);
+        this.matrix.copy(source.matrix);
+        this.matrixWorld.copy(source.matrixWorld);
+        this.children = source.children.map(child => child.clone());
         return this;
     }
 
-    traverse(callback: (object: Object3D) => void) {
-        const stack: Object3D[] = [this];
-        while (stack.length) {
-            const current = stack.pop()!;
-            callback(current);
-            for (let i = 0, len = current.children.length; i < len; i++) {
-                stack.push(current.children[i]);
-            }
-        }
-    }
-
-    findByName(name: string): Object3D | null {
-        const stack: Object3D[] = [this];
-        while (stack.length) {
-            const current = stack.pop()!;
-            if (current.name === name) {
-                return current;
-            }
-            for (let i = 0, len = current.children.length; i < len; i++) {
-                stack.push(current.children[i]);
-            }
-        }
-        return null;
-    }
-
-    findAll(predicate: (object: Object3D) => boolean): Object3D[] {
-        const result: Object3D[] = [];
-        const stack: Object3D[] = [this];
-        while (stack.length) {
-            const node = stack.pop()!;
-            if (predicate(node)) {
-                result.push(node);
-            }
-            stack.push(...node.children);
-        }
-        return result;
-    }
-
-    find(predicate: (object: Object3D) => boolean): Object3D | null {
-        const stack: Object3D[] = [this];
-        while (stack.length) {
-            const node = stack.pop()!;
-            if (predicate(node)) {
-                return node;
-            }
-            stack.push(...node.children);
-        }
-        return null;
-    }
-
-    copy( source: Object3D, recursive = true ) {
-
-		this.name = source.name;
-
-		this.up.copy( source.up );
-
-		this.position.copy( source.position );
-		this.rotation.order = source.rotation.order;
-		this.quaternion.copy( source.quaternion );
-		this.scale.copy( source.scale );
-
-		this.matrix.copy( source.matrix );
-		this.matrixWorld.copy( source.matrixWorld );
-
-		if (recursive === true ) {
-			for ( let i = 0; i < source.children.length; i ++ ) {
-				const child = source.children[ i ];
-				this.add( child.clone() );
-
-			}
-		}
-
-		return this;
-	}
-
-
-
-    clone( recursive = false ) {
-        return new (this.constructor as typeof Object3D)().copy( this, recursive );
-
+    clone(): Object3D {
+        return new Object3D().copy(this);
     }
 }
 

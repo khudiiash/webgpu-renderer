@@ -18,10 +18,10 @@ describe('DataMonitor', () => {
                 (this as any)[0] = 1
                 return this
             },
-            onChange(_: Function) {
+            onChange(callback: Function) {
                 return this
             },
-            offChange(_: Function) {
+            offChange(callback: Function) {
                 return this
             }
         })
@@ -46,7 +46,7 @@ describe('DataMonitor', () => {
     })
 
     it('should throw error when adding undefined callback', () => {
-        expect(() => dataMonitor.add(undefined as any))
+        expect(() => dataMonitor.add(undefined as unknown as Function))
             .toThrow('Callback is undefined')
     })
 
@@ -62,7 +62,7 @@ describe('DataMonitor', () => {
         dataMonitor.add(callback)
         parentInstance[0] = 1
         dataMonitor.check()
-        expect(callback).toHaveBeenCalled();
+        expect(callback).toHaveBeenCalledWith(bufferData)
     })
 
     it('should chain onChange method', () => {

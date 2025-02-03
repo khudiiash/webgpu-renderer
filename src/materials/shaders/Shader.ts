@@ -1,8 +1,6 @@
 import { ShaderConfig, ShaderVarying, ShaderAttribute } from "./ShaderLibrary";
-import { TemplateProcessor } from "./TemplateProcessor";
+import { TemplateBinding, TemplateDefines, TemplateProcessor } from "./TemplateProcessor";
 import { ShaderFormatter } from "./ShaderFormatter";
-import { Binding } from "@/data/Binding";
-import { BindGroupLayout } from "@/data/BindGroupLayout";
 
 export type ShaderBinding = {
     group: number;
@@ -17,30 +15,27 @@ class Shader {
     vertexSource!: string;
     fragmentSource!: string;
     computeSource!: string;
+    defines: TemplateDefines;
     attributes: Map<string, ShaderAttribute>;
     varyings: Map<string, ShaderVarying>;
     options: any;
-    bindings: Binding[] = [];
-    layouts: BindGroupLayout[] = [];
-    defines: Record<string, boolean> = {};
-
-    BUILTIN_VERTEX_ATTRIBUTES = [
-        { name: 'vertex_index', type: 'u32' },
-    ];
+    bindings: TemplateBinding[];
     
     constructor(name: string, options = {}) {
         this.name = name;
         this.formatter = new ShaderFormatter();
         this.processor = new TemplateProcessor();
+        this.defines = {};
         this.attributes = new Map();
         this.varyings = new Map();
         this.options = options;
+        this.bindings = [];
     }
 
     addVarying(varying: ShaderVarying) {
         if (varying.interpolate) {
             const { interpolate } = varying;
-            let { type, sampling } = interpolate;
+            const { type, sampling } = interpolate;
             if (type === 'flat' && type && !['first', 'either'].includes(sampling as string)) {
                 varying.interpolate.sampling = 'first';
                 console.warn(`Invalid sampling mode for flat interpolation: ${varying.interpolate.sampling}. Using 'first' instead.`);
@@ -84,10 +79,9 @@ class Shader {
         return result;
     }
 
-    static create(options: ShaderConfig, defines?: Record<string, boolean>) {
+    static create(options: ShaderConfig, defines: TemplateDefines = {}) {
         const shader = new Shader(options.name || 'unnamed');
-        const chunks = options.chunks || [];
-        const bindings = new Set<Binding>();
+        const bindings = shader.bindings;
         
         if (options.attributes) {
             for (let i = 0; i < options.attributes.length; i++) {
@@ -106,6 +100,7 @@ class Shader {
         }
 
         const varyings = shader.generateVaryings();
+        console.log(varyings);
         const attributes = shader.generateAttributes();
 
         if (options.vertexTemplate) {
@@ -118,19 +113,16 @@ class Shader {
                     }; 
 
                     struct VertexOutput {
-                        @builtin(position) positionC: vec4f,
+                        @builtin(position) position: vec4f,
                         ${varyings}
                     };
 
                     ${options.vertexTemplate}`,
-                    chunks,
-                    )
+                    defines,
+                    bindings)
                 );
             if (!shader.verify(shader.vertexSource)) {
                 console.error('Vertex shader failed to compile');
-            }
-            for (const binding of TemplateProcessor.getBindings()) {
-                bindings.add(binding);
             }
         }
 
@@ -149,71 +141,22 @@ class Shader {
 
                     ${options.fragmentTemplate}
                     `,
-                    chunks,
+                    defines,
+                    bindings,
                 )
             );
             if (!shader.verify(shader.fragmentSource)) {
                 console.error('Fragment shader failed to compile');
             }
-            for (const binding of TemplateProcessor.getBindings()) {
-                bindings.add(binding);
-            }
-        }
-        shader.bindings = Array.from(bindings);
-        shader.layouts = [...new Set(shader.bindings.map(binding => binding.getBindGroupLayout() as BindGroupLayout))];
-        if (defines) {
-            shader.setDefines(defines);
         }
 
+        console.log(shader);
         return shader;
     }
-
-    insertAttributes(attributes: ShaderAttribute[]) {
-        for (const attribute of attributes) {
-            this.addAttribute(attribute);
-        }
-
-        this.vertexSource = this.vertexSource.replace(/struct VertexInput {[\s\S]*?};/, '');
-        const attributesString = this.generateAttributes();
-        this.vertexSource = ShaderFormatter.format(`struct VertexInput { 
-            @builtin(vertex_index) vertex_index: u32,
-            @builtin(instance_index) instance_index: u32,
-            ${attributesString} 
-        }; \n${this.vertexSource}`);
-    }
-
-    setDefines(defines: Record<string, boolean>) {
-        this.defines = defines;
-        this.vertexSource = ShaderFormatter.format(TemplateProcessor.processDefines(defines, this.vertexSource));
-        this.fragmentSource = ShaderFormatter.format(TemplateProcessor.processDefines(defines, this.fragmentSource));
-        this.computeSource = ShaderFormatter.format(TemplateProcessor.processDefines(defines, this.computeSource));
-    }
-
-    insertVaryings(varyings: ShaderVarying[]) {
-        for (const varying of varyings) {
-            this.addVarying(varying);
-        }
-
-        this.vertexSource = this.vertexSource.replace(/struct VertexOutput {[\s\S]*?};/, '');
-        this.fragmentSource = this.fragmentSource.replace(/struct FragmentInput {[\s\S]*?};/, '');
-
-        const varyingsString = this.generateVaryings();
-        this.vertexSource = ShaderFormatter.format(`struct VertexOutput { 
-            @builtin(position) clip: vec4f,
-            ${varyingsString} 
-        }; \n${this.vertexSource}`);
-        this.fragmentSource = ShaderFormatter.format(`struct FragmentInput { 
-            @builtin(position) clip: vec4f,
-            @builtin(front_facing) front_facing: bool,
-            ${varyingsString} 
-        }; \n${this.fragmentSource}`);
-    }
-
 
     verify(source: string) {
         return !/undefined|\[Object/.test(source);
     }
-
 
 
 }

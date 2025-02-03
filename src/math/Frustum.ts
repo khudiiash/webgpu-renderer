@@ -18,8 +18,9 @@ class Frustum extends BufferData {
             if (object.boundingSphere === null) object.computeBoundingSphere();
             _sphere.copy(object.boundingSphere as BoundingSphere).applyMatrix4(object.matrixWorld);
         } else {
-            if (object.geometry.boundingSphere === null) object.geometry.computeBoundingSphere();
-            _sphere.copy(object.geometry.boundingSphere as BoundingSphere).applyMatrix4(object.matrixWorld);
+            const geometry = object.geometry;
+            if (geometry.boundingSphere === null) geometry.computeBoundingSphere();
+            _sphere.copy(geometry.boundingSphere as BoundingSphere).applyMatrix4(object.matrixWorld);
         }
 
         return this.intersectsSphere(_sphere);

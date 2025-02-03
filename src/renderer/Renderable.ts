@@ -1,10 +1,21 @@
 import { ResourceManager } from '@/engine/ResourceManager';
 import { PipelineManager } from '@/engine/PipelineManager';
+import { UniformData } from '@/data/UniformData';
 import { autobind, uuid } from '@/util/general';
 import { Mesh } from '@/core/Mesh';
 import { Material } from '@/materials/Material';
 import { Geometry } from '@/geometry/Geometry';
-import { Shader } from '@/materials/shaders/Shader';
+
+export type BindGroupConfig = {
+    name: string;
+    layout: GPUBindGroupLayout;
+    items: Array<{
+        name: string;
+        binding: number;
+        dataID: string;
+        resource: any;
+    }>;
+};
 
 export class Renderable {
     public id: string;
@@ -19,18 +30,16 @@ export class Renderable {
     isIndexed: boolean = false;
     indexBuffer?: GPUBuffer;
     vertexBuffer?: GPUBuffer;
-    shader: Shader;
 
 
     constructor(mesh: Mesh) {
         autobind(this);
         this.mesh = mesh;
         this.material = mesh.material;
-        this.shader = this.material.shader;
         this.geometry = mesh.geometry;
         this.id = uuid('renderable');
 
-        this.material.on('rebuild', this.rebuild);
+        this.material.on('rebuild', this.createBindGroups);
         
         this.resourceManager = ResourceManager.getInstance();
         this.pipelineManager = PipelineManager.getInstance();
@@ -38,39 +47,99 @@ export class Renderable {
         this.initialize();
     }
 
+    getBindGroupLayouts() {
+        const bindings = this.material.shader.bindings;
+        const layouts = [];
+        for (const binding of bindings) {
+            const layout = PipelineManager.getDefaultBindGroupLayout(binding.group);
+            layouts[binding.group] = layout;
+        }
 
+        return layouts;
+    }
     
     initialize() {
-        this.shader.insertAttributes(this.geometry.getShaderAttributes());
-        this.shader.insertVaryings(this.geometry.getShaderVaryings());
         this.createVertexBuffer();
         this.createIndexBuffer();
         this.createBindGroups();
         
-        const pipelineLayout = this.pipelineManager.createPipelineLayout(this.shader.layouts);
+        const pipelineLayout = this.pipelineManager.createPipelineLayout(this.getBindGroupLayouts());
         
         this.pipeline = this.pipelineManager.createRenderPipeline({
-            shader: this.material.shader,
-            renderState: this.material.renderState,
-            layout: pipelineLayout,
-            vertexBuffers: [this.geometry.getVertexAttributesLayout()],
-        });
-    }
-
-    rebuild() {
-        this.createBindGroups();
-        const pipelineLayout = this.pipelineManager.createPipelineLayout(this.shader.layouts);
-        
-        this.pipeline = this.pipelineManager.createRenderPipeline({
-            shader: this.material.shader,
-            renderState: this.material.renderState,
+            material: this.material,
             layout: pipelineLayout,
             vertexBuffers: [this.geometry.getVertexAttributesLayout()],
         });
     }
 
     createBindGroups() {
-        this.bindGroups = this.resourceManager.createBindGroups(this.shader, this);
+        const shader = this.material.shader;
+        const bindings = shader.bindings;
+        const bindGroups = [];
+        const layouts = this.getBindGroupLayouts();
+        const { GLOBAL, MODEL, MATERIAL } = PipelineManager.LAYOUT_GROUPS;
+
+        for (let i = 0; i < layouts.length; i++) {
+            const layout = layouts[i];
+            const groupBindings = bindings.filter(b => b.group === i);
+            
+            const config: BindGroupConfig = {
+                name: `bgl_${shader.name}_${i}`,
+                layout: layout,
+                items: []
+            };
+
+            for (const binding of groupBindings) {
+                let uniformData;
+                switch (binding.group) {
+                    case GLOBAL:
+                        uniformData = UniformData.getByName(binding.name);
+                        break;
+                    case MODEL:
+                        uniformData = this.mesh.uniforms;
+                        break;
+                    case MATERIAL:
+                        uniformData = this.material.uniforms;
+                        break;
+                }
+                if (!uniformData) continue;
+                const dataID = uniformData.id;
+
+                if (/texture/.test(binding.type)) {
+                    const texture = uniformData.textures.get(binding.name);
+                    config.items.push({
+                        name: binding.name,
+                        binding: binding.binding,
+                        dataID, 
+                        resource: { texture, dataID }
+                    });
+                } else if (/sampler/.test(binding.type)) {
+                    const type = uniformData.textures.get(binding.name)?.sampler;
+                    config.items.push({
+                        name: binding.name,
+                        binding: binding.binding,
+                        dataID,
+                        resource: { sampler: { type } }
+                    });
+                } else {
+                    const dataID = uniformData.id;
+                    const desc = uniformData.getBufferDescriptor();
+                    if (desc) {
+                        config.items.push({
+                            name: binding.name,
+                            binding: binding.binding,
+                            dataID,
+                            resource: { buffer: desc }
+                        });
+                    }
+                }
+
+                uniformData.onRebuild(this.rebuildBindGroups);
+            }
+
+            bindGroups[i] = this.resourceManager.createBindGroup(config);
+        }
+        this.bindGroups = bindGroups;
     }
 
     updateBuffer(id: string) {
@@ -84,10 +153,11 @@ export class Renderable {
     createIndexBuffer() {
         this.isIndexed = this.geometry.isIndexed;
         if (!this.isIndexed) return;
+
         this.indexBuffer = this.resourceManager.createAndUploadBuffer(
             { 
                 name: "Geometry Index Buffer",
-                data: this.geometry.getIndices(),
+                data: this.geometry.indices as ArrayBuffer, 
                 usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
                 id: 'ib_' + this.geometry.id,
             },
@@ -97,7 +167,7 @@ export class Renderable {
     createVertexBuffer() {
         this.vertexBuffer = this.resourceManager.createAndUploadBuffer({
             name: "Geometry Vertex Buffer",
-            data: this.geometry.getPacked() as Float32Array,
+            data: this.geometry.packed as Float32Array,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
             id: 'vb_' + this.geometry.id,
         });
@@ -114,10 +184,10 @@ export class Renderable {
         pass.setVertexBuffer(0, this.vertexBuffer);
         
         if (this.isIndexed && this.indexBuffer) {
-            pass.setIndexBuffer(this.indexBuffer, this.geometry.indices.format);
-            pass.drawIndexed(this.geometry.indices.count, this.mesh.count);
+            pass.setIndexBuffer(this.indexBuffer, this.geometry.indexFormat as GPUIndexFormat);
+            pass.drawIndexed(this.geometry.indices.length, this.mesh.count);
         } else {
-            pass.draw(this.geometry.vertexCount, this.mesh.count);
+            pass.draw(this.geometry.positions.length / 3, 1, 0, 0);
         }
     }
     
