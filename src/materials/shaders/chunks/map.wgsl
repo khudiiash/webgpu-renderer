@@ -144,7 +144,6 @@ fn get_parallax_shadow(lightDirTS: vec3f, currentPos: vec3f, ddx: vec2f, ddy: ve
         normal = normalize(normalSample * 2.0 - 1.0); // in tangent space
     }
 
-
     // diffuse_map
     let diffuseSample = sampleColor(diffuse_map, diffuse_map_sampler, uv, color);
     if (diffuseSample.a < material.alpha_test || color.a < material.alpha_test) {

@@ -138,7 +138,6 @@ export class SponzaScene {
                     if (['17', '18', '19'].some((id) => child.material.name.includes(id))) {
                         child.material.addChunk(windChunk);
                     }
-                    child.material.alpha_test = 0.9;
                     child.material.invert_normal = true;
                 }
             });
