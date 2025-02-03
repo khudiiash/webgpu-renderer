@@ -6,6 +6,7 @@ export default defineConfig({
     plugins: [tsConfigPaths()],
     root: __dirname,
     base: './',
+    assetsInclude: ['**/*.wgsl', '**/*.glb', '**/*.gltf'],
     build: {
         outDir: resolve(__dirname, 'dist'),
     },

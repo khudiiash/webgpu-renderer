@@ -11,6 +11,7 @@ import { rand } from '@/util';
 import { Engine } from '@/engine/Engine';
 import { Texture2D } from '@/data';
 import { TriangleGeometry } from '@/geometry/TriangleGeometry';
+import Sponza from '../assets/models/sponza.glb?url';
 
 import ParticleMap from '../assets/textures/particle.png';
 import { FirstPersonControls } from '@/camera';
@@ -101,7 +102,7 @@ export class SponzaScene {
     }
 
     private async setupSponza() {
-        const sponza = await GLTFLoader.loadMesh('assets/models/sponza.glb');
+        const sponza = await GLTFLoader.loadMesh(Sponza);
         const windChunk = new ShaderChunk('Wind', `
             @group(Global) @binding(Scene)
             @include(Noise)

@@ -5,8 +5,10 @@ import { resolve } from 'path';
 export default defineConfig({
     plugins: [tsConfigPaths()],
     root: __dirname,
+    base: './',
+    assetsInclude: ['**/*.wgsl', '**/*.glb', '**/*.gltf'],
     build: {
-        outDir: resolve(__dirname, '../../../dist'),
+        outDir: resolve(__dirname, 'dist'),
     },
     resolve: {
         alias: {
