@@ -1,4 +1,4 @@
-import { arraysEqual } from '@/util/general';
+import { arraysEqual, uuid } from '@/util/general';
 import { DataMonitor } from './DataMonitor';
 import { GPUPlainType } from '@/types';
 import { Struct } from './Struct';
@@ -10,6 +10,7 @@ export class BufferData extends Float32Array {
     monitor!: DataMonitor;
     protected arrayStride: number;
     static count = 0;
+    public id: string;
 
     onChange(_: ChangeCallback): this { return this; }
     offChange(_?: ChangeCallback): this { return this; }
@@ -27,6 +28,7 @@ export class BufferData extends Float32Array {
         } else {
             super(arg);
         }
+        this.id = uuid('buffer_data');
         this.arrayStride = arrayStride ?? this.length;
         this.monitor = new DataMonitor(this, this);
     }

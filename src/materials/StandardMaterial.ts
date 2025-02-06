@@ -1,4 +1,3 @@
-import { ShaderLibrary } from './shaders/ShaderLibrary';
 import { Material } from "./Material";
 import { Color } from "../math/Color";
 import { Texture } from "@/data/Texture";
@@ -133,7 +132,7 @@ class StandardMaterial extends Material {
                     roughness: options.roughness ?? 0.5,
                     emissive_factor: options.emissive_factor ?? 1.0,
                     specular_factor: options.specular_factor ?? 1.0,
-                    alpha_test: options.alpha_test ?? 0.027,
+                    alpha_test: options.alpha_test ?? 0.5,
                     transmission: options.transmission ?? 0.0,
                     uv_scale: options.uv_scale ? new Vector2(...options.uv_scale) : new Vector2(1, 1),
                     height_scale: options.height_scale ?? 0.1,
@@ -159,8 +158,6 @@ class StandardMaterial extends Material {
                 }
             })
         );
-
-        this.createShader(ShaderLibrary.STANDARD);
     }
 }
 

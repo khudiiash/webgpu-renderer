@@ -1,6 +1,5 @@
 @group(Global) @binding(Camera)
 @group(Mesh) @binding(MeshInstances)
-@group(Mesh) @binding(MeshOptions)
 
 @include(Common)
 
@@ -10,7 +9,10 @@
 
 
     // local_position
-    output.local_position = input.position;
+    var local_position = input.position;
+    #if USE_LOCAL_POSITION {
+        output.local_position = local_position;
+    }
 
     // billboard
     #if USE_BILLBOARD {
@@ -34,8 +36,13 @@
     }
 
     // position
-    output.position = transform(model, output.local_position, 1.0);
+    output.position = transform(model, local_position, 1.0);
 
     // clip 
     output.clip = camera.projection * camera.view * vec4f(output.position, 1.0);
+
+    // depth
+    #if USE_DEPTH {
+        output.depth = output.clip.z / output.clip.w;
+    }
 }}

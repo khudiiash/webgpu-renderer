@@ -1,6 +1,7 @@
 import { Shader } from "@/materials/shaders/Shader";
 import { RenderState } from "@/renderer/RenderState";
 import { GPUPlainType, TypedArray, TypedArrayConstructorLike, } from "@/types";
+import { hashString } from "./general";
 
 export function align16(value: number): number {
     return Math.ceil(value / 16) * 16;
@@ -225,12 +226,14 @@ export function usageToString(usage: GPUBufferUsageFlags): string {
     return names.join(' | ');
 }
 
-export function hashPipelineState(shader: Shader, renderState: RenderState): string {
-  return JSON.stringify({
+export function hashPipelineState(shader: Shader, renderState: RenderState, targets: GPUColorTargetState[], vertexLayouts: GPUVertexBufferLayout[]): string {
+  return hashString(JSON.stringify({
     vertex: shader.vertexSource,
     fragment: shader.fragmentSource,
     primitive: renderState.getPrimitive(),
     depthStencil: renderState.getDepthStencil(),
     blend: renderState.getBlendState(),
-  });
+    targets: targets,
+    vertexLayouts: vertexLayouts,
+  }));
 }

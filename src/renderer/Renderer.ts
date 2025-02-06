@@ -5,26 +5,25 @@ import { Renderable } from "./Renderable";
 import { Camera } from "@/camera/Camera";
 import { ResourceManager } from "@/engine/ResourceManager";
 import { EventCallback, EventEmitter } from "@/core/EventEmitter";
-import { Color } from "@/math/Color";
-
-interface RenderPassDescriptor extends GPURenderPassDescriptor {
-    colorAttachments: GPURenderPassColorAttachment[];
-    depthStencilAttachment?: GPURenderPassDepthStencilAttachment;
-}
+import { RenderGraph } from "./RenderGraph";
+import { GeometryPass } from "./passes/GeometryPass";
+import { PipelineManager } from "@/engine";
+import { ShadingPass } from "./passes/ShadingPass";
 
 export class Renderer extends EventEmitter {
     public device!: GPUDevice;
     public context!: GPUCanvasContext;
     public format!: GPUTextureFormat;
     public canvas: HTMLCanvasElement;
-    private renderables: WeakMap<Object3D, Renderable> = new WeakMap();
-    private renderPassDescriptor!: RenderPassDescriptor;
+    public pipelines!: PipelineManager;
+    public renderables: WeakMap<Object3D, Renderable> = new WeakMap();
     public width: number = 0;
     public height: number = 0;
     public aspect: number = 0;
     resources!: ResourceManager;
 
     static #instance: Renderer;
+    private renderGraph!: RenderGraph;
 
     static on(event: string, listener: EventCallback, context?: any) {
         Renderer.#instance?.on(event, listener, context);
@@ -65,6 +64,9 @@ export class Renderer extends EventEmitter {
             throw new Error("Failed to get GPU device.");
         }
 
+        this.renderGraph = new RenderGraph(this);
+
+
         const canvas = this.canvas;
         this.width = canvas.width;
         this.height = canvas.height;
@@ -99,72 +101,89 @@ export class Renderer extends EventEmitter {
     }
 
     onResize() {
-        this.resources.createDepthTexture('depth', this.width, this.height);
-        this.initRenderPassDescriptor();
+        if (!this.resources) {
+            return;
+        }
+        //this.resources.createDepthTexture('depth', this.width, this.height);
+        //this.initRenderPassDescriptor();
     }
 
     setResources(resources: ResourceManager) {
         this.resources = resources;
+        this.pipelines = new PipelineManager(this.device);
         this.resources.createDepthTexture('depth', this.canvas.width, this.canvas.height);
+        this.renderGraph.addPass(new GeometryPass(this));
+        this.renderGraph.addPass(new ShadingPass(this));
     }
 
-    draw(object: Object3D, camera: Camera, pass: GPURenderPassEncoder) {
-        if (object instanceof Mesh) {
-            let renderable = this.renderables.get(object) ?? new Renderable(object);
-            !this.renderables.has(object) && this.renderables.set(object, renderable);
-            renderable.render(pass);
+    createRenderable(mesh: Mesh): Renderable {
+        if (this.renderables.has(mesh)) {
+            return this.renderables.get(mesh) as Renderable;
         }
-
-        for (let child of object.children) {
-            this.draw(child, camera, pass);
-        }
+        const renderable = new Renderable(mesh);
+        this.renderables.set(mesh, renderable);
+        return renderable;
     }
 
-    private initRenderPassDescriptor() {
-        this.renderPassDescriptor = {
-            colorAttachments: [
-                {
-                    // @ts-ignore
-                    view: undefined, // Will be set later
-                    clearValue: [0.4, 0.5, 0.5, 1],
-                    loadOp: 'clear' as GPULoadOp,
-                    storeOp: 'store' as GPUStoreOp,
-                }
-            ],
-            depthStencilAttachment: {
-                view: this.resources.getTextureView('depth') as GPUTextureView,
-                depthClearValue: 1.0,
-                depthLoadOp: 'clear' as GPULoadOp,
-                depthStoreOp: 'store' as GPUStoreOp,
-            }
-        };
-    }
+    // draw(object: Object3D, camera: Camera, pass: GPURenderPassEncoder) {
+    //     if (object instanceof Mesh) {
+    //         let renderable = this.renderables.get(object) ?? new Renderable(object);
+    //         !this.renderables.has(object) && this.renderables.set(object, renderable);
+    //         renderable.render(pass);
+    //     }
 
-    updateTextureView(textureView: GPUTextureView) {
-        this.renderPassDescriptor.colorAttachments[0].view = textureView;
-    }
+    //     for (let child of object.children) {
+    //         this.draw(child, camera, pass);
+    //     }
+    // }
 
-    updateClearValue(color: Color) {
-        this.renderPassDescriptor.colorAttachments[0].clearValue = color;
-    }
+    // private initRenderPassDescriptor() {
+    //     this.renderPassDescriptor = {
+    //         colorAttachments: [
+    //             {
+    //                 // @ts-ignore
+    //                 view: undefined, // Will be set later
+    //                 clearValue: [0.4, 0.5, 0.5, 1],
+    //                 loadOp: 'clear' as GPULoadOp,
+    //                 storeOp: 'store' as GPUStoreOp,
+    //             }
+    //         ],
+    //         depthStencilAttachment: {
+    //             view: this.resources.getTextureView('depth') as GPUTextureView,
+    //             depthClearValue: 1.0,
+    //             depthLoadOp: 'clear' as GPULoadOp,
+    //             depthStoreOp: 'store' as GPUStoreOp,
+    //         }
+    //     };
+    // }
+
+    // updateTextureView(textureView: GPUTextureView) {
+    //     this.renderPassDescriptor.colorAttachments[0].view = textureView;
+    // }
+
+    // updateClearValue(color: Color) {
+    //     this.renderPassDescriptor.colorAttachments[0].clearValue = color;
+    // }
 
 
     public render(scene: Scene, camera: Camera) {
-        const commandEncoder = this.device.createCommandEncoder();
-        const textureView = this.context.getCurrentTexture().createView();
+        // const commandEncoder = this.device.createCommandEncoder();
+        // const textureView = this.context.getCurrentTexture().createView();
         scene.update();
 
-        if (!this.renderPassDescriptor) {
-            this.initRenderPassDescriptor();
-        }
+        // if (!this.renderPassDescriptor) {
+        //     this.initRenderPassDescriptor();
+        // }
 
-        this.updateTextureView(textureView);
-        this.updateClearValue(scene.backgroundColor);
+        // this.updateTextureView(textureView);
+        // this.updateClearValue(scene.backgroundColor);
 
-        const pass = commandEncoder.beginRenderPass(this.renderPassDescriptor);
-        this.draw(scene, camera, pass);
-        pass.end();
+        this.renderGraph.execute(scene, camera);
 
-        this.device.queue.submit([commandEncoder.finish()]);
+        // const pass = commandEncoder.beginRenderPass(this.renderPassDescriptor);
+        // this.draw(scene, camera, pass);
+        // pass.end();
+
+        //this.device.queue.submit([commandEncoder.finish()]);
     }
 }

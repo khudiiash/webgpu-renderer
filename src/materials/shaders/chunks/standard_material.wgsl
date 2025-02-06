@@ -54,8 +54,9 @@
     var viewDir = normalize(camera.position - position);
     var TBN: mat3x3f;
     var ambient = vec3f(0.0);
+    var gamma = 2.2;
 
-    #if USE_TANGENT {
+    if (mesh_options.useTangent == 1) {
         useTangent = true;
         TBN = transpose(getTBN(input.tangent, input.bitangent, input.normal));
         let tangentViewPos = toTangent(TBN, camera.position);
@@ -71,88 +72,90 @@
     color = vec4f(diffuse, opacity);
     
     // lighting
-if (material.useLight == 1) {
-    let ddx_uv = dpdx(uv);
-    let ddy_uv = dpdy(uv);
-    let albedo = diffuse;
-    let N = normal;
-    let V = viewDir;
-    
-    // Calculate ambient only once
-    let ambient_light = calculate_ambient(N, ao, scene.ambientColor.rgb, scene.ambientColor.a, 
-                                        scene.groundColor.rgb, scene.skyColor.rgb, scene.indirectIntensity);
-    
-    var accumulatedLight = vec3f(0.0);
-    
-    // Pre-calculate expensive transforms
-    let use_pbr = material.usePBR == 1;
-    let use_parallax_shadow = useParallax && useTangent;
+    if (material.useLight == 1) {
+        let ddx_uv = dpdx(uv);
+        let ddy_uv = dpdy(uv);
+        let albedo = diffuse;
+        let N = normal;
+        let V = viewDir;
+        
+        // Calculate ambient only once
+        let ambient_light = calculate_ambient(N, ao, scene.ambientColor.rgb, scene.ambientColor.a, 
+                                            scene.groundColor.rgb, scene.skyColor.rgb, scene.indirectIntensity);
+        
+        var accumulatedLight = vec3f(0.0);
+        
+        // Pre-calculate expensive transforms
+        let use_pbr = material.usePBR == 1;
+        let use_parallax_shadow = useParallax && useTangent;
 
-    // Directional lights
-    for (var i = 0u; i < scene.directionalLightsNum; i++) {
-        let light = scene.directionalLights[i];
-        var L: vec3f;
-        if (useTangent) {
-            L = TBN * -light.direction;
-        } else {
-            L = normalize(light.direction);
-        }
-        
-        if (use_pbr) {
-            accumulatedLight += calculate_directional_light_pbr(L, V, N, albedo, light, 
-                                roughness, metalness, specular, specular_factor, transmission);
-        }
-        
-        if (use_parallax_shadow) {
-            let lightDir = TBN * light.direction;
-            let shadowStrength = smoothstep(0.0, 1.0, 
-                get_parallax_shadow(lightDir, parallax, ddx_uv, ddy_uv));
-            accumulatedLight *= mix(0.05, 1.0, shadowStrength);
-        }
-    }
-
-    // Point lights
-    if (scene.pointLightsNum > 0u) {
-        let pos = position; // Cache position
-        
-        for (var i = 0u; i < scene.pointLightsNum; i++) {
-            let light = scene.pointLights[i];
-            var light_vec = light.position - pos;
-            let D = length(light_vec);
-            
-            // Early attenuation check
-            let att = calculate_attenuation(D);
-            if (att <= 0.0) {
-                continue;
-            }
-            
-            var L: vec3f; 
+        // Directional lights
+        for (var i = 0u; i < scene.directionalLightsNum; i++) {
+            let light = scene.directionalLights[i];
+            var L: vec3f;
             if (useTangent) {
-                L = TBN * normalize(light_vec);
+                L = TBN * -light.direction;
             } else {
-                L = normalize(light_vec);
+                L = normalize(light.direction);
             }
             
             if (use_pbr) {
-                accumulatedLight += calculate_point_light_pbr(L, V, N, D, albedo, light,
+                accumulatedLight += calculate_directional_light_pbr(L, V, N, albedo, light, 
                                     roughness, metalness, specular, specular_factor, transmission);
             }
             
             if (use_parallax_shadow) {
-                let lightDir = TBN * normalize(light_vec);
+                let lightDir = TBN * light.direction;
                 let shadowStrength = smoothstep(0.0, 1.0, 
-                    get_parallax_shadow(-lightDir, parallax, ddx_uv, ddy_uv));
+                    get_parallax_shadow(lightDir, parallax, ddx_uv, ddy_uv));
                 accumulatedLight *= mix(0.05, 1.0, shadowStrength);
             }
         }
+
+        // Point lights
+        if (scene.pointLightsNum > 0u) {
+            let pos = position; // Cache position
+            
+            for (var i = 0u; i < scene.pointLightsNum; i++) {
+                let light = scene.pointLights[i];
+                var light_vec = light.position - pos;
+                let D = length(light_vec);
+                
+                // Early attenuation check
+                let att = calculate_attenuation(D);
+                if (att <= 0.0) {
+                    continue;
+                }
+                
+                var L: vec3f; 
+                if (useTangent) {
+                    L = TBN * normalize(light_vec);
+                } else {
+                    L = normalize(light_vec);
+                }
+                
+                if (use_pbr) {
+                    accumulatedLight += calculate_point_light_pbr(L, V, N, D, albedo, light,
+                                        roughness, metalness, specular, specular_factor, transmission);
+                }
+                
+                if (use_parallax_shadow) {
+                    let lightDir = TBN * normalize(light_vec);
+                    let shadowStrength = smoothstep(0.0, 1.0, 
+                        get_parallax_shadow(-lightDir, parallax, ddx_uv, ddy_uv));
+                    accumulatedLight *= mix(0.05, 1.0, shadowStrength);
+                }
+            }
+        }
+
+
+        color *= vec4f(clamp(ambient_light + accumulatedLight, vec3f(0.0), vec3f(1.0)), 1.0);
     }
 
-    color *= vec4f(ambient_light + accumulatedLight, 1.0);
-}
-
     // gamma
-    if (material.useGamma == 1 && color.a == 1.0) {
-        color = vec4f(pow(color.rgb, vec3f(1.0 / 2.0)), color.a);
+    if (material.useGamma == 1) {
+        var gammaCorrected = pow(color.rgb, vec3f(1.0 / gamma));
+        color = vec4f(gammaCorrected, color.a);
     }
 
     // emissive

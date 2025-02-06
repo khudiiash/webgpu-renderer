@@ -192,4 +192,13 @@ export class Euler extends BufferData {
 		}
 		return this;
 	}
+
+	fromArray(array: ArrayLike<number>, offset: number = 0): this {
+        const length = 3;
+        for (let i = 0; i < length; i++) {
+            this[i] = array[offset + i];
+        }
+        this.monitor.check();
+        return this;
+	}
 }

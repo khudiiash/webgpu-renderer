@@ -145,7 +145,7 @@ fn get_parallax_shadow(lightDirTS: vec3f, currentPos: vec3f, ddx: vec2f, ddy: ve
     }
 
     // diffuse_map
-    let diffuseSample = sampleColor(diffuse_map, diffuse_map_sampler, uv, color);
+    var diffuseSample = sampleColor(diffuse_map, diffuse_map_sampler, uv, color);
     if (diffuseSample.a < material.alpha_test || color.a < material.alpha_test) {
         discard;
     }

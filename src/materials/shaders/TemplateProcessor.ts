@@ -2,6 +2,7 @@ import { ShaderChunk } from './ShaderChunk';
 import { ShaderLibrary } from './ShaderLibrary';
 import { Struct } from '@/data/Struct';
 import { Binding } from '@/data/Binding';
+import { BindGroupLayout } from '@/data/BindGroupLayout';
 
 export class TemplateProcessor {
     static #instance: TemplateProcessor;
@@ -23,8 +24,8 @@ export class TemplateProcessor {
     }
 
 
-    static processTemplate(template: string, chunks: string[]) {
-        return TemplateProcessor.getInstance().processTemplate(template, chunks);
+    static processTemplate(template: string, layouts: BindGroupLayout[], chunks: ShaderChunk[], defines: Map<string, boolean>) {
+        return TemplateProcessor.getInstance().processTemplate(template, layouts, chunks, defines);
     }
 
     static getBindings() {
@@ -35,9 +36,9 @@ export class TemplateProcessor {
         return TemplateProcessor.getInstance().getChunks();
     }
 
-    static processDefines(defines: Record<string, boolean>, template: string) {
+    static processDefines(template: string, defines: Map<string, boolean>) {
         if (!template || !template.includes('#if')) return template; 
-        for (const [key, value] of Object.entries(defines)) {
+        for (const [key, value] of defines.entries()) {
             if (!template.includes(key)) continue;
             const re = new RegExp(`#if ${key} {([\\s\\S]*?)}`, 'g');
             template = template.replace(re, value ? '$1' : '');
@@ -45,26 +46,37 @@ export class TemplateProcessor {
         return template;
     }
 
-    processTemplate(template: string, chunks: string[]) {
+    processTemplate(template: string, layouts: BindGroupLayout[], chunks: ShaderChunk[], defines: Map<string, boolean>) {
         let processed = template;
         this.type = processed.match(/@(vertex|fragment|compute)/)?.[1] as 'vertex' | 'fragment' | 'compute';
         this.chunks.clear();
         this.bindings.clear();
-        for (const chunkName of chunks) {
-            this.processChunk(chunkName);
+        for (const chunk of chunks) {
+            this.processChunk(chunk, layouts);
         }
         processed = this.processMain(processed);
+        processed = this.processDefines(processed, defines);
         return processed;
     }
-    private processChunk = (chunkName: string) => {
-        const chunk = ShaderLibrary.getChunk(chunkName);
+
+    processDefines(template: string, defines: Map<string, boolean>) {
+        if (!template || !template.includes('#if')) return template; 
+        template = template.replace(/#if\s+(\w+)\s*{([\s\S]*?)}/g, (_, key, content) => {
+            if (defines.has(key)) {
+                return defines.get(key) ? content : '';
+            }
+            return '';
+        });
+        return template;
+    }
+    private processChunk = (chunk: ShaderChunk, layouts: BindGroupLayout[]) => {
         if (!chunk || !chunk.shouldInsert(this.type)) return;
         this.chunks.add(chunk);
-        for (const binding of chunk.bindings) {
+        for (const binding of chunk.extractBindings(layouts)) {
             binding.shouldInsert(this.type) && this.bindings.add(binding);
         }
         for (const subChunk of chunk.chunks) {
-            this.processChunk(subChunk.name);
+            this.processChunk(subChunk, layouts);
         }
     };
 

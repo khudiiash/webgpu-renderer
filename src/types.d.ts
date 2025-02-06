@@ -61,3 +61,14 @@ export type StorageTextureBindGroupLayoutDescriptor = {
 export type SamplerBindGroupLayoutDescriptor = {
     type?: GPUSamplerBindingType;
 }
+
+export type GPUValue = {
+    name: string;
+    type: GPUType;
+}
+
+export type GPUFragmentOutput = {
+    name: string;
+    type: GPUType;
+    location: number;
+}

@@ -408,21 +408,23 @@ export class Geometry {
     }
 
     getVertexAttributesLayout() {
-        const layout: any = { arrayStride: 0, attributes: [] };
-        let offset = 0, location = 0;
-        
+        const layouts = [];
+        let location = 0;
         for (const name in this.attributes) {
             const attr = this.attributes[name];
             if (attr === undefined) continue;
-            layout.attributes.push({
-                shaderLocation: location++,
-                offset,
-                format: attr.format,
+            layouts.push({
+                arrayStride: attr.itemSize * attr.data.BYTES_PER_ELEMENT,
+                attributes: [
+                    {
+                        shaderLocation: location++,
+                        offset: 0,
+                        format: attr.format,
+                    }
+                ]
             });
-            offset += attr.itemSize * attr.data.BYTES_PER_ELEMENT;
         }
-        layout.arrayStride = offset;
-        return layout as GPUVertexBufferLayout;
+        return layouts as GPUVertexBufferLayout[]
     }
 
     computeBoundingBox() {
@@ -451,83 +453,83 @@ export class Geometry {
         return this;
     }
 
-    pack() {
-        // Define static offsets for each attribute
-        const positions = this.attributes.position?.data;
-        const normals = this.attributes.normal?.data;
-        const uvs = this.attributes.uv?.data;
-        const tangents = this.attributes.tangent?.data;
+    // pack() {
+    //     // Define static offsets for each attribute
+    //     const positions = this.attributes.position?.data;
+    //     const normals = this.attributes.normal?.data;
+    //     const uvs = this.attributes.uv?.data;
+    //     const tangents = this.attributes.tangent?.data;
 
-        let positionOffset = 0;
-        let tangentOffset = 0;
-        let normalOffset = 0;
-        let uvOffset = 0;
-        let vertexSize = 0; 
+    //     let positionOffset = 0;
+    //     let tangentOffset = 0;
+    //     let normalOffset = 0;
+    //     let uvOffset = 0;
+    //     let vertexSize = 0; 
 
-        let offset = 0;
-        for (const attr of this.getAttributes()) {
-            if (!attr) continue;
-            if (attr === this.attributes.position) {
-                positionOffset = offset;
-            } else if (attr === this.attributes.normal) {
-                normalOffset = vertexSize;
-            } else if (attr === this.attributes.tangent) {
-                tangentOffset = vertexSize;
-            } else if (attr === this.attributes.uv) {
-                uvOffset = vertexSize;
-            }
-            offset += attr.itemSize;
-            vertexSize += attr.itemSize;
-        }
+    //     let offset = 0;
+    //     for (const attr of this.getAttributes()) {
+    //         if (!attr) continue;
+    //         if (attr === this.attributes.position) {
+    //             positionOffset = offset;
+    //         } else if (attr === this.attributes.normal) {
+    //             normalOffset = vertexSize;
+    //         } else if (attr === this.attributes.tangent) {
+    //             tangentOffset = vertexSize;
+    //         } else if (attr === this.attributes.uv) {
+    //             uvOffset = vertexSize;
+    //         }
+    //         offset += attr.itemSize;
+    //         vertexSize += attr.itemSize;
+    //     }
 
-        if (this.packed) {
-            this.packed.offChange();
-        }
-        this.packed = new BufferData(this.vertexCount, vertexSize).onChange(() => this.pack());
+    //     if (this.packed) {
+    //         this.packed.offChange();
+    //     }
+    //     this.packed = new BufferData(this.vertexCount, vertexSize).onChange(() => this.pack());
     
-        for (let i = 0; i < this.vertexCount; i++) {
-            const i2 = i * 2; // Index for UVs
-            const i3 = i * 3; // Index for positions, normals;
-            const i4 = i * 4; // Index for tangents
-            const offset = i * vertexSize; // Base offset in the buffer
+    //     for (let i = 0; i < this.vertexCount; i++) {
+    //         const i2 = i * 2; // Index for UVs
+    //         const i3 = i * 3; // Index for positions, normals;
+    //         const i4 = i * 4; // Index for tangents
+    //         const offset = i * vertexSize; // Base offset in the buffer
     
-            // Positions
-            if (positions) {
-                this.packed[offset + positionOffset + 0] = positions[i3 + 0];
-                this.packed[offset + positionOffset + 1] = positions[i3 + 1];
-                this.packed[offset + positionOffset + 2] = positions[i3 + 2];
-            } 
+    //         // Positions
+    //         if (positions) {
+    //             this.packed[offset + positionOffset + 0] = positions[i3 + 0];
+    //             this.packed[offset + positionOffset + 1] = positions[i3 + 1];
+    //             this.packed[offset + positionOffset + 2] = positions[i3 + 2];
+    //         } 
     
-            // Tangents
-            if (tangents) {
-                this.packed[offset + tangentOffset + 0] = tangents[i4 + 0];
-                this.packed[offset + tangentOffset + 1] = tangents[i4 + 1];
-                this.packed[offset + tangentOffset + 2] = tangents[i4 + 2];
-                this.packed[offset + tangentOffset + 3] = tangents[i4 + 3];
-            }
-            // Normals
-            if (normals) {
-                this.packed[offset + normalOffset + 0] = normals[i3 + 0];
-                this.packed[offset + normalOffset + 1] = normals[i3 + 1];
-                this.packed[offset + normalOffset + 2] = normals[i3 + 2];
-            }
-            // UVs
-            if (uvs) {
-                this.packed[offset + uvOffset + 0] = uvs[i2 + 0];
-                this.packed[offset + uvOffset + 1] = uvs[i2 + 1];
-            }
-        } 
+    //         // Tangents
+    //         if (tangents) {
+    //             this.packed[offset + tangentOffset + 0] = tangents[i4 + 0];
+    //             this.packed[offset + tangentOffset + 1] = tangents[i4 + 1];
+    //             this.packed[offset + tangentOffset + 2] = tangents[i4 + 2];
+    //             this.packed[offset + tangentOffset + 3] = tangents[i4 + 3];
+    //         }
+    //         // Normals
+    //         if (normals) {
+    //             this.packed[offset + normalOffset + 0] = normals[i3 + 0];
+    //             this.packed[offset + normalOffset + 1] = normals[i3 + 1];
+    //             this.packed[offset + normalOffset + 2] = normals[i3 + 2];
+    //         }
+    //         // UVs
+    //         if (uvs) {
+    //             this.packed[offset + uvOffset + 0] = uvs[i2 + 0];
+    //             this.packed[offset + uvOffset + 1] = uvs[i2 + 1];
+    //         }
+    //     } 
 
-        return this;
-    }
+    //     return this;
+    // }
             
     
-    getPacked() {
-        if (!this.packed) {
-            this.pack();
-        }
-        return this.packed;
-    }
+    // getPacked() {
+    //     if (!this.packed) {
+    //         this.pack();
+    //     }
+    //     return this.packed;
+    // }
 
     calculateUVs() {
         const positions = this.attributes.position?.data;
@@ -584,7 +586,7 @@ export class Geometry {
             this.computeTangents();
         }
 
-        this.pack();
+        //this.pack();
         return this;
     }
 
@@ -657,7 +659,7 @@ export class Geometry {
         
         this.computeBoundingBox();
         this.computeBoundingSphere();
-        this.pack();
+        //this.pack();
         
         return this;
     }

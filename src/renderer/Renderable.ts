@@ -1,90 +1,72 @@
 import { ResourceManager } from '@/engine/ResourceManager';
-import { PipelineManager } from '@/engine/PipelineManager';
 import { autobind, uuid } from '@/util/general';
 import { Mesh } from '@/core/Mesh';
 import { Material } from '@/materials/Material';
 import { Geometry } from '@/geometry/Geometry';
-import { Shader } from '@/materials/shaders/Shader';
+import { BufferAttribute } from '@/geometry/BufferAttribute';
+import { RenderPass } from './RenderPass';
+
+type PassData = {
+    pipeline: GPURenderPipeline,
+    bindGroups: GPUBindGroup[],
+}
 
 export class Renderable {
-    public id: string;
-    public mesh: Mesh;
-    public material: Material;
-    public geometry: Geometry;
+    static cache: WeakMap<Mesh, Renderable> = new WeakMap();
+    public id!: string;
+    public mesh!: Mesh;
+    public material!: Material;
+    public geometry!: Geometry;
     public pipeline!: GPURenderPipeline;
-    public bindGroups!: GPUBindGroup[];
+    public bindGroups: GPUBindGroup[] = [];
 
-    private resourceManager: ResourceManager;
-    private pipelineManager: PipelineManager;
+    private resources: ResourceManager = ResourceManager.getInstance()
     isIndexed: boolean = false;
     indexBuffer?: GPUBuffer;
-    vertexBuffer?: GPUBuffer;
-    shader: Shader;
+    vertexBuffers: GPUBuffer[] = [];
+    passData: Map<RenderPass, PassData> = new Map();
 
 
     constructor(mesh: Mesh) {
+        if (Renderable.cache.has(mesh)) {
+            return Renderable.cache.get(mesh) as Renderable;
+        }
         autobind(this);
         this.mesh = mesh;
         this.material = mesh.material;
-        this.shader = this.material.shader;
         this.geometry = mesh.geometry;
         this.id = uuid('renderable');
 
-        this.material.on('rebuild', this.rebuild);
-        
-        this.resourceManager = ResourceManager.getInstance();
-        this.pipelineManager = PipelineManager.getInstance();
-        
         this.initialize();
     }
 
+    savePassData(pass: RenderPass, data: PassData) {
+        this.passData.set(pass, data);
+    }
 
-    
+    applyPassData(pass: RenderPass) {
+        const data = this.passData.get(pass);
+        if (!data) {
+            console.error('No pass data found for', pass);
+            return;
+        }
+        this.pipeline = data.pipeline;
+        this.bindGroups = data.bindGroups;
+    }
+
     initialize() {
-        this.shader.insertAttributes(this.geometry.getShaderAttributes());
-        this.shader.insertVaryings(this.geometry.getShaderVaryings());
-        this.createVertexBuffer();
+        this.createVertexBuffers();
         this.createIndexBuffer();
-        this.createBindGroups();
-        
-        const pipelineLayout = this.pipelineManager.createPipelineLayout(this.shader.layouts);
-        
-        this.pipeline = this.pipelineManager.createRenderPipeline({
-            shader: this.material.shader,
-            renderState: this.material.renderState,
-            layout: pipelineLayout,
-            vertexBuffers: [this.geometry.getVertexAttributesLayout()],
-        });
-    }
-
-    rebuild() {
-        this.createBindGroups();
-        const pipelineLayout = this.pipelineManager.createPipelineLayout(this.shader.layouts);
-        
-        this.pipeline = this.pipelineManager.createRenderPipeline({
-            shader: this.material.shader,
-            renderState: this.material.renderState,
-            layout: pipelineLayout,
-            vertexBuffers: [this.geometry.getVertexAttributesLayout()],
-        });
-    }
-
-    createBindGroups() {
-        this.bindGroups = this.resourceManager.createBindGroups(this.shader, this);
     }
 
     updateBuffer(id: string) {
-        this.resourceManager.updateBuffer(id);
-    }
-
-    rebuildBindGroups() {
-        this.createBindGroups();
+        this.resources.updateBuffer(id);
     }
 
     createIndexBuffer() {
         this.isIndexed = this.geometry.isIndexed;
         if (!this.isIndexed) return;
-        this.indexBuffer = this.resourceManager.createAndUploadBuffer(
+        this.indexBuffer = this.resources.createAndUploadBuffer(
             { 
                 name: "Geometry Index Buffer",
                 data: this.geometry.getIndices(),
@@ -94,24 +76,24 @@ export class Renderable {
         );
     }
     
-    createVertexBuffer() {
-        this.vertexBuffer = this.resourceManager.createAndUploadBuffer({
-            name: "Geometry Vertex Buffer",
-            data: this.geometry.getPacked() as Float32Array,
-            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-            id: 'vb_' + this.geometry.id,
-        });
-        return this.vertexBuffer;
+    createVertexBuffers() {
+        this.vertexBuffers = Object.entries(this.mesh.geometry.attributes).filter(a => a).map(([name, attribute]) => this.resources.createVertexBuffer(name, attribute as BufferAttribute))
     }
     
     render(pass: GPURenderPassEncoder) {
+        if (!this.pipeline || !this.bindGroups.length) {
+            console.error('Pipeline or BindGroup not set, cannot render');
+            return;
+        }
         pass.setPipeline(this.pipeline);
 
         for (let i = 0; i < this.bindGroups.length; i++) {
             pass.setBindGroup(i, this.bindGroups[i]);
         }
         
-        pass.setVertexBuffer(0, this.vertexBuffer);
+        for (let i = 0; i < this.vertexBuffers.length; i++) {
+            pass.setVertexBuffer(i, this.vertexBuffers[i]);
+        }
         
         if (this.isIndexed && this.indexBuffer) {
             pass.setIndexBuffer(this.indexBuffer, this.geometry.indices.format);
@@ -123,9 +105,9 @@ export class Renderable {
     
     dispose() {
         // Clean up resources
-        this.resourceManager.releaseResource(`vb_${this.geometry.id}`);
-        this.resourceManager.releaseResource(`ib_${this.geometry.id}`);
-        delete this.vertexBuffer;
+        this.resources.releaseResource(`vb_${this.geometry.id}`);
+        this.resources.releaseResource(`ib_${this.geometry.id}`);
+        this.vertexBuffers.length = 0;
         delete this.indexBuffer;
     }
 }

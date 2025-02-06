@@ -1,33 +1,40 @@
-import { Texture2D } from '@/data/Texture2D';
+import { Renderer } from '@/renderer/Renderer';
+import { Scene } from '@/core/Scene';
+import { Camera } from '@/camera/Camera';
+import { RenderPass } from './RenderPass';
 
 export class RenderGraph {
-    private device: GPUDevice;
-    private commandEncoder: GPUCommandEncoder;
-    private colorAttachments: GPURenderPassColorAttachment[];
-    private renderPassDescriptor: GPURenderPassDescriptor;
-    constructor(device: GPUDevice) {
-        this.device = device;
-        this.commandEncoder = device.createCommandEncoder();
-        this.colorAttachments = [
-            {
-                view: Texture2D.DEFAULT.createView() as GPUTextureView,
-                clearValue: { r: 0, g: 0, b: 0, a: 1 }, // Clear color
-                loadOp: 'clear',
-                storeOp: 'store'
-            }
-        ];
-        this.renderPassDescriptor = {
-            colorAttachments: this.colorAttachments
-        };
-    }
-    beginFrame(textureView: GPUTextureView) {
-        this.colorAttachments[0].view = textureView;
-        const renderPassEncoder = this.commandEncoder.beginRenderPass(this.renderPassDescriptor);
-        return renderPassEncoder;
+    private passes: RenderPass[] = [];
+    private renderer: Renderer;
+
+    constructor(renderer: Renderer) {
+        this.renderer = renderer;
     }
 
-    endFrame() {
-        this.commandEncoder.finish();
-        this.device.queue.submit([this.commandEncoder.finish()]);
+    // Add a render pass to the graph
+    public addPass(pass: RenderPass): void {
+        this.passes.push(pass);
+    }
+
+    // Optionally, retrieve a pass by its class/type
+    public getPass<T extends RenderPass>(type: new (...args: any[]) => T): T | undefined {
+        return this.passes.find(pass => pass instanceof type) as T | undefined;
+    }
+
+    // Execute all registered passes in sequence
+    public execute(scene: Scene, camera: Camera): void {
+        const commandEncoder = this.renderer.device.createCommandEncoder();
+        let previousPass: RenderPass | null = null;
+        for (const pass of this.passes) {
+            if (previousPass) { pass.inputs = previousPass.outputs };
+            pass.execute(scene, camera, commandEncoder);
+            previousPass = pass;
+        }
+        this.renderer.device.queue.submit([commandEncoder.finish()]);
+    }
+
+    // Clear the graph (remove all passes)
+    public clear(): void {
+        this.passes = [];
     }
 }

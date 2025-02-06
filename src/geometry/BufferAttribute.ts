@@ -1,6 +1,7 @@
 import { Vector3 } from '@/math/Vector3';
 import { Vector2 } from '@/math/Vector2';
 import { Matrix3, Matrix4 } from '@/math';
+import { uuid } from '@/util/general';
 
 const _vector = new Vector3();
 const _vector2 = new Vector2();
@@ -12,31 +13,20 @@ class BufferAttribute {
     version: number;
     format: string = 'float32x1';
     type: string = 'f32';
-    private _needsUpdate: boolean;
     isBufferAttribute: boolean;
+    id: string;
 
     constructor(data: Float32Array | Uint16Array | Uint32Array, itemSize: number, normalized = false) {
         this.data = data;
+        this.id = uuid('vertex');
         this.itemSize = itemSize;
         this.normalized = normalized;
         this.version = 0;
         this.isBufferAttribute = true;
-        this._needsUpdate = false;
     }
 
     get count(): number {
         return this.data.length / this.itemSize;
-    }
-
-    set needsUpdate(value: boolean) {
-        if (value) {
-            this.version++;
-        }
-        this._needsUpdate = value;
-    }
-
-    get needsUpdate(): boolean {
-        return this._needsUpdate;
     }
 
     get byteLength(): number {

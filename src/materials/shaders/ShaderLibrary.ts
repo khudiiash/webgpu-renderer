@@ -1,31 +1,7 @@
+import { ShaderConfig } from './Shader.js';
 import { ShaderChunk } from './ShaderChunk.js';
 import * as chunks from './chunks/index';
 
-export type ShaderVarying = {
-    name: string;
-    type: string;
-    location?: number;
-    interpolate?: { type: 'flat' | 'perspective' | 'linear', sampling?: 'center' | 'centroid' | 'sample' | 'first' | 'either' }
-}
-
-export type ShaderAttribute = {
-    name: string;
-    type: string;
-    location?: number;
-}
-
-export type ShaderDefines = {
-    [key: string]: boolean
-};
-
-export type ShaderConfig = {
-    name: string;
-    attributes?: ShaderAttribute[];
-    varyings?: ShaderVarying[];
-    chunks: string[];
-    vertexTemplate: string;
-    fragmentTemplate: string;
-}
 
 export class ShaderLibrary {
     static init() {
@@ -62,30 +38,56 @@ export class ShaderLibrary {
         return ShaderLibrary.#instance;
     }
 
-    static get STANDARD(): ShaderConfig {
-        return {
-            name: 'standard',
-            chunks: ['Mesh', 'StandardMaterial'],
-            vertexTemplate: `
-                @vertex(input) -> output {
+    // static get GBUFFER(): ShaderConfig {
+    //     return {
+    //         name: 'gbuffer',
+    //         chunks: ['Mesh', 'GBuffer'],
+    //         vertexTemplate: `
+    //             @vertex(input) -> output {
 
-                    {{vertex}}
+    //                 {{vertex}}
 
-                    return output;
-                }
-            `,
-            fragmentTemplate: `
-                @fragment(input) -> output {
-                    var color: vec4f;
+    //                 return output;
+    //             }
+    //         `,
 
-                    {{fragment}}
+    //         fragmentTemplate: `
+    //             @fragment(input) -> output {
+    //                 var color: vec4f;
 
-                    output.color = color;
-                    return output;
-                }
-            `
-        }
-    }
+    //                 {{fragment}}
+
+    //                 output.color = color;
+    //                 return output;
+    //             }
+    //         `
+    //     }
+    // }
+
+    // static get STANDARD(): ShaderConfig {
+    //     return {
+    //         name: 'standard',
+    //         chunks: ['Mesh', 'StandardMaterial'],
+    //         vertexTemplate: `
+    //             @vertex(input) -> output {
+
+    //                 {{vertex}}
+
+    //                 return output;
+    //             }
+    //         `,
+    //         fragmentTemplate: `
+    //             @fragment(input) -> output {
+    //                 var color: vec4f;
+
+    //                 {{fragment}}
+
+    //                 output.color = color;
+    //                 return output;
+    //             }
+    //         `
+    //     }
+    // }
 
     // Add a new shader chunk to the library
     addChunk(chunk: ShaderChunk) {

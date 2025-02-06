@@ -7,6 +7,10 @@ import { hashPipelineState } from "@/util/webgpu";
 export class PipelineManager {
   static init(device: GPUDevice) { PipelineManager.#instance = new PipelineManager(device); }
   static getInstance(): PipelineManager { return PipelineManager.#instance; }
+
+  static getGroupByName(name: string): number {
+    return PipelineManager.LAYOUT_GROUPS[name.toUpperCase() as keyof typeof PipelineManager.LAYOUT_GROUPS];
+  }
   static readonly LAYOUT_GROUPS = { GLOBAL: 0, MESH: 1, MATERIAL: 2, OTHER: 3, } as const;
   static #instance: PipelineManager;
 
@@ -38,60 +42,58 @@ export class PipelineManager {
   }
 
   private createGlobalLayout(): void {
-    const group = PipelineManager.LAYOUT_GROUPS.GLOBAL;
-    let binding = 0;
     const global = new BindGroupLayout(this.device, 'Global', 'Global', [
-        new Binding(group, binding++, 'Global', 'Scene').uniform().visibility('vertex', 'fragment').var('scene', 'Scene'),
-        new Binding(group, binding++, 'Global', 'Camera').uniform().visibility('vertex', 'fragment').var('camera', 'Camera'),
+        new Binding('Scene').uniform().visibility('vertex', 'fragment').var('scene', 'Scene'),
+        new Binding('Camera').uniform().visibility('vertex', 'fragment').var('camera', 'Camera'),
     ]);
-    this.layouts.set('Global', global.layout);
-    this.layoutDescriptors.set('Global', global);
+    this.addBindGroupLayout(global);
   }
 
   private createMeshLayout() {
-    const group = PipelineManager.LAYOUT_GROUPS.MESH;
-    let binding = 0;
     const mesh = new BindGroupLayout(this.device, 'Mesh', 'Mesh', [
-        new Binding(group, binding++, 'Mesh', 'MeshInstances').storage('read').visibility('vertex').var('mesh_instances', 'array<mat4x4f>'),
+        new Binding('MeshInstances').storage('read').visibility('vertex').var('mesh_instances', 'array<mat4x4f>'),
     ]);
-    this.layouts.set('Mesh', mesh.layout);
-    this.layoutDescriptors.set('Mesh', mesh);
+    this.addBindGroupLayout(mesh);
   }
 
   private createStandardMaterialLayout() {
-     let binding = 0;
-     const group = PipelineManager.LAYOUT_GROUPS.MATERIAL;
-
      const standardMaterial = new BindGroupLayout(this.device, 'StandardMaterial', 'Material', [
-        new Binding(group, binding++, 'Material', 'StandardMaterial').uniform().visibility('fragment').var('material', 'StandardMaterial'),
+        new Binding('StandardMaterial').uniform().visibility('fragment').var('material', 'StandardMaterial'),
+        new Binding('DiffuseMap').texture().var('diffuse_map', 'texture_2d<f32>'),
+        new Binding('NormalMap').texture().var('normal_map', 'texture_2d<f32>'),
+        new Binding('AoMap').texture().var('ao_map', 'texture_2d<f32>'),
+        new Binding('HeightMap').texture().var('height_map', 'texture_2d<f32>'),
+        new Binding('SpecularMap').texture().var('specular_map', 'texture_2d<f32>'),
+        new Binding('EmissiveMap').texture().var('emissive_map', 'texture_2d<f32>'),
+        new Binding('SheenMap').texture().var('sheen_map', 'texture_2d<f32>'),
+        new Binding('MetalnessMap').texture().var('metalness_map', 'texture_2d<f32>'),
+        new Binding('RoughnessMap').texture().var('roughness_map', 'texture_2d<f32>'),
+        new Binding('AlphaMap').texture().var('alpha_map', 'texture_2d<f32>'),
+        new Binding('TransmissionMap').texture().var('transmission_map', 'texture_2d<f32>'),
 
-        new Binding(group, binding++, 'Material', 'DiffuseMap').texture().var('diffuse_map', 'texture_2d<f32>'),
-        new Binding(group, binding++, 'Material', 'NormalMap').texture().var('normal_map', 'texture_2d<f32>'),
-        new Binding(group, binding++, 'Material', 'AoMap').texture().var('ao_map', 'texture_2d<f32>'),
-        new Binding(group, binding++, 'Material', 'HeightMap').texture().var('height_map', 'texture_2d<f32>'),
-        new Binding(group, binding++, 'Material', 'SpecularMap').texture().var('specular_map', 'texture_2d<f32>'),
-        new Binding(group, binding++, 'Material', 'EmissiveMap').texture().var('emissive_map', 'texture_2d<f32>'),
-        new Binding(group, binding++, 'Material', 'SheenMap').texture().var('sheen_map', 'texture_2d<f32>'),
-        new Binding(group, binding++, 'Material', 'MetalnessMap').texture().var('metalness_map', 'texture_2d<f32>'),
-        new Binding(group, binding++, 'Material', 'RoughnessMap').texture().var('roughness_map', 'texture_2d<f32>'),
-        new Binding(group, binding++, 'Material', 'AlphaMap').texture().var('alpha_map', 'texture_2d<f32>'),
-        new Binding(group, binding++, 'Material', 'TransmissionMap').texture().var('transmission_map', 'texture_2d<f32>'),
-
-        new Binding(group, binding++, 'Material', 'DiffuseMapSampler').sampler().var('diffuse_map_sampler', 'sampler'),
-        new Binding(group, binding++, 'Material', 'NormalMapSampler').sampler().var('normal_map_sampler', 'sampler'),
-        new Binding(group, binding++, 'Material', 'AoMapSampler').sampler().var('ao_map_sampler', 'sampler'),
-        new Binding(group, binding++, 'Material', 'HeightMapSampler').sampler().var('height_map_sampler', 'sampler'),
-        new Binding(group, binding++, 'Material', 'SpecularMapSampler').sampler().var('specular_map_sampler', 'sampler'),
-        new Binding(group, binding++, 'Material', 'EmissiveMapSampler').sampler().var('emissive_map_sampler', 'sampler'),
-        new Binding(group, binding++, 'Material', 'SheenMapSampler').sampler().var('sheen_map_sampler', 'sampler'),
-        new Binding(group, binding++, 'Material', 'MetalnessMapSampler').sampler().var('metalness_map_sampler', 'sampler'),
-        new Binding(group, binding++, 'Material', 'RoughnessMapSampler').sampler().var('roughness_map_sampler', 'sampler'),
-        new Binding(group, binding++, 'Material', 'AlphaMapSampler').sampler().var('alpha_map_sampler', 'sampler'),
-        new Binding(group, binding++, 'Material', 'TransmissionMapSampler').sampler().var('transmission_map_sampler', 'sampler'),
+        new Binding('DiffuseMapSampler').sampler().var('diffuse_map_sampler', 'sampler'),
+        new Binding('NormalMapSampler').sampler().var('normal_map_sampler', 'sampler'),
+        new Binding('AoMapSampler').sampler().var('ao_map_sampler', 'sampler'),
+        new Binding('HeightMapSampler').sampler().var('height_map_sampler', 'sampler'),
+        new Binding('SpecularMapSampler').sampler().var('specular_map_sampler', 'sampler'),
+        new Binding('EmissiveMapSampler').sampler().var('emissive_map_sampler', 'sampler'),
+        new Binding('SheenMapSampler').sampler().var('sheen_map_sampler', 'sampler'),
+        new Binding('MetalnessMapSampler').sampler().var('metalness_map_sampler', 'sampler'),
+        new Binding('RoughnessMapSampler').sampler().var('roughness_map_sampler', 'sampler'),
+        new Binding('AlphaMapSampler').sampler().var('alpha_map_sampler', 'sampler'),
+        new Binding('TransmissionMapSampler').sampler().var('transmission_map_sampler', 'sampler'),
      ]);
 
-      this.layouts.set('StandardMaterial', standardMaterial.layout);
-      this.layoutDescriptors.set('StandardMaterial', standardMaterial);
+     this.addBindGroupLayout(standardMaterial);
+  }
+
+  addBindGroupLayout(layout: BindGroupLayout): void {
+    this.layouts.set(layout.name, layout.layout);
+    this.layoutDescriptors.set(layout.name, layout);
+  }
+
+  getBindGroupLayoutDescriptor(name: string): BindGroupLayout {
+    return this.layoutDescriptors.get(name)!;
   }
 
   createShaderModule(name: string, code: string): GPUShaderModule {
@@ -119,20 +121,22 @@ export class PipelineManager {
     shader: Shader,
     renderState?: RenderState,
     layout?: GPUPipelineLayout;
-    vertexBuffers?: GPUVertexBufferLayout[];
-    format?: GPUTextureFormat
+    vertexLayouts?: GPUVertexBufferLayout[];
+    targets?: GPUColorTargetState[]
   }): GPURenderPipeline {
-    const {
+    let {
       shader,
       layout,
-      renderState = new RenderState(),
-      vertexBuffers = [],
-      format = navigator.gpu.getPreferredCanvasFormat()
+      vertexLayouts = [],
+      targets = [],
+      renderState
     } = params;
 
-    const hash = hashPipelineState(shader, renderState);
+    renderState = renderState || RenderState.DEFAULT;
+    const hash = hashPipelineState(shader, renderState, targets, vertexLayouts);
 
     if (this.pipelineCache.has(hash)) {
+      console.log('Use cached pipeline');
       return this.pipelineCache.get(hash)!;
     }
 
@@ -146,19 +150,18 @@ export class PipelineManager {
       layout: layout || 'auto',
       vertex: {
         module: vertexModule,
-        buffers: vertexBuffers || [],
+        buffers: vertexLayouts || [],
       },
       fragment: fragmentModule ? {
         module: fragmentModule,
-        entryPoint: 'main',
-        targets: [{
-          format: format,
-          blend: renderState.getBlendState() as GPUBlendState
-        }],
+        targets: targets,
       } : undefined,
       primitive: renderState.getPrimitive(),
-      depthStencil: renderState.getDepthStencil(),
     };
+
+    if (params.renderState) {
+      pipelineDescriptor.depthStencil = renderState.getDepthStencil();
+    }
 
     const pipeline = this.device.createRenderPipeline(pipelineDescriptor);
     this.pipelineCache.set(hash, pipeline);

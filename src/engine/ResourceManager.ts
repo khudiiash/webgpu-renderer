@@ -5,7 +5,8 @@ import { EventCallback, EventEmitter } from "@/core/EventEmitter";
 import { Shader } from "@/materials/shaders/Shader";
 import { Renderable } from "@/renderer/Renderable";
 import { BindGroupLayout } from "@/data/BindGroupLayout";
-import { autobind } from "@/util/general";
+import { autobind, hashString } from "@/util/general";
+import { BufferAttribute } from "@/geometry";
 
 type TextureDescription = {
     label?: string;
@@ -16,7 +17,7 @@ type TextureDescription = {
     size: {
         width: number;
         height: number;
-        depthOrArrayLayers: number;
+        depthOrArrayLayers?: number;
     };
     usage: GPUTextureUsageFlags;
 };
@@ -67,6 +68,7 @@ export class ResourceManager extends EventEmitter {
     private stagingBuffers: GPUBuffer[] = [];
     private availableStagingBuffers: GPUBuffer[] = [];
     private mappingStagingBuffers: Set<GPUBuffer> = new Set();
+    private bindGroupsCache: Map<string, GPUBindGroup> = new Map();
 
     private stagedBuffers: Set<string> = new Set();
 
@@ -211,12 +213,12 @@ export class ResourceManager extends EventEmitter {
         }
     }
 
-    createVertexBuffer(name: string, data: BufferData, dataID: string) {
+    createVertexBuffer(name: string, attribute: BufferAttribute) {
         return this.createAndUploadBuffer({
             name,
-            data,
+            data: attribute.data,
             usage: GPUBufferUsage.VERTEX,
-            id: dataID
+            id: attribute.id
         });
     }
 
@@ -227,22 +229,48 @@ export class ResourceManager extends EventEmitter {
         return this.createBuffer(name, description, dataID);
     }
 
-    createBindGroups(shader: Shader, renderable?: Renderable): GPUBindGroup[] {
+    createBindGroups(shader: Shader): GPUBindGroup[] {
         const layouts = shader.layouts;
         const bindGroups: GPUBindGroup[] = [];
         for (const layout of layouts) {
-            bindGroups.push(this.createBindGroup(layout, renderable));
+            bindGroups.push(this.createBindGroup(layout));
         }
 
         return bindGroups;
     }
 
-    rebuildBindGroups(shader: Shader, renderable?: Renderable) {
-        this.createBindGroups(shader, renderable);
+    rebuildBindGroups(shader: Shader) {
+        this.createBindGroups(shader);
     }
 
-    createBindGroup(layout: BindGroupLayout, renderable?: Renderable): GPUBindGroup {
+    hashBindGroup(layout: BindGroupLayout, values?: Record<string, Texture | GPUTexture | BufferData | UniformData | GPUSampler>): string {
+        let hash = layout.id;
+        if (!values) return hashString(hash);
+        Object.entries(values).forEach(([name, value]) => {
+            hash += name;
+            if (value instanceof BufferData) {
+                hash += value.id;
+            } else if (value instanceof UniformData) {
+                hash += value.id;
+            } else if (value instanceof Texture) {
+                hash += value.id;
+            } else if (value instanceof GPUTexture) {
+                hash += name;
+            } else if (value instanceof GPUSampler) {
+                hash += name;
+            }
+        });
+        return hashString(hash);
+    }
+
+
+    createBindGroup(layout: BindGroupLayout, values?: Record<string, Texture | GPUTexture | BufferData | UniformData | GPUSampler>): GPUBindGroup {
         const name = layout.name;
+        const hash = this.hashBindGroup(layout, values);
+        if (this.bindGroupsCache.has(hash)) {
+            console.log('Using cached bind group');
+            return this.bindGroupsCache.get(hash) as GPUBindGroup;
+        }
 
         const descriptor: any = { 
             label: name,
@@ -250,79 +278,58 @@ export class ResourceManager extends EventEmitter {
             entries: []
         };
 
-        if (layout.isGlobal) {
-            for (const binding of layout.bindings) {
-                const data = UniformData.getByName(binding.description.bindingName);
-                if (data) {
-                    const dataID = data.id;
-                    const buffer = this.createAndUploadBuffer({ 
-                        name: binding.description.bindingName,
-                        data: data.getBuffer(),
-                        usage: data.getBufferUsage(),
-                        id: dataID
-                    });
-                    data.offChange(this.updateBuffer);
-                    data.onChange(this.updateBuffer);
-                    descriptor.entries.push(binding.getBindGroupEntry(buffer));
-                }
+        for (const binding of layout.bindings) {
 
-            }
-        }
-        if (layout.isMesh) {
-            for (const binding of layout.bindings) {
-                const data = renderable?.mesh.uniforms.get(binding.description.bindingName);
-                if (data) {
-                    const dataID = data.id;
-                    const buffer = this.createAndUploadBuffer({
-                        name: binding.description.bindingName,
-                        data: data.getBuffer(),
-                        usage: data.getBufferUsage(),
-                        id: dataID
+            let data;
+            const value = values?.[binding.description.bindingName];
+            if (value) {
+                if (value instanceof BufferData) {
+                    data = this.createAndUploadBuffer({
+                        name: value.id,
+                        data: value.buffer,
+                        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+                        id: value.id
                     });
-                    data.offChange(this.updateBuffer);
-                    data.onChange(this.updateBuffer);
-                    descriptor.entries.push(binding.getBindGroupEntry(buffer));
-                }
-            }
-        }
-
-        if (layout.isMaterial) {
-            const data = renderable?.material.uniforms.get(layout.name)!;
-            const samplers: Array<GPUSampler> = [];
-            const samplersIterator = samplers[Symbol.iterator]();
-            for (const binding of layout.bindings) {
-                if (binding.isBuffer) {
-                    const dataID = data.id;
-                    const buffer = this.createAndUploadBuffer({
-                        name: binding.description.bindingName,
-                        data: data.getBuffer(),
-                        usage: data.getBufferUsage(),
-                        id: dataID
+                } else if (value instanceof UniformData) {
+                    data = this.createAndUploadBuffer({
+                        name: value.name,
+                        data: value.getBuffer(),
+                        usage: value.getBufferUsage(),
+                        id: value.id
                     });
-                    descriptor.entries.push(binding.getBindGroupEntry(buffer));
-                    data.offChange(this.updateBuffer);
-                    data.onChange(this.updateBuffer);
+                } else if (value instanceof Texture) {
+                    data = value.texture
+                } else if (value instanceof GPUTexture) {
+                    data = value;
+                } else if (value instanceof GPUSampler) {
+                    data = value;
                 }
-                if (binding.isTexture) {
-                    const texture = data.getTexture(binding.description.varName) as Texture;
-                    texture.offLoaded();
-                    texture.onLoaded(() => {
-                        renderable?.rebuild();
-                    })
-                    descriptor.entries.push(binding.getBindGroupEntry(texture.texture));
-                    samplers.push(this.getOrCreateSampler(texture.getSamplerDescriptor()));
-                }
-                if (binding.isSampler) {
-                    const sampler = samplersIterator.next().value as GPUSampler;
-                    descriptor.entries.push(binding.getBindGroupEntry(sampler));
+            } else {
+                const uniformData = UniformData.getByName(binding.description.bindingName);
+                if (uniformData) {
+                    data = this.createAndUploadBuffer({
+                        name: uniformData.name,
+                        data: uniformData.getBuffer(),
+                        usage: uniformData.getBufferUsage(),
+                        id: uniformData.id
+                    });
                 }
             }
-
+            
+            if (binding.isBuffer) {
+                const buffer = data as GPUBuffer;
+                descriptor.entries.push(binding.getBindGroupEntry(buffer));
+            } else if (binding.isTexture) {
+                const texture = data ? data as GPUTexture : this.createDefaultTexture();
+                descriptor.entries.push(binding.getBindGroupEntry(texture));
+            } else if (binding.isSampler) {
+                const sampler = value ? value as GPUSampler : this.defaultSampler;
+                descriptor.entries.push(binding.getBindGroupEntry(sampler));
+            }
         }
-
 
         const bindGroup = this.device.createBindGroup(descriptor as GPUBindGroupDescriptor);
-        this.bindGroups.set(name, bindGroup);
+        this.bindGroupsCache.set(hash, bindGroup);
         this.references.set(name, { refCount: 1, lastUsedFrame: this.currentFrame });
         return bindGroup; 
     }
@@ -380,8 +387,8 @@ export class ResourceManager extends EventEmitter {
         this.cleanupUnusedResources();
     }
 
-    createDefaultTexture() {
-        this.defaultTexture = this.device.createTexture({
+    createDefaultTexture(): GPUTexture {
+        return this.device.createTexture({
             size: { width: 1, height: 1, depthOrArrayLayers: 1 },
             format: 'rgba8unorm',
             usage: GPUTextureUsage.TEXTURE_BINDING
@@ -514,29 +521,33 @@ export class ResourceManager extends EventEmitter {
         const targetBuffer = this.buffers.get(dataID)!;
         let stagingBuffer: GPUBuffer | undefined;
 
-        // Try to get an available staging buffer
-        if (this.availableStagingBuffers.length > 0) {
-            stagingBuffer = this.availableStagingBuffers.pop()!;
+        // Calculate the region to update
+        const updateStart = start !== undefined ? start * 4 : 0;
+        const updateEnd = end !== undefined ? end * 4 : data.byteLength;
+        const updateSize = updateEnd - updateStart;
+
+        // Ensure the staging buffer is large enough
+        const requiredSize = Math.max(updateSize, ResourceManager.LARGE_BUFFER_THRESHOLD);
+
+        // Try to get an available staging buffer of sufficient size
+        stagingBuffer = this.availableStagingBuffers.find(buffer => buffer.size >= requiredSize);
+        if (stagingBuffer) {
+            this.availableStagingBuffers = this.availableStagingBuffers.filter(b => b !== stagingBuffer);
         } else {
-            // If none are available, create a new one with mappedAtCreation: true
+            // If none are available or large enough, create a new one
             stagingBuffer = this.device.createBuffer({
-                size: Math.max(ResourceManager.LARGE_BUFFER_THRESHOLD, data.byteLength),
+                size: requiredSize,
                 usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.MAP_WRITE,
                 mappedAtCreation: true,
             });
             this.stagingBuffers.push(stagingBuffer);
         }
 
-        // Access the mapped range
-        const arrayBuffer = stagingBuffer.getMappedRange();
-
-        // Calculate the region to update
-        const updateStart = start !== undefined ? start * 4 : 0;
-        const updateEnd = end !== undefined ? end * 4 : data.byteLength;
-        const updateSize = updateEnd - updateStart;
+        // Access the mapped range for just the size we need
+        const arrayBuffer = stagingBuffer.getMappedRange(0, updateSize);
 
         // Copy data into the mapped staging buffer
-        new Uint8Array(arrayBuffer).set(new Uint8Array(data, updateStart, updateSize));
+        new Uint8Array(arrayBuffer).set(new Uint8Array(data.slice(updateStart, updateEnd)));
 
         // Unmap the buffer so it can be used in copyBufferToBuffer
         stagingBuffer.unmap();

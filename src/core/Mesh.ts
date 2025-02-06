@@ -3,7 +3,7 @@ import { UniformData } from '@/data/UniformData';
 import { Object3D } from './Object3D'
 import { Geometry } from '@/geometry/Geometry';
 import { Material } from '@/materials/Material';
-import { uuid } from '@/util/general';
+import { boolToNum, uuid } from '@/util/general';
 import { BufferData } from '@/data/BufferData';
 import { Euler, Quaternion, Vector3 } from '@/math';
 import { Struct } from '@/data/Struct';
@@ -61,12 +61,7 @@ export class Mesh extends Object3D {
             this.instanceMatrices.set(Matrix4.IDENTITY, i * 16);
         }
 
-        material?.shader.setDefines({
-            USE_UV: this.geometry.hasAttribute('uv'),
-            USE_NORMAL: this.geometry.hasAttribute('normal'),
-            USE_TANGENT: this.geometry.hasAttribute('tangent'),
-            USE_BILLBOARD: options.useBillboard || false,
-        })
+        this.useBillboard = options.useBillboard || false;
 
         this.uniforms = new Map<string, UniformData>();
         this.uniforms.set('MeshInstances', new UniformData(this, {
@@ -74,7 +69,7 @@ export class Mesh extends Object3D {
                 isGlobal: false,
                 type: 'storage',
                 values: {
-                    instances: this.instanceMatrices,
+                    mesh_instances: this.instanceMatrices,
                 }
             }),
         );
@@ -327,7 +322,8 @@ export class Mesh extends Object3D {
             this.getMatrixAt(i, _mat);
             const position = _mat.getPosition(Vector3.instance);
             const scale = _mat.getScale(_v1);
-            _mat.compose(position, Quaternion.instance.setFromEuler(Euler.instance.fromArray(rotations, i * 3)), scale);
+            const euler = Euler.instance.fromArray(rotations, i * 3);
+            _mat.compose(position, Quaternion.instance.setFromEuler(euler), scale);
             this.localInstanceMatrices.setSilent(_mat, i * 16);
         }
         this.updateAllInstanceWorldMatrices();

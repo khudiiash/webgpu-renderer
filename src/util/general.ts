@@ -1,4 +1,5 @@
 import { BufferData } from "@/data/BufferData";
+import { sha256 } from "js-sha256";
 
 
 const weakMap = new WeakMap();
@@ -46,6 +47,12 @@ export function boolToNum(value: any, defaultValue: number = 0): number {
         return defaultValue;
     }
     return value === true ? 1 : 0;
+}
+/**
+ * Generates a SHA-256 hash for a given string.
+ */
+export function hashString(input: string): string {
+    return sha256(input)
 }
 
 export function objectsEqual(a: { [key: string]: any }, b: { [key: string]: any }): boolean {

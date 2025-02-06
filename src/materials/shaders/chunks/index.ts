@@ -5,3 +5,5 @@ export { default as Lighting } from './lighting.wgsl?raw';
 export { default as Fog } from './fog.wgsl?raw';
 export { default as Noise } from './noise.wgsl?raw';
 export { default as Map } from './map.wgsl?raw';
+export { default as GBuffer } from './gbuffer.wgsl?raw';
+export { default as Quad } from './quad.wgsl?raw';

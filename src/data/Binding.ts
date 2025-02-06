@@ -52,12 +52,12 @@ export class Binding {
 
     description: BindingDescriptor;
 
-    constructor(group: number, binding: number, groupName: string, bindingName: string) {
+    constructor(bindingName: string) {
         this.description = {
-            groupName: groupName,
+            groupName: '',
             bindingName: bindingName,
-            group: group,
-            binding: binding,
+            group: -1,
+            binding: -1,
             bindingType: 'buffer',
             bufferType: 'uniform',
             bufferAccess: 'read',
@@ -68,7 +68,6 @@ export class Binding {
             varType: '',
         }
 
-        Binding.set(this);
     } 
 
     uniform() {
@@ -154,8 +153,9 @@ export class Binding {
     }
 
     getLayoutEntry() {
+        const binding = this.description.binding;
         const entry: GPUBindGroupLayoutEntry = {
-            binding: this.description.binding,
+            binding,
             visibility: this.description.visibility,
         }
         if (this.isBuffer) {
@@ -195,10 +195,6 @@ export class Binding {
         }
 
         return entry;
-    }
-
-    setBindGroupLayout(layout: BindGroupLayout) {
-        this.description.bindGroupLayout = layout;
     }
 
     getBindGroupLayout(): BindGroupLayout | undefined {

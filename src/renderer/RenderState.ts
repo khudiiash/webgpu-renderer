@@ -13,6 +13,7 @@ export interface RenderStateOptions {
 }
 
 export class RenderState {
+    static DEFAULT = new RenderState();
     topology: 'triangle-list' | 'triangle-strip' = 'triangle-list';
     cullMode: 'back' | 'front' | 'none' = 'back';
     frontFace: 'ccw' | 'cw' = 'ccw';
