@@ -58,8 +58,6 @@ class StandardMaterial extends Material {
         opacity: 'f32',
         metalness: 'f32',
         roughness: 'f32',
-        emissive_factor: 'f32',
-        specular_factor: 'f32',
         alpha_test: 'f32',
         transmission: 'f32',
 
@@ -82,8 +80,6 @@ class StandardMaterial extends Material {
     opacity!: number;
     metalness!: number;
     roughness!: number;
-    emissive_factor!: number;
-    specular_factor!: number;
     alpha_test!: number;
     transmission!: number;
     invert_normal!: boolean;
@@ -116,6 +112,12 @@ class StandardMaterial extends Material {
             this.rebuild()
         }); 
 
+        const emissive = new Color(0, 0, 0, 0);
+        if (options.emissive) {
+            emissive.set(options.emissive);
+            emissive.a = options.emissive_factor ?? 1.0;
+        }
+
         this.uniforms.set('StandardMaterial', new UniformData(this, { 
                 name: 'StandardMaterial',
                 struct: StandardMaterial.struct,
@@ -124,14 +126,12 @@ class StandardMaterial extends Material {
                     ambient: new Color(options.ambient || '#000000'),
                     diffuse: new Color(options.diffuse || '#FFFFFF'),
                     specular: new Color(options.specular || '#FFFFFF'),
-                    emissive: new Color(options.emissive || '#000000'),
+                    emissive: emissive,
                     sheen: new Color(options.sheen || '#000000'),
                     ao: new Color(options.ao || '#FFFFFF'),
                     opacity: options.opacity || 1.0,
                     metalness: options.metalness ?? 0.0,
                     roughness: options.roughness ?? 0.5,
-                    emissive_factor: options.emissive_factor ?? 1.0,
-                    specular_factor: options.specular_factor ?? 1.0,
                     alpha_test: options.alpha_test ?? 0.5,
                     transmission: options.transmission ?? 0.0,
                     uv_scale: options.uv_scale ? new Vector2(...options.uv_scale) : new Vector2(1, 1),

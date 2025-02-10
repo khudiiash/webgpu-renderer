@@ -1,12 +1,12 @@
 import { ObjectMonitor } from "@/data/ObjectMonitor";
 
 export interface RenderStateOptions {
-    topology?: 'triangle-list' | 'triangle-strip';
-    cullMode?: 'back' | 'front' | 'none';
-    frontFace?: 'ccw' | 'cw';
+    topology?: GPUPrimitiveTopology;
+    cullMode?: GPUCullMode;
+    frontFace?: GPUFrontFace;
     depthTest?: boolean;
     depthWrite?: boolean;
-    depthCompare?: 'less' | 'greater' | 'equal' | 'not-equal' | 'always' | 'never';
+    depthCompare?: GPUCompareFunction;
     stencilTest?: boolean;
     blending?: 'normal' | 'additive' | 'additive-alpha' | 'multiply' | 'screen' | 'darken' | 'lighten' | 'subtract';
     transparent?: boolean;

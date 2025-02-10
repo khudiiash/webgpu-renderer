@@ -9,6 +9,9 @@ import { RenderGraph } from "./RenderGraph";
 import { GeometryPass } from "./passes/GeometryPass";
 import { PipelineManager } from "@/engine";
 import { ShadingPass } from "./passes/ShadingPass";
+import { ProbeAllocationPass } from "./passes/ProbeAllocationPass";
+import { ProbeVisualizationPass } from "./passes/ProbeVisualizationPass";
+import { ProbeRadiancePass } from "./passes/ProbeRadiancePass";
 
 export class Renderer extends EventEmitter {
     public device!: GPUDevice;
@@ -24,6 +27,7 @@ export class Renderer extends EventEmitter {
 
     static #instance: Renderer;
     private renderGraph!: RenderGraph;
+    ready: boolean;
 
     static on(event: string, listener: EventCallback, context?: any) {
         Renderer.#instance?.on(event, listener, context);
@@ -77,7 +81,7 @@ export class Renderer extends EventEmitter {
         this.context.configure({
             device: this.device,
             format: this.format,
-            alphaMode: 'premultiplied',
+            //alphaMode: 'premultiplied',
         });
 
         const observer = new ResizeObserver((entries) => {
@@ -112,8 +116,12 @@ export class Renderer extends EventEmitter {
         this.resources = resources;
         this.pipelines = new PipelineManager(this.device);
         this.resources.createDepthTexture('depth', this.canvas.width, this.canvas.height);
-        this.renderGraph.addPass(new GeometryPass(this));
-        this.renderGraph.addPass(new ShadingPass(this));
+        this.renderGraph.addPass(new GeometryPass(this).init());
+        this.renderGraph.addPass(new ProbeAllocationPass(this).init());
+        this.renderGraph.addPass(new ProbeRadiancePass(this).init());
+        this.renderGraph.addPass(new ShadingPass(this).init());
+        this.renderGraph.addPass(new ProbeVisualizationPass(this).init());
+        this.ready = true;
     }
 
     createRenderable(mesh: Mesh): Renderable {
@@ -170,6 +178,9 @@ export class Renderer extends EventEmitter {
         // const commandEncoder = this.device.createCommandEncoder();
         // const textureView = this.context.getCurrentTexture().createView();
         scene.update();
+        if (!this.ready) {
+            return;
+        }
 
         // if (!this.renderPassDescriptor) {
         //     this.initRenderPassDescriptor();

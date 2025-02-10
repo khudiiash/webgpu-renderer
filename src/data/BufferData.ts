@@ -6,6 +6,7 @@ import { Struct } from './Struct';
 export type ChangeCallback = (data: BufferData | Float32Array, start: number, end: number) => void;
 
 export class BufferData extends Float32Array {
+    usage: number;
     [index: number]: number;
     monitor!: DataMonitor;
     protected arrayStride: number;
@@ -59,6 +60,11 @@ export class BufferData extends Float32Array {
         }
         super.set(array, offset);
         this.monitor.check(offset, offset + array.length);
+        return this;
+    }
+
+    setUsage(usage: GPUBufferUsageFlags): this {
+        this.usage = usage;
         return this;
     }
 

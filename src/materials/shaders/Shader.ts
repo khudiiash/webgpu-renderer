@@ -38,8 +38,9 @@ export type ShaderConfig = {
     vertex?: string;
     fragment?: string;
     compute?: string;
+    workgroupSize?: [number, number, number];
     defines?: ShaderDefines;
-    layouts?: BindGroupLayout[];
+    layouts?: BindGroupLayout[] | string[];
 }
 
 class Shader {
@@ -102,7 +103,6 @@ class Shader {
     constructor(options: ShaderConfig) {
         const cache = hashString(JSON.stringify(options));
         if (Shader.cache.has(cache)) {
-            console.log('Using cached shader');
             return Shader.cache.get(cache) as Shader;
         }
         Shader.cache.set(cache, this);
@@ -145,7 +145,17 @@ class Shader {
             this.defines.set(define, defines[define]);
         }
 
-        this.layouts = this.options.layouts || [];
+        const lA = options.layouts || [];
+        for (let i = 0; i < lA.length; i++) {
+            const layout = lA[i];
+            if (typeof layout === 'string') {
+                const bgl = BindGroupLayout.getByName(layout);
+                bgl && this.layouts.push(bgl);
+            }
+            if (layout instanceof BindGroupLayout) {
+                this.layouts.push(layout);
+            }
+        }
 
         this.build();
     }
@@ -200,7 +210,28 @@ class Shader {
         const layouts = this.layouts;
 
         if (this.isCompute) {
-            // TODO
+            const templateC = this.options.compute || Shader.DEFAULTS.COMPUTE;
+            this.computeSource = ShaderFormatter.format(
+                TemplateProcessor.processTemplate(`
+                        struct ComputeInput {
+                            @builtin(workgroup_id) workgroup_id : vec3<u32>,
+                            @builtin(local_invocation_id) local_invocation_id : vec3<u32>,
+                            @builtin(global_invocation_id) global_invocation_id : vec3<u32>,
+                            @builtin(local_invocation_index) local_invocation_index: u32,
+                            @builtin(num_workgroups) num_workgroups: vec3<u32>
+                        };
+
+                        ${templateC}
+                    `,
+                    layouts,
+                    chunks,
+                    defines,
+                )
+            );
+            if (!this.verify(this.computeSource)) {
+                console.error('Compute shader failed to compile');
+                debugger
+            }
             return;
         } 
 
@@ -256,7 +287,6 @@ class Shader {
             console.error('Fragment shader failed to compile');
             debugger
         }
-
     }
 
     addVarying(varying: ShaderVarying) {

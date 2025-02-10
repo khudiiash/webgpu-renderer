@@ -7,3 +7,4 @@ export { default as Noise } from './noise.wgsl?raw';
 export { default as Map } from './map.wgsl?raw';
 export { default as GBuffer } from './gbuffer.wgsl?raw';
 export { default as Quad } from './quad.wgsl?raw';
+export { default as Shading } from './shading.wgsl?raw';

@@ -5,155 +5,202 @@ import { Camera } from '@/camera/Camera';
 import { Shader, ShaderChunk, ShaderConfig } from '@/materials/shaders';
 import { BindGroupLayout } from '@/data/BindGroupLayout';
 import { Binding } from '@/data/Binding';
-import { PipelineManager } from '@/engine/PipelineManager';
-import { ResourceManager } from '@/engine/ResourceManager';
-import { UniformData } from '@/data';
+import { Texture2D, UniformData } from '@/data';
+import { Struct } from '@/data/Struct';
+import Circles from '../../../assets/textures/circles.png';
 
 export class ShadingPass extends RenderPass {
-    private pipeline!: GPURenderPipeline;
-    private pipelines!: PipelineManager;
-    private resources!: ResourceManager;
     private renderPassDescriptor!: GPURenderPassDescriptor;
-    layouts!: BindGroupLayout[];
-    bindGroup: any;
+    private shadingUniforms!: UniformData;
+    circlesTexture!: Texture2D;
 
-    constructor(renderer: Renderer) {
-        super(renderer);
-        this.pipelines = renderer.pipelines;
-        this.resources = renderer.resources;
-        this.init();
-    }
-
-    public init(): void {
+    public init(): this {
         // Create shader modules for a fullscreen quad
         const device = this.renderer.device;
+        this.circlesTexture = Texture2D.from(Circles);
 
+        this.layouts = [
+            new BindGroupLayout(device, 'Shading', 'Global', [
+                new Binding('PositionTexture').texture().var('position_texture', 'texture_2d<f32>'),
+                new Binding('NormalTexture').texture().var('normal_texture', 'texture_2d<f32>'),
+                new Binding('AlbedoTexture').texture().var('albedo_texture', 'texture_2d<f32>'),
+                new Binding('ProbeBuffer').storage('read').visibility('fragment').var('probe_buffer', 'array<Probe>'),
+                new Binding('ProbeRadiance').storage('read').visibility('fragment').var('probe_radiance', 'array<vec4f>'),
+                new Binding('ShadingUniforms').uniform().visibility('fragment').var('shading_config', 'ShadingUniforms'),
+                new Binding('Scene').uniform().visibility('fragment').var('scene', 'Scene'),
+                new Binding('Camera').uniform().visibility('fragment').var('camera', 'Camera'),
+                new Binding('Sampler').sampler().var('sampler_color', 'sampler'),
+            ]),
+        ];
 
-        const layout = new BindGroupLayout(device, 'Shading', 'Global', [
-            new Binding('Scene').uniform().visibility('fragment').var('scene', 'Scene'),
-            new Binding('Camera').uniform().visibility('fragment').var('camera', 'Camera'),
-            new Binding('Position').texture().var('position', 'texture_2d<f32>'),
-            new Binding('Color').texture().var('color', 'texture_2d<f32>'),
-            new Binding('Normal').texture().var('normal', 'texture_2d<f32>'),
-            new Binding('Depth').texture({ sampleType: 'depth' }).var('depth', 'texture_depth_2d'),
-            new Binding('SamplerColor').sampler().var('sampler_color', 'sampler'),
-            new Binding('SamplerDepth').sampler({ type: 'comparison' }).var('sampler_depth', 'sampler_comparison'),
-        ]);
-
-
-        this.layouts = [layout];
-        new ShaderChunk('Shading', `
-            @group(Global) @binding(Scene)
-            @group(Global) @binding(Camera)
-            @group(Global) @binding(Position)
-            @group(Global) @binding(Color)
-            @group(Global) @binding(Normal)
-            @group(Global) @binding(Depth)
-            @group(Global) @binding(SamplerColor)
-            @group(Global) @binding(SamplerDepth)
-
-            // Bilateral filter for denoising
-            fn bilateral_weight(p1: vec3f, p2: vec3f, n1: vec3f, n2: vec3f) -> f32 {
-                let p_dist = length(p1 - p2);
-                let n_dist = 1.0 - max(dot(n1, n2), 0.0);
-                return exp(-p_dist * 10.0) * exp(-n_dist * 5.0);
+        this.shadingUniforms = new UniformData(this, {
+            isGlobal: true,
+            name: 'ShadingUniforms',
+            struct: new Struct('ShadingUniforms', {
+                probe_count: 'u32',
+                ray_count: 'u32',
+                probe_blend_distance: 'f32',
+                probe_importance_sampling: 'u32',
+                temporal_blend: 'f32',
+            }),
+            values: {
+                probe_count: 1024,
+                ray_count: 4,
+                probe_blend_distance: 10.0,
+                probe_importance_sampling: 1,
+                temporal_blend: 0.1,
             }
-
-            fn random2(p: vec2f) -> vec2f {
-                return fract(sin(vec2f(
-                    dot(p, vec2f(127.1, 311.7)),
-                    dot(p, vec2f(269.5, 183.3))
-                )) * 43758.5453);
-            }
-
-            @fragment() {{
-                let uv = input.uv;
-                let baseColor = textureSample(color, sampler_color, uv);
-                let worldNormal = textureSample(normal, sampler_color, uv).xyz;
-                let worldPos = textureSample(position, sampler_color, uv);
-                let depth = worldPos.w;
-
-                const SAMPLES = 8u;
-                const RADIUS = 2.0;
-                const INTENSITY = 2.0;
-
-                var lighting = vec3f(0.0);
-                var indirect = vec3f(0.0);
-                var ambient = 0.1;
-
-                // Direct lighting - Directional lights
-                for (var i = 0u; i < scene.directionalLightsNum; i++) {
-                    let light = scene.directionalLights[i];
-                    let lightDir = -light.direction;
-                    let NdotL = dot(worldNormal, lightDir);
-                    let diffuse = max(NdotL, 0.0);
-                    let viewDir = normalize(camera.position - worldPos.xyz);
-                    let reflectDir = reflect(-lightDir, worldNormal);
-                    let specular = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
-                    let lightColor = light.color.rgb * light.intensity;
-                    lighting += lightColor * (diffuse + specular);
-                }
-
-                // Point lights
-                for (var i = 0u; i < scene.pointLightsNum; i++) {
-                    let light = scene.pointLights[i];
-                    let lightVec = light.position - worldPos.xyz;
-                    let distance = length(lightVec);
-                    let lightDir = lightVec / distance;
-                    
-                    // Attenuation
-                    let attenuation = 1.0 / (1.0 + light.decay * distance + light.decay * distance * distance);
-                    
-                    let NdotL = dot(worldNormal, lightDir);
-                    let diffuse = max(NdotL, 0.0);
-                    let viewDir = normalize(camera.position - worldPos.xyz);
-                    let reflectDir = reflect(-lightDir, worldNormal);
-                    let specular = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
-                    let lightColor = light.color.rgb * light.intensity * attenuation;
-                    lighting += lightColor * (diffuse + specular);
-                }
-
-                // Screen space global illumination
-                for (var i = 0u; i < SAMPLES; i++) {
-                    let rand = random2(uv + vec2f(f32(i)));
-                    let angle = rand.x * 2.0 * 3.14159;
-                    let radius = rand.y * RADIUS;
-                    
-                    let offset = vec2f(cos(angle), sin(angle)) * radius;
-                    let sampleUV = uv + offset;
-                    
-                    let sampleWorldPos = textureSample(position, sampler_color, sampleUV);
-                    let sampleWorldNormal = textureSample(normal, sampler_color, sampleUV).xyz;
-                    let sampleColor = textureSample(color, sampler_color, sampleUV).rgb;
-                    
-                    let diff = sampleWorldPos.xyz - worldPos.xyz;
-                    let distance = length(diff);
-                    let normalDiff = max(dot(worldNormal, normalize(diff)), 0.0);
-                    
-                    let occlusion = (1.0 - smoothstep(0.0, RADIUS, distance)) * normalDiff;
-                    indirect += sampleColor * occlusion;
-                }
-
-                indirect *= (INTENSITY / f32(SAMPLES));
-
-                let finalColor = baseColor.rgb * (lighting + indirect);
-                output.color = vec4f(finalColor, 1.0);
-            }}
-        `);
+        });
 
         const shaderConfig: ShaderConfig = {
-            name: 'Shading',
-            chunks: ['Quad', 'Shading'],
+            name: 'ScreenSpaceShading',
+            chunks: ['Noise', 'Common', 'Quad'],
+            fragment: `
+                ${Struct.get('Probe')?.toWGSL()}
+
+
+                fn get_probe_contribution(world_pos: vec3f, screen_pos: vec2f, normal: vec3f) -> vec3f {
+                    var total_radiance = vec3f(0.0);
+                    var total_weight = 0.0;
+                    
+                    // Find and weight nearby probes
+                    for (var i = 0u; i < shading_config.probe_count; i++) {
+                        let probe = probe_buffer[i];
+                        
+                        // Calculate probe influence
+                        let to_probe = probe.world_pos - world_pos;
+                        let dist = length(to_probe);
+                        
+                        if (dist > probe.radius) {
+                            continue;
+                        }
+                        
+                        // Calculate weights
+                        let direction_weight = max(dot(normalize(to_probe), normal), 0.0);
+                        let distance_weight = 1.0 - smoothstep(0.0, probe.radius, dist);
+                        let cascade_weight = 1.0 - smoothstep(0.8, 1.0, dist / probe.radius);
+                        
+                        let weight = direction_weight * distance_weight * cascade_weight;
+                        
+                        if (weight <= 0.0) {
+                            continue;
+                        }
+                        
+                        // Accumulate probe radiance
+                        var probe_total = vec3f(0.0);
+                        for (var ray = 0u; ray < shading_config.ray_count; ray++) {
+                            let radiance = probe_radiance[i * shading_config.ray_count + ray];
+                            if (radiance.a > 0.0) {
+                                probe_total += radiance.rgb;
+                            }
+                        }
+                        
+                        probe_total /= f32(shading_config.ray_count);
+                        total_radiance += probe_total * weight;
+                        total_weight += weight;
+                    }
+                    
+                    return select(vec3f(0.1), total_radiance / total_weight, total_weight > 0.0);
+                }
+
+                fn raymarch(uv: vec2f) -> vec3f {
+                    let lightSample = textureSample(albedo_texture, sampler_color, uv);
+                    var light = vec3f(lightSample.rgb * 0.1);
+                    if (lightSample.a > 0.1) {
+                        return lightSample.rgb;
+                    }
+                    let oneOverRayCount = 1.0 / f32(shading_config.ray_count);
+                    let tauOverRayCount = TAU * oneOverRayCount;
+                    let noise = rand(uv);
+                    let size = vec2f(textureDimensions(albedo_texture));
+                    let max_dist = 30.0;
+                    let radiance_intensity = 2.0;
+                    var radiance = vec3f(0.0);
+
+                    for (var i = 0u; i < shading_config.ray_count; i++) {
+                        let angle = tauOverRayCount * (f32(i) + noise);
+                        let ray_dir_uv = vec2f(cos(angle), -sin(angle)) / size * max_dist;
+                        var sample_uv = uv + ray_dir_uv;
+
+                        for (var step = 0u; step < 64u; step++) {
+                            if (out_bounds(sample_uv)) { break; }
+                            let sample = textureSampleLevel(albedo_texture, sampler_color, sample_uv, 0);
+                            if (sample.a > 0.1) {
+                                radiance += sample.rgb * radiance_intensity;
+                                break;
+                            }
+                            sample_uv += ray_dir_uv;
+                        }
+                    }
+                    return radiance * oneOverRayCount;
+                }
+
+                fn calculate_attenuation(distance: f32) -> f32 {
+                    return 1.0 / (1.0 + 0.1 * distance + 0.01 * distance * distance);
+                }
+
+                fn calc_direct(albedo: vec3f, position: vec3f, normal: vec3f) -> vec3f {
+                    // Direct lighting calculation
+                    var direct = vec3f(0.0);
+                    for (var i = 0u; i < scene.directionalLightsNum; i += 1u) {
+                        let light = scene.directionalLights[i];
+                        let light_dir = -light.direction;
+                        let n_dot_l = max(dot(normal, light_dir), 0.0);
+                        let diffuse = albedo.rgb * n_dot_l * light.color.rgb;
+                        
+                        let view_dir = normalize(camera.position - position.xyz);
+                        let half_dir = normalize(view_dir + light_dir);
+                        let n_dot_h = max(dot(normal, half_dir), 0.0);
+                        let specular = pow(n_dot_h, 32.0) * light.color.rgb * light.intensity;
+                        
+                        direct += diffuse + specular;
+                    }
+
+                    // Point lights
+                    for (var i = 0u; i < scene.pointLightsNum; i += 1u) {
+                        let light = scene.pointLights[i];
+                        let light_dir = light.position - position.xyz;
+                        let light_distance = length(light_dir);
+                        let light_dir_normalized = normalize(light_dir);
+                        let attenuation = calculate_attenuation(light_distance);
+                        let n_dot_l = max(dot(normal, light_dir_normalized), 0.0);
+                        let diffuse = albedo.rgb * n_dot_l * light.color.rgb * attenuation;
+                        
+                        let view_dir = normalize(camera.position - position.xyz);
+                        let half_dir = normalize(view_dir + light_dir_normalized);
+                        let n_dot_h = max(dot(normal, half_dir), 0.0);
+                        let specular = pow(n_dot_h, 32.0) * light.color.rgb * attenuation * light.intensity;
+                        
+                        direct += diffuse + specular;
+                    }
+
+                    return clamp(direct, vec3f(0.0), vec3f(1.0));
+                }
+
+                @fragment(input) -> output {
+                    // Sample G-buffer data
+                    let world_pos = textureSample(position_texture, sampler_color, input.uv).xyz;
+                    let normal = textureSample(normal_texture, sampler_color, input.uv).xyz; 
+                    let albedo = textureSample(albedo_texture, sampler_color, input.uv);
+                    let direct = calc_direct(albedo.rgb, world_pos, normal);
+                    let indirect = vec3f(0.0);
+                    let final_color = albedo.rgb * (direct.rgb + indirect.rgb);
+                    output.color = vec4f(final_color, 1.0);
+                    return output;
+                }
+            `,
             layouts: this.layouts,
             varyings: [
                 { name: 'uv', type: 'vec2f', location: 0 },
             ]
         };
 
+
         const shader = new Shader(shaderConfig);
 
         // Create pipeline layout
         const pipelineLayout = this.pipelines.createPipelineLayout(this.layouts);
+
         this.pipeline = this.pipelines.createRenderPipeline({
             shader,
             layout: pipelineLayout,
@@ -161,37 +208,25 @@ export class ShadingPass extends RenderPass {
                 { format: this.renderer.format },
             ]
         });
+
+        return this;
     }
 
     createBindGroup() {
         this.bindGroup = this.resources.createBindGroup(this.layouts[0], {
+            PositionTexture: this.inputs.get('position_texture') as GPUTexture,
+            NormalTexture: this.inputs.get('normal_texture') as GPUTexture,
+            AlbedoTexture: this.inputs.get('albedo_texture') as GPUTexture,
+            ProbeBuffer: this.inputs.get('probe_buffer') as GPUBuffer,
+            ProbeConfig: this.resources.getBufferByName('ProbeConfig')!,
+            ProbeRadiance: this.inputs.get('probe_radiance') as GPUBuffer,
+            ShadingUniforms: this.shadingUniforms,
             Camera: UniformData.getByName('Camera')!,
-            Scene: UniformData.getByName('Scene')!,
-            Position: this.inputs[0],
-            Color: this.inputs[1],
-            Normal: this.inputs[2],
-            Depth: this.inputs[3],
-            SamplerColor: this.resources.getOrCreateSampler({}),
-            SamplerDepth: this.resources.getOrCreateSampler({ compare: 'less' }),
+            Sampler: this.resources.getOrCreateSampler({}),
         })
     }
 
-    /**
-     * Render a fullscreen quad using the color texture produced in the GeometryPass.
-     */
-    public execute(_: Scene, __: Camera, commandEncoder: GPUCommandEncoder): void {
-        // Assume the second texture (index 1) of previous pass is our colorTexture.
-        const colorTexture = this.inputs[1];
-        if (!colorTexture) {
-            console.warn('ShadingPass: No color texture found in inputs.');
-            return;
-        }
-
-        if (!this.bindGroup) {
-            this.createBindGroup();
-
-        }
-
+    createRenderPassDescriptor() {
         this.renderPassDescriptor = {
             label: 'ShadingPass',
             colorAttachments: [
@@ -203,11 +238,37 @@ export class ShadingPass extends RenderPass {
                 },
             ],
         };
+    }
 
-        const pass = commandEncoder.beginRenderPass(this.renderPassDescriptor);
-        pass.setPipeline(this.pipeline);
+    /**
+     * Render a fullscreen quad using the color texture produced in the GeometryPass.
+     */
+    public execute(encoder: GPUCommandEncoder): this {
+        // Assume the second texture (index 1) of previous pass is our colorTexture.
+        // const colorTexture = this.inputs.get('albedo_texture') as GPUTexture;
+        // if (!colorTexture) {
+        //     console.warn('ShadingPass: No color texture found in inputs.');
+        //     return this;
+        // }
+
+        //if (!this.bindGroup) {
+            this.createBindGroup();
+        //}
+
+        this.createRenderPassDescriptor();
+
+        this.shadingUniforms.set('probe_count', (this.inputs.get('probe_buffer') as GPUBuffer).size / 32);
+
+        const pass = encoder.beginRenderPass(this.renderPassDescriptor);
+        pass.setPipeline(this.pipeline as GPURenderPipeline);
         pass.setBindGroup(0, this.bindGroup);
         pass.draw(6);
         pass.end();
+
+        for (const [key, value] of this.inputs.entries()) {
+            this.outputs.set(key, value);
+        }
+
+        return this;
     }
 }

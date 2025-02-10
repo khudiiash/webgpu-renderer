@@ -46,8 +46,9 @@ export class PerspectiveCamera extends Camera {
             height *= this.view.height / fullHeight;
         }
 
-        this.projectionMatrix.setPerspective(left, left + width, top, top - height, near, this.far);
-        this.projectionViewMatrix.multiplyMatrices(this.projectionMatrix, this.viewMatrix);
+        this.matrixProjection.setPerspective(left, left + width, top, top - height, near, this.far);
+        this.matrixViewProjection.multiplyMatrices(this.matrixProjection, this.matrixView);
+        this.matrixViewProjectionInverse.copy(this.matrixViewProjection).invert();
         this.updateFrustum();
     }
 
@@ -57,8 +58,10 @@ export class PerspectiveCamera extends Camera {
         this.near = camera.near;
         this.far = camera.far;
         this.up.copy(camera.up);
-        this.projectionMatrix.copy(camera.projectionMatrix);
-        this.projectionMatrixInverse.copy(camera.projectionMatrixInverse);
+        this.matrixView.copy(camera.matrixView);
+        this.matrixProjection.copy(camera.matrixProjection);
+        this.matrixViewProjection.copy(camera.matrixViewProjection);
+        this.matrixViewProjectionInverse.copy(camera.matrixViewProjectionInverse);
         return this;
     }
 

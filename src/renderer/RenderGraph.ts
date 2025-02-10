@@ -26,8 +26,12 @@ export class RenderGraph {
         const commandEncoder = this.renderer.device.createCommandEncoder();
         let previousPass: RenderPass | null = null;
         for (const pass of this.passes) {
-            if (previousPass) { pass.inputs = previousPass.outputs };
-            pass.execute(scene, camera, commandEncoder);
+            if (previousPass) { 
+                for (const [name, resource] of previousPass.outputs.entries()) {
+                    pass.inputs.set(name, resource);
+                }
+            };
+            pass.execute(commandEncoder, scene, camera);
             previousPass = pass;
         }
         this.renderer.device.queue.submit([commandEncoder.finish()]);

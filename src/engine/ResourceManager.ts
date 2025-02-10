@@ -29,9 +29,12 @@ type BufferDescription = {
     usage: GPUBufferUsageFlags;
 };
 
+type BindGroupValues = Record<string, Texture | GPUTexture | BufferData | GPUBuffer | UniformData | GPUSampler>;
+
 export class ResourceManager extends EventEmitter {
 
     private static LARGE_BUFFER_THRESHOLD = 1024 * 1024; // 1MB
+    buffersByName: Map<string, GPUBuffer> = new Map();
 
     static on(event: string, listener: EventCallback, context?: any) {
         ResourceManager.getInstance()?.on(event, listener, context);
@@ -243,7 +246,7 @@ export class ResourceManager extends EventEmitter {
         this.createBindGroups(shader);
     }
 
-    hashBindGroup(layout: BindGroupLayout, values?: Record<string, Texture | GPUTexture | BufferData | UniformData | GPUSampler>): string {
+    hashBindGroup(layout: BindGroupLayout, values?: BindGroupValues): string {
         let hash = layout.id;
         if (!values) return hashString(hash);
         Object.entries(values).forEach(([name, value]) => {
@@ -258,19 +261,20 @@ export class ResourceManager extends EventEmitter {
                 hash += name;
             } else if (value instanceof GPUSampler) {
                 hash += name;
+            } else {
+                hash += name;
             }
         });
         return hashString(hash);
     }
 
 
-    createBindGroup(layout: BindGroupLayout, values?: Record<string, Texture | GPUTexture | BufferData | UniformData | GPUSampler>): GPUBindGroup {
+    createBindGroup(layout: BindGroupLayout, values?: BindGroupValues): GPUBindGroup {
         const name = layout.name;
         const hash = this.hashBindGroup(layout, values);
-        if (this.bindGroupsCache.has(hash)) {
-            console.log('Using cached bind group');
-            return this.bindGroupsCache.get(hash) as GPUBindGroup;
-        }
+        // if (this.bindGroupsCache.has(hash)) {
+        //     return this.bindGroupsCache.get(hash) as GPUBindGroup;
+        // }
 
         const descriptor: any = { 
             label: name,
@@ -287,7 +291,7 @@ export class ResourceManager extends EventEmitter {
                     data = this.createAndUploadBuffer({
                         name: value.id,
                         data: value.buffer,
-                        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+                        usage: value.usage || (GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST),
                         id: value.id
                     });
                 } else if (value instanceof UniformData) {
@@ -299,9 +303,12 @@ export class ResourceManager extends EventEmitter {
                     });
                 } else if (value instanceof Texture) {
                     data = value.texture
+                    // TODO: Handle texture loaded 
                 } else if (value instanceof GPUTexture) {
                     data = value;
                 } else if (value instanceof GPUSampler) {
+                    data = value;
+                } else if (value instanceof GPUBuffer) {
                     data = value;
                 }
             } else {
@@ -328,8 +335,15 @@ export class ResourceManager extends EventEmitter {
             }
         }
 
-        const bindGroup = this.device.createBindGroup(descriptor as GPUBindGroupDescriptor);
-        this.bindGroupsCache.set(hash, bindGroup);
+        let bindGroup: GPUBindGroup;
+        try {
+            bindGroup = this.device.createBindGroup(descriptor as GPUBindGroupDescriptor);
+        } catch (error) {
+            console.error('Error creating bind group:', error);
+            debugger;
+            return;
+        }
+        this.bindGroupsCache.set(hash, bindGroup as GPUBindGroup);
         this.references.set(name, { refCount: 1, lastUsedFrame: this.currentFrame });
         return bindGroup; 
     }
@@ -430,6 +444,7 @@ export class ResourceManager extends EventEmitter {
         }
         this.device.queue.writeBuffer(buffer, 0, data);
         this.buffers.set(id, buffer);
+        this.buffersByName.set(name, buffer);
         this.bufferDescriptors.set(id, { size: data.byteLength, usage });
         this.references.set(id, { refCount: 1, lastUsedFrame: this.currentFrame });
 
@@ -438,6 +453,10 @@ export class ResourceManager extends EventEmitter {
         }
 
         return buffer;
+    }
+
+    getBufferByName(name: string): GPUBuffer | undefined {
+        return this.buffersByName.get(name);
     }
 
     formatSize = (size: number) => {

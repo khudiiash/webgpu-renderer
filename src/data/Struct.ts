@@ -128,6 +128,11 @@ export class Struct {
 
     for (const [key, entry] of entries) {
       const { alignment, size } = entry;
+      if (size === 0) {
+        // must be storage
+        entry.offset = 0;
+        continue;
+      }
       offset = alignTo(offset, alignment);
       entry.offset = offset;
       offset += size;

@@ -30,10 +30,11 @@ class Scene extends Object3D {
         groundColor: 'vec4f',
         skyColor: 'vec4f',
         indirectIntensity: 'f32',
+        time: 'f32',
 
         directionalLightsNum: 'u32',
         pointLightsNum: 'u32',
-        time: 'f32',
+        frame: 'u32',
     })
     public readonly isScene: boolean;
     public name: string;
@@ -55,8 +56,10 @@ class Scene extends Object3D {
     public pointLightsNum!: number;
     public fog!: Fog;
     public time: number = 0;
+    public frame: number = 0;
 
     private _time: number = 0;
+    private _frame: number = 0;
     private _last: number = performance.now();
 
     constructor(config: SceneConfig = {}) {
@@ -105,10 +108,11 @@ class Scene extends Object3D {
                     skyColor,
                     indirectIntensity: config.indirectIntensity || 1.0,
                     time: 0,
+                    frame: 0,
                     directionalLightsNum: 0,
                     pointLightsNum: 0,
                     directionalLights,
-                    pointLights
+                    pointLights,
                 }
             })
         );
@@ -169,8 +173,10 @@ class Scene extends Object3D {
         const now = performance.now();
         this._time += (now - this._last) / 1000;
         this._last = now;
+        this._frame++;
 
         this.time = this._time;
+        this.frame = this._frame; 
     }
 }
 

@@ -2,6 +2,7 @@ const PI = 3.14159265359;
 const PI2 = 6.28318530718;
 const PI_OVER_2 = 1.57079632679;
 const EPSILON = 0.001;
+const TAU = 6.28318530718;
 
 fn getTBN(tangent: vec3f, bitangent: vec3f, normal: vec3f) -> mat3x3f {
     var T = normalize(tangent);
@@ -13,6 +14,12 @@ fn getTBN(tangent: vec3f, bitangent: vec3f, normal: vec3f) -> mat3x3f {
         T = T * -1.0;
     }
     return mat3x3f(T, B, N);
+}
+
+
+
+fn out_bounds(uv: vec2f) -> bool {
+    return uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0;
 }
 
 fn isZeroMat3(m: mat3x3f) -> bool {

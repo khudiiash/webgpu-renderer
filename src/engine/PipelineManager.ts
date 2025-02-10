@@ -105,7 +105,8 @@ export class PipelineManager {
   }
 
   createPipelineLayout(bindGroupLayouts: BindGroupLayout[]): GPUPipelineLayout {
-    const hash = bindGroupLayouts.map(layout => layout.toString()).join('|');
+    const hash = bindGroupLayouts.map(layout => layout.id).join('|');
+    console.log(hash);
     if (!this.pipelineLayoutCache.has(hash)) {
       this.pipelineLayoutCache.set(
         hash,
@@ -113,7 +114,7 @@ export class PipelineManager {
           bindGroupLayouts: bindGroupLayouts.map(bgl => bgl.layout)
         })
       );
-    }
+    } 
     return this.pipelineLayoutCache.get(hash)!;
   }
 
@@ -136,7 +137,6 @@ export class PipelineManager {
     const hash = hashPipelineState(shader, renderState, targets, vertexLayouts);
 
     if (this.pipelineCache.has(hash)) {
-      console.log('Use cached pipeline');
       return this.pipelineCache.get(hash)!;
     }
 
@@ -159,7 +159,7 @@ export class PipelineManager {
       primitive: renderState.getPrimitive(),
     };
 
-    if (params.renderState) {
+    if (params.renderState?.depthWrite === true) {
       pipelineDescriptor.depthStencil = renderState.getDepthStencil();
     }
 
@@ -169,11 +169,17 @@ export class PipelineManager {
     return pipeline;
   }
 
-  createComputePipeline(_: {
-    code: string;
-    entryPoint: string;
-    bindGroups?: GPUBindGroupLayout[];
-  }): void {
-    // TODO
+  createComputePipeline(params: {
+    shader: Shader,
+    name?: string,
+    layout?: GPUPipelineLayout,
+  }): GPUComputePipeline {
+    return this.device.createComputePipeline({
+      label: params.name || params.shader.name || 'ComputePipeline',
+      compute: {
+        module: this.createShaderModule('cs_' + params.shader.name, params.shader.computeSource),
+      },
+      layout: params.layout || 'auto',
+    });
   }
 }

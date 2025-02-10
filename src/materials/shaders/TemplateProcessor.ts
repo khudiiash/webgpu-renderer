@@ -1,5 +1,4 @@
 import { ShaderChunk } from './ShaderChunk';
-import { ShaderLibrary } from './ShaderLibrary';
 import { Struct } from '@/data/Struct';
 import { Binding } from '@/data/Binding';
 import { BindGroupLayout } from '@/data/BindGroupLayout';
@@ -24,7 +23,7 @@ export class TemplateProcessor {
     }
 
 
-    static processTemplate(template: string, layouts: BindGroupLayout[], chunks: ShaderChunk[], defines: Map<string, boolean>) {
+    static processTemplate(template: string, layouts: BindGroupLayout[] = [], chunks: ShaderChunk[] = [], defines: Map<string, boolean> = new Map()) {
         return TemplateProcessor.getInstance().processTemplate(template, layouts, chunks, defines);
     }
 
@@ -54,6 +53,7 @@ export class TemplateProcessor {
         for (const chunk of chunks) {
             this.processChunk(chunk, layouts);
         }
+        processed = this.processBindings(processed, layouts);
         processed = this.processMain(processed);
         processed = this.processDefines(processed, defines);
         return processed;
@@ -68,6 +68,16 @@ export class TemplateProcessor {
             return '';
         });
         return template;
+    }
+    processBindings(template: string, layouts: BindGroupLayout[] = []) {
+        for (const layout of layouts) {
+            const bindings = layout.bindings;
+            for (const binding of bindings) {
+                binding.shouldInsert(this.type) && this.bindings.add(binding);
+            }
+        }
+        
+        return template.replace(/@group\(([\w]+)\) @binding\(([\w]+)\)/g, '');
     }
     private processChunk = (chunk: ShaderChunk, layouts: BindGroupLayout[]) => {
         if (!chunk || !chunk.shouldInsert(this.type)) return;
@@ -89,7 +99,10 @@ export class TemplateProcessor {
     }
 
     processMain(template: string) {
-        const mainRe = /@([\w]+)\(([\w]+)\) -> ([\w]+) {/g;
+        const mainRe = this.type === 'compute' ? 
+            /@compute\(input\)(?: ?@workgroup_size\((\d+)(?:, ?(\d+))?(?:, ?(\d+))?\))? ?{/g :
+            /@([\w]+)\(([\w\d]+)\) -> ([\w]+) {/g;
+
         const bodyRe = new RegExp(`{{${this.type}}}`, 'g');
         // prepend bindings
         const sortedBindings = Array.from(this.bindings).sort((a, b) => {
@@ -116,10 +129,20 @@ export class TemplateProcessor {
         }
 
         // main
-        template = template.replace(mainRe, (_, type) => {
-            const capType = type.charAt(0).toUpperCase() + type.slice(1);
-            return `@${type}\nfn main(input: ${capType}Input) -> ${capType}Output {\nvar output: ${capType}Output;`;
-        });
+        if (this.type === 'compute') {
+            console.log('compute', mainRe.test(template));
+            template = template.replace(mainRe, (_, x, y, z) => {
+                let groupsStr = '' + (x || '1');
+                if (y) groupsStr += `, ${y}`;
+                if (z) groupsStr += `, ${z}`;
+                return `@compute @workgroup_size(${groupsStr})\nfn main(input: ComputeInput) {`;
+            });
+        } else {
+            template = template.replace(mainRe, (_, type) => {
+                const capType = type.charAt(0).toUpperCase() + type.slice(1);
+                return `@${type}\nfn main(input: ${capType}Input) -> ${capType}Output {\nvar output: ${capType}Output;`;
+            });
+        }
 
         // insert body chunks without order rules
         const body = chunks.map(chunk => chunk.getBodyCodesUnordered(this.type)).flat().map(bodyCode => bodyCode.code);

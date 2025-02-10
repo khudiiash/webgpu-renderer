@@ -115,6 +115,7 @@ export class Texture {
             console.error('Texture: Invalid texture');
             return;
         }
+        this.loaded = true;
         this.texture = texture;
         this.notifyChange();
     }

@@ -37,6 +37,10 @@ fn grad(hash: i32, x: f32, y: f32) -> f32 {
     return term1 + term2;
 }
 
+fn rand(p: vec2f) -> f32 {
+    return fract(sin(dot(p, vec2f(12.9898, 78.233))) * 43758.5453);
+}
+
 fn perlinNoise(p: vec2f) -> f32 {
     let pi = vec2i(floor(p));
 
