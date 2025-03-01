@@ -10,7 +10,7 @@ import { BufferAttribute } from "@/geometry";
 
 type TextureDescription = {
     label?: string;
-    dimension?: '1d' | '2d' | '3d';
+    dimension?: "1d" | "2d" | "3d";
     mipLevelCount?: number;
     sampleCount?: 1 | 4;
     format: GPUTextureFormat;
@@ -29,10 +29,12 @@ type BufferDescription = {
     usage: GPUBufferUsageFlags;
 };
 
-type BindGroupValues = Record<string, Texture | GPUTexture | BufferData | GPUBuffer | UniformData | GPUSampler>;
+type BindGroupValues = Record<
+    string,
+    Texture | GPUTexture | GPUTextureView | BufferData | GPUBuffer | UniformData | GPUSampler
+>;
 
 export class ResourceManager extends EventEmitter {
-
     private static LARGE_BUFFER_THRESHOLD = 1024 * 1024; // 1MB
     buffersByName: Map<string, GPUBuffer> = new Map();
 
@@ -77,7 +79,7 @@ export class ResourceManager extends EventEmitter {
 
     static init(device: GPUDevice) {
         if (ResourceManager.#instance) {
-            console.error('ResourceManager already initialized');
+            console.error("ResourceManager already initialized");
         } else {
             ResourceManager.#instance = new ResourceManager(device);
         }
@@ -133,8 +135,8 @@ export class ResourceManager extends EventEmitter {
         }
         const texture = this.device.createTexture({
             size: [width, height, 1],
-            format: 'depth32float',
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+            format: "depth32float",
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
         });
 
         this.textures.set(name, texture);
@@ -151,9 +153,9 @@ export class ResourceManager extends EventEmitter {
     }
 
     /**
-     * 
-     * @param {string} name 
-     * @param {TextureDescription} description 
+     *
+     * @param {string} name
+     * @param {TextureDescription} description
      * @returns {GPUTexture}
      */
     createTexture(name: string, description: TextureDescription): GPUTexture {
@@ -166,23 +168,23 @@ export class ResourceManager extends EventEmitter {
 
     createDefaultSampler() {
         this.defaultSampler = this.device.createSampler({
-            magFilter: 'linear',
-            minFilter: 'linear',
-            mipmapFilter: 'linear',
-            addressModeU: 'repeat',
-            addressModeV: 'repeat',
-            addressModeW: 'repeat',
+            magFilter: "linear",
+            minFilter: "linear",
+            mipmapFilter: "linear",
+            addressModeU: "repeat",
+            addressModeV: "repeat",
+            addressModeW: "repeat",
         });
     }
 
     /**
-     * 
-     * @param {string} name 
-     * @param {BufferDescription} description 
-     * @returns 
+     *
+     * @param {string} name
+     * @param {BufferDescription} description
+     * @returns
      */
     createBuffer(name: string, description: BufferDescription, dataID: string) {
-        const buffer = this.device.createBuffer({ 
+        const buffer = this.device.createBuffer({
             label: name,
             size: description.size,
             usage: description.usage,
@@ -195,21 +197,21 @@ export class ResourceManager extends EventEmitter {
 
     getTypeSize(type: string) {
         switch (type) {
-            case 'f32':
-            case 'i32':
-            case 'u32':
+            case "f32":
+            case "i32":
+            case "u32":
                 return 4;
-            case 'vec2f':
+            case "vec2f":
                 return 8;
-            case 'vec3f':
+            case "vec3f":
                 return 12;
-            case 'vec4f':
+            case "vec4f":
                 return 16;
-            case 'mat2x2f':
+            case "mat2x2f":
                 return 16;
-            case 'mat3x3f':
+            case "mat3x3f":
                 return 36;
-            case 'mat4x4f':
+            case "mat4x4f":
                 return 64;
             default:
                 return 0;
@@ -221,7 +223,7 @@ export class ResourceManager extends EventEmitter {
             name,
             data: attribute.data,
             usage: GPUBufferUsage.VERTEX,
-            id: attribute.id
+            id: attribute.id,
         });
     }
 
@@ -268,22 +270,20 @@ export class ResourceManager extends EventEmitter {
         return hashString(hash);
     }
 
-
     createBindGroup(layout: BindGroupLayout, values?: BindGroupValues): GPUBindGroup {
         const name = layout.name;
-        const hash = this.hashBindGroup(layout, values);
+        // const hash = this.hashBindGroup(layout, values);
         // if (this.bindGroupsCache.has(hash)) {
         //     return this.bindGroupsCache.get(hash) as GPUBindGroup;
         // }
 
-        const descriptor: any = { 
+        const descriptor: any = {
             label: name,
             layout: layout.layout,
-            entries: []
+            entries: [],
         };
 
         for (const binding of layout.bindings) {
-
             let data;
             const value = values?.[binding.description.bindingName];
             if (value) {
@@ -291,20 +291,19 @@ export class ResourceManager extends EventEmitter {
                     data = this.createAndUploadBuffer({
                         name: value.id,
                         data: value.buffer,
-                        usage: value.usage || (GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST),
-                        id: value.id
+                        usage: value.usage || GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+                        id: value.id,
                     });
                 } else if (value instanceof UniformData) {
                     data = this.createAndUploadBuffer({
                         name: value.name,
                         data: value.getBuffer(),
                         usage: value.getBufferUsage(),
-                        id: value.id
+                        id: value.id,
                     });
                 } else if (value instanceof Texture) {
-                    data = value.texture
-                    // TODO: Handle texture loaded 
-                } else if (value instanceof GPUTexture) {
+                    data = value.texture;
+                } else if (value instanceof GPUTexture || value instanceof GPUTextureView) {
                     data = value;
                 } else if (value instanceof GPUSampler) {
                     data = value;
@@ -318,19 +317,23 @@ export class ResourceManager extends EventEmitter {
                         name: uniformData.name,
                         data: uniformData.getBuffer(),
                         usage: uniformData.getBufferUsage(),
-                        id: uniformData.id
+                        id: uniformData.id,
                     });
                 }
             }
-            
+            if (!data && binding.isBuffer) {
+                binding;
+                debugger;
+            }
+
             if (binding.isBuffer) {
                 const buffer = data as GPUBuffer;
                 descriptor.entries.push(binding.getBindGroupEntry(buffer));
-            } else if (binding.isTexture) {
-                const texture = data ? data as GPUTexture : this.createDefaultTexture();
+            } else if (binding.isTexture || binding.isStorageTexture) {
+                const texture = data ? (data as GPUTexture) : this.createDefaultTexture();
                 descriptor.entries.push(binding.getBindGroupEntry(texture));
             } else if (binding.isSampler) {
-                const sampler = value ? value as GPUSampler : this.defaultSampler;
+                const sampler = value ? (value as GPUSampler) : this.defaultSampler;
                 descriptor.entries.push(binding.getBindGroupEntry(sampler));
             }
         }
@@ -339,13 +342,13 @@ export class ResourceManager extends EventEmitter {
         try {
             bindGroup = this.device.createBindGroup(descriptor as GPUBindGroupDescriptor);
         } catch (error) {
-            console.error('Error creating bind group:', error);
+            console.error(`Error creating bind group for ${layout.name} layout`);
             debugger;
             return;
         }
-        this.bindGroupsCache.set(hash, bindGroup as GPUBindGroup);
+        //this.bindGroupsCache.set(hash, bindGroup as GPUBindGroup);
         this.references.set(name, { refCount: 1, lastUsedFrame: this.currentFrame });
-        return bindGroup; 
+        return bindGroup;
     }
 
     getOrCreateSampler(descriptor: GPUSamplerDescriptor): GPUSampler {
@@ -360,7 +363,7 @@ export class ResourceManager extends EventEmitter {
     }
 
     /**
-     * @param {string} name 
+     * @param {string} name
      */
     markResourceUsed(name: string): void {
         const ref = this.references.get(name);
@@ -404,13 +407,13 @@ export class ResourceManager extends EventEmitter {
     createDefaultTexture(): GPUTexture {
         return this.device.createTexture({
             size: { width: 1, height: 1, depthOrArrayLayers: 1 },
-            format: 'rgba8unorm',
-            usage: GPUTextureUsage.TEXTURE_BINDING
+            format: "rgba8unorm",
+            usage: GPUTextureUsage.TEXTURE_BINDING,
         });
     }
 
     /**
-     * @param {TextureDescription} description 
+     * @param {TextureDescription} description
      * @returns {GPUTexture}
      */
     getTemporaryTexture(description: TextureDescription): GPUTexture {
@@ -426,7 +429,17 @@ export class ResourceManager extends EventEmitter {
      *    id: string
      * }} description
      */
-    createAndUploadBuffer({ name, data, usage, id }: { name: string; data: ArrayBuffer; usage: GPUBufferUsageFlags; id: string; }) {
+    createAndUploadBuffer({
+        name,
+        data,
+        usage,
+        id,
+    }: {
+        name: string;
+        data: ArrayBuffer;
+        usage: GPUBufferUsageFlags;
+        id: string;
+    }) {
         if (this.buffers.has(id)) {
             const buffer = this.buffers.get(id) as GPUBuffer;
             return buffer;
@@ -434,7 +447,7 @@ export class ResourceManager extends EventEmitter {
         const buffer = this.device.createBuffer({
             label: name,
             size: data.byteLength,
-            usage: usage | GPUBufferUsage.COPY_DST
+            usage: usage | GPUBufferUsage.COPY_DST,
         });
         const uniformData = UniformData.getByID(id);
         if (uniformData) {
@@ -460,22 +473,22 @@ export class ResourceManager extends EventEmitter {
     }
 
     formatSize = (size: number) => {
-        if (size === 0) return '0 B';
+        if (size === 0) return "0 B";
         const isB = size < 1024;
         const isKB = size < 1024 * 1024;
         const isMB = size < 1024 * 1024 * 1024;
-        if (isB) return size + ' B';
-        if (isKB) return (size / 1024).toFixed(2) + ' KB';
-        if (isMB) return (size / 1024 / 1024).toFixed(2) + ' MB';
-        return (size / 1024 / 1024 / 1024).toFixed(2) + ' GB';
-    }
+        if (isB) return size + " B";
+        if (isKB) return (size / 1024).toFixed(2) + " KB";
+        if (isMB) return (size / 1024 / 1024).toFixed(2) + " MB";
+        return (size / 1024 / 1024 / 1024).toFixed(2) + " GB";
+    };
 
     getResourceStats(): {
         textures: number;
         buffers: number;
         totalMemory: string;
     } {
-        let totalMemory = 0; 
+        let totalMemory = 0;
 
         for (const [_, desc] of this.textureDescriptors) {
             const size = desc.size;
@@ -490,21 +503,21 @@ export class ResourceManager extends EventEmitter {
         return {
             textures: this.textures.size,
             buffers: this.buffers.size,
-            totalMemory: this.formatSize(totalMemory) as string
+            totalMemory: this.formatSize(totalMemory) as string,
         };
     }
 
     getFormatSize(format: GPUTextureFormat): number {
         switch (format) {
-            case 'rgba8unorm':
-            case 'rgba8sint':
-            case 'rgba8uint':
+            case "rgba8unorm":
+            case "rgba8sint":
+            case "rgba8uint":
                 return 4;
-            case 'rg11b10ufloat':
+            case "rg11b10ufloat":
                 return 4;
-            case 'rgba16float':
+            case "rgba16float":
                 return 8;
-            case 'rgba32float':
+            case "rgba32float":
                 return 16;
             default:
                 return 4;
@@ -523,13 +536,7 @@ export class ResourceManager extends EventEmitter {
         } else {
             // Small buffer - use direct write
             if (start !== undefined && end !== undefined) {
-                this.device.queue.writeBuffer(
-                    buffer,
-                    start * 4,
-                    uniformData.getBuffer(),
-                    start * 4,
-                    (end - start) * 4
-                );
+                this.device.queue.writeBuffer(buffer, start * 4, uniformData.getBuffer(), start * 4, (end - start) * 4);
             } else {
                 this.device.queue.writeBuffer(buffer, 0, uniformData.getBuffer());
             }
@@ -549,9 +556,9 @@ export class ResourceManager extends EventEmitter {
         const requiredSize = Math.max(updateSize, ResourceManager.LARGE_BUFFER_THRESHOLD);
 
         // Try to get an available staging buffer of sufficient size
-        stagingBuffer = this.availableStagingBuffers.find(buffer => buffer.size >= requiredSize);
+        stagingBuffer = this.availableStagingBuffers.find((buffer) => buffer.size >= requiredSize);
         if (stagingBuffer) {
-            this.availableStagingBuffers = this.availableStagingBuffers.filter(b => b !== stagingBuffer);
+            this.availableStagingBuffers = this.availableStagingBuffers.filter((b) => b !== stagingBuffer);
         } else {
             // If none are available or large enough, create a new one
             stagingBuffer = this.device.createBuffer({
@@ -573,22 +580,21 @@ export class ResourceManager extends EventEmitter {
 
         // Schedule the copy command
         const commandEncoder = this.device.createCommandEncoder();
-        commandEncoder.copyBufferToBuffer(
-            stagingBuffer, 0,
-            targetBuffer, updateStart,
-            updateSize
-        );
+        commandEncoder.copyBufferToBuffer(stagingBuffer, 0, targetBuffer, updateStart, updateSize);
         this.device.queue.submit([commandEncoder.finish()]);
 
         // Immediately start mapping the buffer again
         this.mappingStagingBuffers.add(stagingBuffer);
-        stagingBuffer.mapAsync(GPUMapMode.WRITE).then(() => {
-            this.mappingStagingBuffers.delete(stagingBuffer);
-            this.availableStagingBuffers.push(stagingBuffer);
-        }).catch((error) => {
-            console.error('Error mapping staging buffer:', error);
-            // Handle error, possibly destroy the buffer
-        });
+        stagingBuffer
+            .mapAsync(GPUMapMode.WRITE)
+            .then(() => {
+                this.mappingStagingBuffers.delete(stagingBuffer);
+                this.availableStagingBuffers.push(stagingBuffer);
+            })
+            .catch((error) => {
+                console.error("Error mapping staging buffer:", error);
+                // Handle error, possibly destroy the buffer
+            });
 
         // No need to await here, as we're not depending on the mapping to complete before proceeding
     }
@@ -606,7 +612,7 @@ export class ResourceManager extends EventEmitter {
             const excessBuffers = this.stagingBuffers.splice(5);
             for (const buffer of excessBuffers) {
                 buffer.destroy();
-                this.availableStagingBuffers = this.availableStagingBuffers.filter(b => b !== buffer);
+                this.availableStagingBuffers = this.availableStagingBuffers.filter((b) => b !== buffer);
                 this.mappingStagingBuffers.delete(buffer);
             }
         }

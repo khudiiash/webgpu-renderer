@@ -1,8 +1,8 @@
-import { Renderer } from '@/renderer/Renderer';
-import { Scene } from '@/core/Scene';
-import { Camera } from '@/camera/Camera';
-import { PipelineManager, ResourceManager } from '@/engine';
-import { BindGroupLayout } from '@/data/BindGroupLayout';
+import { Renderer } from "@/renderer/Renderer";
+import { Scene } from "@/core/Scene";
+import { Camera } from "@/camera/Camera";
+import { PipelineManager, ResourceManager } from "@/engine";
+import { BindGroupLayout } from "@/data/BindGroupLayout";
 
 export abstract class RenderPass {
     renderer: Renderer;
@@ -25,15 +25,13 @@ export abstract class RenderPass {
 
     public abstract init(): this;
 
+    public abstract beforeRender(): this;
+    public abstract afterRender(): this;
     /**
      * Execute this render pass.
+     * @param commandEncoder The GPUCommandEncoder used to record rendering commands.
      * @param scene The scene to render.
      * @param camera The camera used for rendering.
-     * @param commandEncoder The GPUCommandEncoder used to record rendering commands.
      */
-    public abstract execute(
-        encoder: GPUCommandEncoder,
-        scene?: Scene,
-        camera?: Camera,
-    ): this;
+    public abstract execute(encoder: GPUCommandEncoder, scene?: Scene, camera?: Camera): this;
 }

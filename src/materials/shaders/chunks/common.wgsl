@@ -2,7 +2,36 @@ const PI = 3.14159265359;
 const PI2 = 6.28318530718;
 const PI_OVER_2 = 1.57079632679;
 const EPSILON = 0.001;
-const TAU = 6.28318530718;
+const TAU = 6.283185;
+
+fn V2F16(v: vec2f) -> f32 {
+    return v.y * f32(0.0039215689) + v.x;
+}
+
+fn F16V2(f: f32) -> vec2f {
+    return vec2f(f32(f * 255.0) * f32(0.0039215689), fract(f * 255.0));
+}
+
+fn SRGB(c: vec3f) -> vec3f {
+    return pow(c, vec3f(2.2));
+}
+
+fn LINEARIZE(c: vec3f) -> vec3f {
+    return pow(c, vec3f(1.0 / 2.2));
+}
+
+fn ACES_FILM(c: vec3f) -> vec3f {
+    //Aces film curve
+    return clamp((c*(2.51*c + 0.03))/(c*(2.43*c + 0.59) + 0.14), vec3f(0), vec3f(1));
+}
+
+fn remap(value: f32, min1: f32, max1: f32, min2: f32, max2: f32) -> f32 {
+    return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
+}
+
+fn easeOutExpo(v: f32, ext: f32)-> f32 {
+    return select(1.0 - pow(2, -ext * v), v, v == 1.0);
+}
 
 fn getTBN(tangent: vec3f, bitangent: vec3f, normal: vec3f) -> mat3x3f {
     var T = normalize(tangent);
@@ -16,9 +45,7 @@ fn getTBN(tangent: vec3f, bitangent: vec3f, normal: vec3f) -> mat3x3f {
     return mat3x3f(T, B, N);
 }
 
-
-
-fn out_bounds(uv: vec2f) -> bool {
+fn outBounds(uv: vec2f) -> bool {
     return uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0;
 }
 
@@ -72,9 +99,34 @@ fn getBillboardModelMatrix(modelMatrix: mat4x4f, viewMatrix: mat4x4f) -> mat4x4f
 
 
 fn scaleUV(uv: vec2f, scale: vec2f) -> vec2f {
-    return (uv - 0.5) * scale + 0.5;
+    return fract(uv * scale);
 }
 
 fn worldToTangentSpace(worldDir: vec3f, TBN: mat3x3f) -> vec3f {
     return normalize(transpose(TBN) * worldDir);
+}
+
+fn inverse3x3(m: mat3x3f) -> mat3x3f {
+    // Rearrange the matrix elements from column-major order.
+    // Here, the first row is: m[0][0], m[1][0], m[2][0].
+    let a = m[0][0]; // first row, first column
+    let b = m[1][0]; // first row, second column
+    let c = m[2][0]; // first row, third column
+    let d = m[0][1]; // second row, first column
+    let e = m[1][1]; // second row, second column
+    let f = m[2][1]; // second row, third column
+    let g = m[0][2]; // third row, first column
+    let h = m[1][2]; // third row, second column
+    let i = m[2][2]; // third row, third column
+
+    let det: f32 = a*(e*i - f*h) - b*(d*i - f*g) + c*(d*h - e*g);
+    let invDet = 1.0 / det;
+
+    // Construct the inverse matrix.
+    // The matrix constructor takes column vectors.
+    return mat3x3f(
+        vec3f((e*i - f*h) * invDet, (f*g - d*i) * invDet, (d*h - e*g) * invDet),
+        vec3f((c*h - b*i) * invDet, (a*i - c*g) * invDet, (b*g - a*h) * invDet),
+        vec3f((b*f - c*e) * invDet, (c*d - a*f) * invDet, (a*e - b*d) * invDet)
+    );
 }

@@ -18,6 +18,8 @@ yarn.lock
 .vscode/*
 !.vscode/extensions.json
 .idea
+.vscode
+.zed
 .DS_Store
 *.suo
 *.ntvs*

@@ -58,12 +58,16 @@ export class Vector2 extends BufferData {
 
     set(x: number | ArrayLike<number>, y: number): this {
         if (Array.isArray(x) || x instanceof Float32Array) {
-            this[0] = x[0];
-            this[1] = x[1];
+            super.set(x, 0);
         } else {
-            this[0] = x as number;
-            this[1] = y as number;
+            super.set([x as number, y as number], 0);
         }
+        return this;
+    }
+
+    floor(): this {
+        this[0] = Math.floor(this[0]);
+        this[1] = Math.floor(this[1]);
         return this;
     }
 

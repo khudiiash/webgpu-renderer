@@ -1,66 +1,117 @@
-import { uuid } from "@/util/general";
+import { num, uuid } from "@/util/general";
 import { ObjectMonitor } from "./ObjectMonitor";
+import { Engine } from "@/engine/Engine";
 
 export interface TextureOptions {
-    magFilter?: 'linear' | 'nearest';
-    minFilter?: 'linear' | 'nearest';
-    mipmapFilter?: 'linear' | 'nearest';
+    width?: number;
+    height?: number;
+    depth?: number;
+    format?: GPUTextureFormat;
+    usage?: number;
+    magFilter?: GPUFilterMode;
+    minFilter?: GPUFilterMode;
+    mipmapFilter?: GPUFilterMode;
     addressModeU?: GPUAddressMode;
     addressModeV?: GPUAddressMode;
     addressModeW?: GPUAddressMode;
-    invertY: boolean;
+    dimension?: GPUTextureDimension;
+    invertY?: boolean;
+    generateMipmaps?: boolean;
 }
 
 export class Texture {
-    public width: number = 0;
-    public height: number = 0;
+    static DEFAULT_USAGE: number =
+        GPUTextureUsage.RENDER_ATTACHMENT |
+        GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.COPY_SRC |
+        GPUTextureUsage.COPY_DST;
+    public width: number = 1;
+    public height: number = 1;
+    public depth: number = 1;
+    public usage: number = Texture.DEFAULT_USAGE;
     public loaded: boolean = false;
     public sampler!: GPUSampler;
     public texture!: GPUTexture;
-    public id: string = uuid('texture');
-    public name: string = 'Texture';
+    public textures: Map<number, GPUTexture> = new Map();
+    public id: string = uuid("texture");
+    public name: string = "Texture";
+    public dimension: GPUTextureDimension = "2d";
+    public generateMipmaps: boolean = false;
 
-    public magFilter: 'linear' | 'nearest' = 'linear';
-    public minFilter: 'linear' | 'nearest' = 'linear';
-    public mipmapFilter: 'linear' | 'nearest' = 'linear';
-    public addressModeU!: GPUAddressMode;
-    public addressModeV!: GPUAddressMode;
-    public addressModeW!: GPUAddressMode;
+    public magFilter: GPUFilterMode = "linear";
+    public minFilter: GPUFilterMode = "linear";
+    public mipmapFilter: GPUFilterMode = "linear";
+    public addressModeU: GPUAddressMode = "clamp-to-edge";
+    public addressModeV: GPUAddressMode = "clamp-to-edge";
+    public addressModeW: GPUAddressMode = "clamp-to-edge";
 
-    private loadCbs: Function[] = []
-    public device: GPUDevice;
+    protected loadCbs: Function[] = [];
+    protected device!: GPUDevice;
+    protected format: GPUTextureFormat = "rgba8unorm";
 
-    constructor(device: GPUDevice, width: number = 1, height = 1, usage = GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT, format = 'rgba8unorm' as GPUTextureFormat) {
-        this.width = width;
-        this.height = height;
+    constructor(options: TextureOptions = {}) {
+        const device = Engine.device;
+        if (!device) {
+            throw new Error("Texture: Invalid device");
+        }
+
+        this.width = options.width ?? this.width;
+        this.height = options.height ?? this.height;
+        this.depth = options.depth ?? this.depth;
         this.device = device;
+        this.format = options.format ?? this.format;
+        this.usage = options.usage ?? this.usage;
 
-        new ObjectMonitor({
-            magFilter: 'linear',
-            minFilter: 'linear',
-            mipmapFilter: 'linear',
-            addressModeU: 'clamp-to-edge',
-            addressModeV: 'clamp-to-edge',
-            addressModeW: 'clamp-to-edge',
-        }, this).onChange(() => {
-            this.notifyChange();
-        })
+        this.setOptions(options);
 
-        this.texture = device.createTexture({
-            size: { width: this.width, height: this.height },
-            format,
-            usage: usage,
+        new ObjectMonitor(
+            {
+                magFilter: this.magFilter,
+                minFilter: this.minFilter,
+                mipmapFilter: this.mipmapFilter,
+                addressModeU: this.addressModeU,
+                addressModeV: this.addressModeV,
+                addressModeW: this.addressModeW,
+            },
+            this,
+        ).onChange(() => {
+            this.updateSampler();
         });
+
+        this.createTexture();
+        this.createSampler();
+    }
+
+    protected createTexture() {
+        this.texture = this.device.createTexture({
+            size: {
+                width: this.width,
+                height: this.height,
+                depthOrArrayLayers: this.depth,
+            },
+            format: this.format,
+            usage: this.usage,
+            dimension: this.dimension,
+        });
+        this.textures.set(0, this.texture);
+    }
+
+    protected createSampler() {
+        this.sampler = this.device.createSampler(this.getSamplerDescriptor());
     }
 
     setOptions(options: TextureOptions) {
         if (!options) return;
+        if (num(options.width)) this.width = options.width as number;
+
         if (options.magFilter) this.magFilter = options.magFilter;
         if (options.minFilter) this.minFilter = options.minFilter;
         if (options.mipmapFilter) this.mipmapFilter = options.mipmapFilter;
         if (options.addressModeU) this.addressModeU = options.addressModeU;
         if (options.addressModeV) this.addressModeV = options.addressModeV;
         if (options.addressModeW) this.addressModeW = options.addressModeW;
+        if (options.dimension) this.dimension = options.dimension;
+        if (options.generateMipmaps !== undefined) this.generateMipmaps = options.generateMipmaps;
     }
 
     getSamplerDescriptor(): GPUSamplerDescriptor {
@@ -71,24 +122,23 @@ export class Texture {
             addressModeU: this.addressModeU,
             addressModeV: this.addressModeV,
             addressModeW: this.addressModeW,
-        }
+        };
     }
 
-    createView(): GPUTextureView {
-        return this.texture?.createView();
+    protected updateSampler() {
+        if (this.sampler) {
+            this.sampler = this.device.createSampler(this.getSamplerDescriptor());
+        }
+        this.notifyChange();
     }
 
     onLoaded(callback: Function): this {
-        if (typeof callback !== 'function') {
-            console.error('Texture: Invalid onLoaded callback')
-            return this;
+        if (typeof callback !== "function") {
+            throw new Error("Texture: Invalid onLoaded callback");
         }
-        if (this.loadCbs.includes(callback)) {
-            console.warn('Texture: load callback already added');
-            return this;
+        if (!this.loadCbs.includes(callback)) {
+            this.loadCbs.push(callback);
         }
-
-        this.loadCbs.push(callback);
         return this;
     }
 
@@ -98,25 +148,36 @@ export class Texture {
             return this;
         }
         const index = this.loadCbs.indexOf(callback);
-        if (index === -1) {
-            console.warn('Texture: load callback not found');
-            return this;
+        if (index !== -1) {
+            this.loadCbs.splice(index, 1);
         }
-        this.loadCbs.splice(this.loadCbs.indexOf(callback), 1);
         return this;
     }
 
-    notifyChange() {
-        this.loadCbs.forEach(cb => cb(this.texture));
+    protected notifyChange() {
+        this.loadCbs.forEach((cb) => cb(this));
     }
 
-    setTexture(texture: GPUTexture) {
+    setTexture(texture: GPUTexture, index = 0) {
         if (!texture || !(texture instanceof GPUTexture)) {
-            console.error('Texture: Invalid texture');
-            return;
+            throw new Error("Texture: Invalid texture");
         }
+        if (index === 0) {
+            this.texture = texture;
+        }
+
+        this.textures.set(index, texture);
         this.loaded = true;
-        this.texture = texture;
         this.notifyChange();
+    }
+
+    getTexture(index = 0) {
+        return this.textures.get(index);
+    }
+
+    destroy() {
+        this.textures.forEach((texture) => texture.destroy());
+        this.textures.clear();
+        this.loadCbs = [];
     }
 }

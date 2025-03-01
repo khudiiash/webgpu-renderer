@@ -1,15 +1,15 @@
-import { ResourceManager } from '@/engine/ResourceManager';
-import { autobind, uuid } from '@/util/general';
-import { Mesh } from '@/core/Mesh';
-import { Material } from '@/materials/Material';
-import { Geometry } from '@/geometry/Geometry';
-import { BufferAttribute } from '@/geometry/BufferAttribute';
-import { RenderPass } from './RenderPass';
+import { ResourceManager } from "@/engine/ResourceManager";
+import { autobind, uuid } from "@/util/general";
+import { Mesh } from "@/core/Mesh";
+import { Material } from "@/materials/Material";
+import { Geometry } from "@/geometry/Geometry";
+import { BufferAttribute } from "@/geometry/BufferAttribute";
+import { RenderPass } from "./RenderPass";
 
 type PassData = {
-    pipeline: GPURenderPipeline,
-    bindGroups: GPUBindGroup[],
-}
+    pipeline: GPURenderPipeline | GPUComputePipeline;
+    bindGroups: GPUBindGroup[];
+};
 
 export class Renderable {
     static cache: WeakMap<Mesh, Renderable> = new WeakMap();
@@ -17,15 +17,14 @@ export class Renderable {
     public mesh!: Mesh;
     public material!: Material;
     public geometry!: Geometry;
-    public pipeline!: GPURenderPipeline;
+    public pipeline!: GPURenderPipeline | GPUComputePipeline;
     public bindGroups: GPUBindGroup[] = [];
 
-    private resources: ResourceManager = ResourceManager.getInstance()
+    private resources: ResourceManager = ResourceManager.getInstance();
     isIndexed: boolean = false;
     indexBuffer?: GPUBuffer;
     vertexBuffers: GPUBuffer[] = [];
     passData: Map<RenderPass, PassData> = new Map();
-
 
     constructor(mesh: Mesh) {
         if (Renderable.cache.has(mesh)) {
@@ -35,7 +34,7 @@ export class Renderable {
         this.mesh = mesh;
         this.material = mesh.material;
         this.geometry = mesh.geometry;
-        this.id = uuid('renderable');
+        this.id = uuid("renderable");
 
         this.initialize();
     }
@@ -47,7 +46,7 @@ export class Renderable {
     applyPassData(pass: RenderPass) {
         const data = this.passData.get(pass);
         if (!data) {
-            console.error('No pass data found for', pass);
+            console.error("No pass data found for", pass);
             return;
         }
         this.pipeline = data.pipeline;
@@ -66,23 +65,23 @@ export class Renderable {
     createIndexBuffer() {
         this.isIndexed = this.geometry.isIndexed;
         if (!this.isIndexed) return;
-        this.indexBuffer = this.resources.createAndUploadBuffer(
-            { 
-                name: "Geometry Index Buffer",
-                data: this.geometry.getIndices(),
-                usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
-                id: 'ib_' + this.geometry.id,
-            },
-        );
+        this.indexBuffer = this.resources.createAndUploadBuffer({
+            name: "Geometry Index Buffer",
+            data: this.geometry.getIndices(),
+            usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+            id: "ib_" + this.geometry.id,
+        });
     }
-    
+
     createVertexBuffers() {
-        this.vertexBuffers = Object.entries(this.mesh.geometry.attributes).filter(a => a).map(([name, attribute]) => this.resources.createVertexBuffer(name, attribute as BufferAttribute))
+        this.vertexBuffers = Object.entries(this.mesh.geometry.attributes)
+            .filter((a) => a)
+            .map(([name, attribute]) => this.resources.createVertexBuffer(name, attribute as BufferAttribute));
     }
-    
+
     render(pass: GPURenderPassEncoder) {
         if (!this.pipeline || !this.bindGroups.length) {
-            console.error('Pipeline or BindGroup not set, cannot render');
+            console.error("Pipeline or BindGroup not set, cannot render");
             return;
         }
         pass.setPipeline(this.pipeline);
@@ -90,11 +89,11 @@ export class Renderable {
         for (let i = 0; i < this.bindGroups.length; i++) {
             pass.setBindGroup(i, this.bindGroups[i]);
         }
-        
+
         for (let i = 0; i < this.vertexBuffers.length; i++) {
             pass.setVertexBuffer(i, this.vertexBuffers[i]);
         }
-        
+
         if (this.isIndexed && this.indexBuffer) {
             pass.setIndexBuffer(this.indexBuffer, this.geometry.indices.format);
             pass.drawIndexed(this.geometry.indices.count, this.mesh.count);
@@ -102,7 +101,9 @@ export class Renderable {
             pass.draw(this.geometry.vertexCount, this.mesh.count);
         }
     }
-    
+
+    compute(pass: GPUComputePassEncoder) {}
+
     dispose() {
         // Clean up resources
         this.resources.releaseResource(`vb_${this.geometry.id}`);

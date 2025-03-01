@@ -4,10 +4,10 @@ import { Texture } from "@/data/Texture";
 import { UniformData } from "@/data/UniformData";
 import { RenderState, RenderStateOptions } from "@/renderer/RenderState";
 import { Texture2D } from "@/data/Texture2D";
-import { Struct } from '@/data/Struct';
-import { boolToNum } from '@/util/general';
-import { Vector2 } from '@/math';
-
+import { Struct } from "@/data/Struct";
+import { boolToNum } from "@/util/general";
+import { Vector2 } from "@/math";
+import { TextureCube } from "@/data/TextureCube";
 
 export interface StandardMaterialOptions extends RenderStateOptions {
     ambient?: string | number;
@@ -38,6 +38,7 @@ export interface StandardMaterialOptions extends RenderStateOptions {
     roughness_map?: Texture;
     alpha_map?: Texture;
     transmission_map?: Texture;
+    cube_map?: Texture;
 
     useLight?: boolean;
     usePBR?: boolean;
@@ -47,29 +48,28 @@ export interface StandardMaterialOptions extends RenderStateOptions {
 }
 
 class StandardMaterial extends Material {
+    static struct = new Struct("StandardMaterial", {
+        ambient: "vec4f",
+        diffuse: "vec4f",
+        specular: "vec4f",
+        emissive: "vec4f",
+        sheen: "vec4f",
+        ao: "vec4f",
+        opacity: "f32",
+        metalness: "f32",
+        roughness: "f32",
+        alpha_test: "f32",
+        transmission: "f32",
 
-    static struct = new Struct('StandardMaterial', {
-        ambient: 'vec4f',
-        diffuse: 'vec4f',
-        specular: 'vec4f',
-        emissive: 'vec4f',
-        sheen: 'vec4f',
-        ao: 'vec4f',
-        opacity: 'f32',
-        metalness: 'f32',
-        roughness: 'f32',
-        alpha_test: 'f32',
-        transmission: 'f32',
+        height_scale: "f32",
+        uv_scale: "vec2f",
+        invert_normal: "u32",
 
-        height_scale: 'f32',
-        uv_scale: 'vec2f',
-        invert_normal: 'u32',
-
-        useLight: 'u32',
-        usePBR: 'u32',
-        useEmissive: 'u32',
-        useGamma: 'u32',
-        useFog: 'u32',
+        useLight: "u32",
+        usePBR: "u32",
+        useEmissive: "u32",
+        useGamma: "u32",
+        useFog: "u32",
     });
 
     ambient!: Color;
@@ -95,40 +95,48 @@ class StandardMaterial extends Material {
     roughness_map!: Texture;
     alpha_map!: Texture;
     transmission_map!: Texture;
+    cube_map!: Texture;
 
     constructor(options: StandardMaterialOptions = {}) {
         super();
 
         this.renderState = new RenderState({
-            cullMode: options.cullMode || 'back',
+            cullMode: options.cullMode || "back",
             depthTest: options.depthTest ?? true,
             depthWrite: options.depthWrite ?? true,
-            blending: options.blending || 'normal',
+            blending: options.blending || "normal",
             transparent: options.transparent || false,
-            depthCompare: options.depthCompare || 'less',
-            topology: options.topology || 'triangle-list',
-            frontFace: options.frontFace || 'ccw',
-		}).onChange(() => {
-            this.rebuild()
-        }); 
+            depthCompare: options.depthCompare || "less",
+            topology: options.topology || "triangle-list",
+            frontFace: options.frontFace || "ccw",
+        }).onChange(() => {
+            this.rebuild();
+        });
 
         const emissive = new Color(0, 0, 0, 0);
-        if (options.emissive) {
-            emissive.set(options.emissive);
+        if (options.emissive_factor) {
+            options.useEmissive = true;
+            if (options.emissive) {
+                emissive.set(options.emissive);
+            } else if (options.diffuse) {
+                emissive.set(options.diffuse);
+            }
             emissive.a = options.emissive_factor ?? 1.0;
         }
 
-        this.uniforms.set('StandardMaterial', new UniformData(this, { 
-                name: 'StandardMaterial',
+        this.uniforms.set(
+            "StandardMaterial",
+            new UniformData(this, {
+                name: "StandardMaterial",
                 struct: StandardMaterial.struct,
                 isGlobal: false,
                 values: {
-                    ambient: new Color(options.ambient || '#000000'),
-                    diffuse: new Color(options.diffuse || '#FFFFFF'),
-                    specular: new Color(options.specular || '#FFFFFF'),
+                    ambient: new Color(options.ambient || "#000000"),
+                    diffuse: new Color(options.diffuse || "#FFFFFF"),
+                    specular: new Color(options.specular || "#FFFFFF"),
                     emissive: emissive,
-                    sheen: new Color(options.sheen || '#000000'),
-                    ao: new Color(options.ao || '#FFFFFF'),
+                    sheen: new Color(options.sheen || "#000000"),
+                    ao: new Color(options.ao || "#FFFFFF"),
                     opacity: options.opacity || 1.0,
                     metalness: options.metalness ?? 0.0,
                     roughness: options.roughness ?? 0.5,
@@ -145,6 +153,7 @@ class StandardMaterial extends Material {
                     useFog: boolToNum(options.useFog, 1),
 
                     diffuse_map: options.diffuse_map || Texture2D.DEFAULT,
+                    cube_map: options.cube_map || TextureCube.DEFAULT,
                     normal_map: options.normal_map || Texture2D.DEFAULT,
                     ao_map: options.ao_map || Texture2D.DEFAULT,
                     height_map: options.height_map || Texture2D.DEFAULT,
@@ -155,8 +164,8 @@ class StandardMaterial extends Material {
                     roughness_map: options.roughness_map || Texture2D.DEFAULT,
                     alpha_map: options.alpha_map || Texture2D.DEFAULT,
                     transmission_map: options.transmission_map || Texture2D.DEFAULT,
-                }
-            })
+                },
+            }),
         );
     }
 }

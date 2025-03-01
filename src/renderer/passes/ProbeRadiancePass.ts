@@ -10,7 +10,7 @@ export class ProbeRadiancePass extends RenderPass {
     probeRadiance!: GPUBuffer;
     frame: number = 0;
 
-    public init(): this {
+    init(): this {
         // Setup bind group layout with compute bindings.
         this.layouts = [
             new BindGroupLayout(this.renderer.device, 'ProbeRadiance', 'Global', [
@@ -224,6 +224,14 @@ export class ProbeRadiancePass extends RenderPass {
         });
 
         this.pipeline = pipeline;
+        return this;
+    }
+
+    public beforeRender(): this {
+        return this;
+    }
+
+    public afterRender(): this {
         return this;
     }
 

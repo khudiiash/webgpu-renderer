@@ -62,14 +62,14 @@ fn parallax_occlusion_mapping(startUV: vec2f, viewDirTS: vec3f) -> vec3f {
     let ddy = dpdy(startUV);
     var depthScale = material.height_scale;
     var depthLayers = 32;
-    
+
     let uvDelta = viewDirTS.xy * depthScale / (-viewDirTS.z * f32(depthLayers));
     let depthDelta = 1.0 / f32(depthLayers);
     let posDelta = vec3f(uvDelta, depthDelta);
-    
+
     var currentPos = vec3f(startUV, 1.0);
     var prevPos = currentPos;
-    
+
     // First pass: find approximate intersection point
     for (var i = 0; i < depthLayers; i++) {
         let heightSample = textureSampleGrad(height_map, height_map_sampler, currentPos.xy, ddx, ddy).r;
@@ -79,45 +79,45 @@ fn parallax_occlusion_mapping(startUV: vec2f, viewDirTS: vec3f) -> vec3f {
         prevPos = currentPos;
         currentPos -= posDelta;
     }
-    
+
     // Second pass: binary search for precise intersection
     let numBinarySteps = 5;
     for (var i = 0; i < numBinarySteps; i++) {
         let midPos = (currentPos + prevPos) * 0.5;
         let heightSample = textureSampleGrad(height_map, height_map_sampler, midPos.xy, ddx, ddy).r;
-        
+
         if (midPos.z <= heightSample) {
             currentPos = midPos;
         } else {
             prevPos = midPos;
         }
     }
-    
+
     return currentPos;
 }
 
 fn get_parallax_shadow(lightDirTS: vec3f, currentPos: vec3f, ddx: vec2f, ddy: vec2f) -> f32 {
-    let numShadowSteps = 32; 
+    let numShadowSteps = 32;
     let shadowStepSize = 1.0 / f32(numShadowSteps);
-    
+
     var rayPos = currentPos;
     let rayStep = vec3f(lightDirTS.xy * shadowStepSize * 0.1, shadowStepSize);
-    
+
     var shadow = 1.0;
     rayPos += rayStep;
-    
+
     for (var i = 0; i < numShadowSteps; i++) {
         let heightSample = textureSampleGrad(height_map, height_map_sampler, rayPos.xy, ddx, ddy).r;
-        
+
         if (rayPos.z < heightSample) {
             shadow = 0.0;
             break;
         }
-        
+
         rayPos += rayStep;
         if (rayPos.z >= 1.0) { break; }
     }
-    
+
     return shadow;
 }
 

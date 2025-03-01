@@ -1,198 +1,203 @@
 import { ObjectMonitor } from "@/data/ObjectMonitor";
+import { GPUDepthTextureFormat } from "@/types";
 
 export interface RenderStateOptions {
-    topology?: GPUPrimitiveTopology;
-    cullMode?: GPUCullMode;
-    frontFace?: GPUFrontFace;
-    depthTest?: boolean;
-    depthWrite?: boolean;
-    depthCompare?: GPUCompareFunction;
-    stencilTest?: boolean;
-    blending?: 'normal' | 'additive' | 'additive-alpha' | 'multiply' | 'screen' | 'darken' | 'lighten' | 'subtract';
-    transparent?: boolean;
+  topology?: GPUPrimitiveTopology;
+  cullMode?: GPUCullMode;
+  frontFace?: GPUFrontFace;
+  depthTest?: boolean;
+  depthWrite?: boolean;
+  depthCompare?: GPUCompareFunction;
+  depthFormat?: GPUDepthTextureFormat;
+  stencilTest?: boolean;
+  blending?: "normal" | "additive" | "additive-alpha" | "multiply" | "screen" | "darken" | "lighten" | "subtract";
+  transparent?: boolean;
 }
 
 export class RenderState {
-    static DEFAULT = new RenderState();
-    topology: 'triangle-list' | 'triangle-strip' = 'triangle-list';
-    cullMode: 'back' | 'front' | 'none' = 'back';
-    frontFace: 'ccw' | 'cw' = 'ccw';
-    depthTest: boolean = true;
-    depthWrite: boolean = true;
-    depthCompare: 'less' | 'greater' | 'equal' | 'not-equal' | 'always' | 'never' = 'less';
-    stencilTest: boolean = false;
-    blending: 'normal' | 'additive' | 'multiply' | 'screen' | 'darken' | 'lighten' | 'subtract' = 'normal';
-    transparent: boolean = false;
+  static DEFAULT = new RenderState();
+  topology: "triangle-list" | "triangle-strip" = "triangle-list";
+  cullMode: "back" | "front" | "none" = "back";
+  frontFace: "ccw" | "cw" = "ccw";
+  depthTest: boolean = true;
+  depthWrite: boolean = true;
+  depthCompare: GPUCompareFunction = "less";
+  depthFormat: GPUDepthTextureFormat = "depth32float";
+  stencilTest: boolean = false;
+  blending: "normal" | "additive" | "multiply" | "screen" | "darken" | "lighten" | "subtract" = "normal";
+  transparent: boolean = false;
 
-    private callbacks: ((state: RenderState) => {})[] = [];
+  private callbacks: ((state: RenderState) => {})[] = [];
 
-    constructor(options: RenderStateOptions = {}) {
-        new ObjectMonitor({
-            topology: options.topology || 'triangle-list',
-            cullMode: options.cullMode || 'back',
-            frontFace: options.frontFace || 'ccw',
-            depthTest: options.depthTest ?? true,
-            depthWrite: options.depthWrite ?? true,
-            depthCompare: options.depthCompare || 'less',
-            stencilTest: options.stencilTest || false,
-            blending: options.blending || 'normal',
-            transparent: options.transparent || false,
-        }, this).onChange(() => this.dispatch());
+  constructor(options: RenderStateOptions = {}) {
+    new ObjectMonitor(
+      {
+        topology: options.topology || "triangle-list",
+        cullMode: options.cullMode || "back",
+        frontFace: options.frontFace || "ccw",
+        depthTest: options.depthTest ?? true,
+        depthWrite: options.depthWrite ?? true,
+        depthCompare: options.depthCompare || "less",
+        depthFormat: options.depthFormat || "depth32float",
+        stencilTest: options.stencilTest || false,
+        blending: options.blending || "normal",
+        transparent: options.transparent || false,
+      },
+      this,
+    ).onChange(() => this.dispatch());
+  }
+
+  getFragmentTarget() {
+    return [
+      {
+        format: navigator.gpu.getPreferredCanvasFormat(),
+        blend: this.getBlendState(),
+        writeMask: 0xf, // RGBA write mask
+      },
+    ];
+  }
+
+  getBlendState() {
+    if (!this.transparent) {
+      return undefined;
     }
 
-    getFragmentTarget() {
-        return [{
-            format: navigator.gpu.getPreferredCanvasFormat(),
-            blend: this.getBlendState(),
-            writeMask: 0xF, // RGBA write mask
-        }];
+    const blendModes = {
+      additive: {
+        color: {
+          operation: "add",
+          srcFactor: "one",
+          dstFactor: "one",
+        },
+        alpha: {
+          operation: "add",
+          srcFactor: "one",
+          dstFactor: "one",
+        },
+      },
+      "additive-alpha": {
+        color: {
+          operation: "add",
+          srcFactor: "src-alpha",
+          dstFactor: "one",
+        },
+        alpha: {
+          operation: "add",
+          srcFactor: "src-alpha",
+          dstFactor: "one",
+        },
+      },
+      normal: {
+        color: {
+          operation: "add",
+          srcFactor: "src-alpha",
+          dstFactor: "one-minus-src-alpha",
+        },
+        alpha: {
+          operation: "add",
+          srcFactor: "one",
+          dstFactor: "one-minus-src-alpha",
+        },
+      },
+      multiply: {
+        color: {
+          operation: "add",
+          srcFactor: "zero",
+          dstFactor: "src",
+        },
+        alpha: {
+          operation: "add",
+          srcFactor: "zero",
+          dstFactor: "one",
+        },
+      },
+      screen: {
+        color: {
+          operation: "add",
+          srcFactor: "one-minus-dst",
+          dstFactor: "one",
+        },
+        alpha: {
+          operation: "add",
+          srcFactor: "zero",
+          dstFactor: "one",
+        },
+      },
+      darken: {
+        color: {
+          operation: "min",
+        },
+        alpha: {
+          operation: "min",
+        },
+      },
+      lighten: {
+        color: {
+          operation: "max",
+        },
+        alpha: {
+          operation: "max",
+        },
+      },
+      subtract: {
+        color: {
+          operation: "reverse-subtract",
+          srcFactor: "one",
+          dstFactor: "one",
+        },
+        alpha: {
+          operation: "add",
+          srcFactor: "zero",
+          dstFactor: "one",
+        },
+      },
+    };
+    return blendModes[this.blending] || blendModes.normal;
+  }
+
+  getPrimitive(): GPUPrimitiveState {
+    return {
+      topology: this.topology,
+      cullMode: this.cullMode,
+      frontFace: this.frontFace,
+      stripIndexFormat: this.topology === "triangle-strip" ? ("uint32" as GPUIndexFormat) : undefined,
+    };
+  }
+
+  getDepthStencil(): GPUDepthStencilState | undefined {
+    return {
+      depthWriteEnabled: this.depthWrite,
+      depthCompare: this.depthCompare,
+      format: this.depthFormat ?? "depth32float",
+    };
+  }
+
+  getMultisample() {
+    return {
+      count: 1,
+      mask: 0xffffffff,
+      alphaToCoverageEnabled: this.transparent,
+    };
+  }
+
+  dispatch() {
+    for (const callback of this.callbacks) {
+      callback(this);
     }
+  }
 
-    getBlendState() {
-        if (!this.transparent) {
-            return undefined;
-        }
-
-        const blendModes = {
-            additive: {
-                color: {
-                    operation: 'add',
-                    srcFactor: 'one',
-                    dstFactor: 'one',
-                },
-                alpha: {
-                    operation: 'add',
-                    srcFactor: 'one',
-                    dstFactor: 'one',
-                }
-            },
-            'additive-alpha': {
-                color: {
-                    operation: 'add',
-                    srcFactor: 'src-alpha',
-                    dstFactor: 'one',
-                },
-                alpha: {
-                    operation: 'add',
-                    srcFactor: 'src-alpha',
-                    dstFactor: 'one',
-                }
-            },
-            normal: {
-                color: {
-                    operation: 'add',
-                    srcFactor: 'src-alpha',
-                    dstFactor: 'one-minus-src-alpha',
-                },
-                alpha: {
-                    operation: 'add',
-                    srcFactor: 'one',
-                    dstFactor: 'one-minus-src-alpha',
-                }
-            },
-            multiply: {
-                color: {
-                    operation: 'add',
-                    srcFactor: 'zero',
-                    dstFactor: 'src',
-                },
-                alpha: {
-                    operation: 'add',
-                    srcFactor: 'zero',
-                    dstFactor: 'one',
-                }
-            },
-            screen: {
-                color: {
-                    operation: 'add',
-                    srcFactor: 'one-minus-dst',
-                    dstFactor: 'one',
-                },
-                alpha: {
-                    operation: 'add',
-                    srcFactor: 'zero',
-                    dstFactor: 'one',
-                }
-            },
-            darken: {
-                color: {
-                    operation: 'min',
-                },
-                alpha: {
-                    operation: 'min',
-                }
-            },
-            lighten: {
-                color: {
-                    operation: 'max',
-                },
-                alpha: {
-                    operation: 'max',
-                }
-            },
-            subtract: {
-                color: {
-                    operation: 'reverse-subtract',
-                    srcFactor: 'one',
-                    dstFactor: 'one',
-                },
-                alpha: {
-                    operation: 'add',
-                    srcFactor: 'zero',
-                    dstFactor: 'one',
-                }
-            },
-        };
-        return blendModes[this.blending] || blendModes.normal;
+  onChange(callback: () => any): this {
+    if (callback && !this.callbacks.includes(callback)) {
+      this.callbacks.push(callback);
     }
+    return this;
+  }
 
-    getPrimitive(): GPUPrimitiveState {
-        return {
-            topology: this.topology,
-            cullMode: this.cullMode,
-            frontFace: this.frontFace,
-            stripIndexFormat: this.topology === 'triangle-strip' ? 'uint32' as GPUIndexFormat : undefined,
-        };
+  offChange(callback: () => any): this {
+    const index = this.callbacks.indexOf(callback);
+    if (index >= 0) {
+      this.callbacks.splice(index, 1);
     }
-    
-    getDepthStencil(): GPUDepthStencilState | undefined {
-        return {
-            depthWriteEnabled: this.depthWrite,
-            depthCompare: this.depthCompare,
-            format: 'depth32float' as GPUTextureFormat,
-        };
-    }
-
-    getMultisample() {
-        return {
-            count: 1,
-            mask: 0xFFFFFFFF,
-            alphaToCoverageEnabled: this.transparent,
-        };
-    }
-
-
-
-    dispatch() {
-        for (const callback of this.callbacks) {
-            callback(this);
-        }
-    }
-
-    onChange(callback: () => any): this {
-        if (callback && !this.callbacks.includes(callback)) {
-            this.callbacks.push(callback);
-        }
-        return this;
-    }
-
-    offChange(callback: () => any): this {
-        const index = this.callbacks.indexOf(callback);
-        if (index >= 0) {
-            this.callbacks.splice(index, 1);
-        }
-        return this;
-    }
-
-
+    return this;
+  }
 }

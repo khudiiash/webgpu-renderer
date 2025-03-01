@@ -1,7 +1,11 @@
-import { BufferBindGroupLayoutDescriptor, GPUAccess, SamplerBindGroupLayoutDescriptor, StorageTextureBindGroupLayoutDescriptor, TextureBindGroupLayoutDescriptor } from "@/types";
+import {
+    BufferBindGroupLayoutDescriptor,
+    GPUAccess,
+    SamplerBindGroupLayoutDescriptor,
+    StorageTextureBindGroupLayoutDescriptor,
+    TextureBindGroupLayoutDescriptor,
+} from "@/types";
 import { BindGroupLayout } from "./BindGroupLayout";
-
-
 
 type BindingDescriptor = {
     bindGroupLayout?: BindGroupLayout;
@@ -9,20 +13,24 @@ type BindingDescriptor = {
     bindingName: string;
     group: number;
     binding: number;
-    bindingType: 'buffer' | 'texture' | 'sampler';
-    bufferType: 'uniform' | 'storage' | 'read-only-storage';
+    bindingType: "buffer" | "texture" | "storage_texture" | "sampler";
+    bufferType: "uniform" | "storage" | "read-only-storage";
     bufferAccess: GPUAccess;
     visibility: GPUShaderStageFlags;
-    layout?: BufferBindGroupLayoutDescriptor | TextureBindGroupLayoutDescriptor | StorageTextureBindGroupLayoutDescriptor | SamplerBindGroupLayoutDescriptor;
+    layout?:
+        | BufferBindGroupLayoutDescriptor
+        | TextureBindGroupLayoutDescriptor
+        | StorageTextureBindGroupLayoutDescriptor
+        | SamplerBindGroupLayoutDescriptor;
     struct?: string;
     varName: string;
     varType: string;
-}
+};
 
 export class Binding {
-
     private static mapGroup = new Map<string | number, Binding[]>();
     private static map = new Map<string, Binding>();
+    isTextureCube: boolean;
     static getGroup(group: string | number) {
         return this.mapGroup.get(group);
     }
@@ -32,12 +40,12 @@ export class Binding {
     static getByNames(group: string, binding: string) {
         const g = this.mapGroup.get(group);
         if (!g) return;
-        return g.find(b => b.description.bindingName === binding);
+        return g.find((b) => b.description.bindingName === binding);
     }
     static getByIndices(group: number, binding: number) {
         const g = this.mapGroup.get(group);
         if (!g) return;
-        return g.find(b => b.description.group === binding || b.description.binding === binding);
+        return g.find((b) => b.description.group === binding || b.description.binding === binding);
     }
     static set(binding: Binding) {
         this.map.set(binding.description.bindingName, binding);
@@ -54,41 +62,40 @@ export class Binding {
 
     constructor(bindingName: string) {
         this.description = {
-            groupName: '',
+            groupName: "",
             bindingName: bindingName,
             group: -1,
             binding: -1,
-            bindingType: 'buffer',
-            bufferType: 'uniform',
-            bufferAccess: 'read',
+            bindingType: "buffer",
+            bufferType: "uniform",
+            bufferAccess: "read",
             visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
             layout: {},
-            struct: '',
-            varName: '',
-            varType: '',
-        }
-
-    } 
+            struct: "",
+            varName: "",
+            varType: "",
+        };
+    }
 
     uniform() {
-        this.description.bufferType = 'uniform';
+        this.description.bufferType = "uniform";
         return this;
     }
 
     storage(access: GPUAccess) {
-        this.description.bufferType = access === 'read' ? 'read-only-storage' : 'storage';
+        this.description.bufferType = access === "read" ? "read-only-storage" : "storage";
         this.description.bufferAccess = access;
         this.description.layout = {
-            type: this.bufferType
-        }
+            type: this.bufferType,
+        };
         return this;
     }
 
-    visibility(...args: Array<'vertex' | 'fragment' | 'compute'>) {
+    visibility(...args: Array<"vertex" | "fragment" | "compute">) {
         this.description.visibility = 0;
-        args.forEach(arg => {
+        args.forEach((arg) => {
             this.description.visibility |= GPUShaderStage[arg.toUpperCase() as keyof typeof GPUShaderStage];
-        }); 
+        });
         return this;
     }
 
@@ -99,45 +106,63 @@ export class Binding {
     }
 
     texture(layout: TextureBindGroupLayoutDescriptor = {}) {
-        this.description.bindingType = 'texture';
+        this.description.bindingType = "texture";
         this.description.visibility = GPUShaderStage.FRAGMENT;
         this.description.layout = layout;
         return this;
     }
 
+    textureCube(layout: TextureBindGroupLayoutDescriptor = {}) {
+        this.description.bindingType = "texture";
+        this.description.visibility = GPUShaderStage.FRAGMENT;
+        this.description.layout = layout;
+        this.isTextureCube = true;
+        return this;
+    }
+
     sampler(layout: SamplerBindGroupLayoutDescriptor = {}) {
-        this.description.bindingType = 'sampler';
+        this.description.bindingType = "sampler";
         this.description.visibility = GPUShaderStage.FRAGMENT;
         this.description.layout = layout;
         return this;
     }
 
     storageTexture(layout: StorageTextureBindGroupLayoutDescriptor) {
-        this.description.bindingType = 'texture';
+        this.description.bindingType = "storage_texture";
         this.description.visibility = GPUShaderStage.FRAGMENT;
         this.description.layout = layout;
         return this;
     }
 
-    layout(layout: BufferBindGroupLayoutDescriptor | TextureBindGroupLayoutDescriptor | StorageTextureBindGroupLayoutDescriptor | SamplerBindGroupLayoutDescriptor) {
+    layout(
+        layout:
+            | BufferBindGroupLayoutDescriptor
+            | TextureBindGroupLayoutDescriptor
+            | StorageTextureBindGroupLayoutDescriptor
+            | SamplerBindGroupLayoutDescriptor,
+    ) {
         this.description.layout = layout;
         return this;
     }
 
     get isBuffer() {
-        return this.description.bindingType === 'buffer';
+        return this.description.bindingType === "buffer";
     }
 
     get isTexture() {
-        return this.description.bindingType === 'texture';
+        return this.description.bindingType === "texture";
+    }
+
+    get isStorageTexture() {
+        return this.description.bindingType === "storage_texture";
     }
 
     get isSampler() {
-        return this.description.bindingType === 'sampler';
+        return this.description.bindingType === "sampler";
     }
 
     get isUniform() {
-        return this.description.bufferType === 'uniform';
+        return this.description.bufferType === "uniform";
     }
 
     get bufferType() {
@@ -149,7 +174,7 @@ export class Binding {
     }
 
     get isStorage() {
-        return this.description.bufferType === 'storage';
+        return this.description.bufferType === "storage";
     }
 
     getLayoutEntry() {
@@ -157,21 +182,32 @@ export class Binding {
         const entry: GPUBindGroupLayoutEntry = {
             binding,
             visibility: this.description.visibility,
-        }
+        };
         if (this.isBuffer) {
             entry.buffer = {
-                ...this.description.layout as BufferBindGroupLayoutDescriptor,
-            }
+                ...(this.description.layout as BufferBindGroupLayoutDescriptor),
+            };
         }
         if (this.isTexture) {
             entry.texture = {
-                ...this.description.layout as TextureBindGroupLayoutDescriptor,
+                ...(this.description.layout as TextureBindGroupLayoutDescriptor),
+            };
+        }
+        if (this.isStorageTexture) {
+            const layout = this.description.layout as StorageTextureBindGroupLayoutDescriptor;
+            if (!layout.format) {
+                throw new Error("Storage texture layout must have a 'format' property defined.");
             }
+            entry.storageTexture = {
+                access: layout.access,
+                format: layout.format,
+                viewDimension: layout.viewDimension || "2d",
+            };
         }
         if (this.isSampler) {
             entry.sampler = {
-                ...this.description.layout as SamplerBindGroupLayoutDescriptor,
-            }
+                ...(this.description.layout as SamplerBindGroupLayoutDescriptor),
+            };
         }
 
         return entry;
@@ -180,14 +216,18 @@ export class Binding {
     getBindGroupEntry(resource: GPUBuffer | GPUTexture | GPUSampler) {
         const entry: GPUBindGroupEntry = {
             binding: this.description.binding,
-            resource: {} as GPUBindingResource
-        }
+            resource: {} as GPUBindingResource,
+        };
+
         if (this.isBuffer) {
             entry.resource = { buffer: resource as GPUBuffer };
         }
 
-        if (this.isTexture) {
-            entry.resource = (resource as GPUTexture).createView();
+        if (this.isTexture || this.isStorageTexture) {
+            const isCube = (resource as GPUTexture).depthOrArrayLayers === 6;
+            entry.resource = (resource as GPUTexture).createView({
+                dimension: isCube ? "cube" : "2d",
+            });
         }
 
         if (this.isSampler) {
@@ -207,16 +247,16 @@ export class Binding {
 
     public toWGSL(): string {
         let group = `@group(${this.description.group}) @binding(${this.description.binding})`;
-        let str = '';
+        let str = "";
         if (this.isBuffer) {
-            const varType = this.bufferType === 'uniform' ? 'uniform' : 'storage';
-            const access = this.isUniform ? '' : `, ${this.description.bufferAccess}`;
+            const varType = this.bufferType === "uniform" ? "uniform" : "storage";
+            const access = this.isUniform ? "" : `, ${this.description.bufferAccess}`;
             str = `${group} var<${varType}${access}> ${this.description.varName}: ${this.description.varType};`;
         } else {
             str = `${group} var ${this.description.varName}: ${this.description.varType};`;
-        } 
+        }
         if (/\[object/.test(str)) {
-            debugger
+            debugger;
         }
         return str;
     }

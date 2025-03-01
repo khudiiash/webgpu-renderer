@@ -1,21 +1,31 @@
-import { autobind, num, uuid } from '@/util/general';
-import { BufferData } from './BufferData';
-import { Texture } from './Texture';
-import { Struct, StructValue } from './Struct';
-import { GPUPlainType, TypedArray } from '@/types';
-import { alignTo, getArrayTypeAlignment, getTypeAlignment, getViewType, isArrayType, isBufferView, isPlainType, isRecord } from '@/util/webgpu';
-import { Binding } from './Binding';
+import { autobind, num, uuid } from "@/util/general";
+import { BufferData } from "./BufferData";
+import { Texture } from "./Texture";
+import { Struct, StructValue } from "./Struct";
+import { GPUPlainType, TypedArray } from "@/types";
+import {
+  alignTo,
+  getArrayTypeAlignment,
+  getTypeAlignment,
+  getViewType,
+  isArrayType,
+  isBufferView,
+  isPlainType,
+  isRecord,
+} from "@/util/webgpu";
+import { Binding } from "./Binding";
+import { UniformDataArray } from "./UniformDataArray";
 
 export type UniformDataType = BufferData | Texture | number;
 export type UniformDataValuesConfig = { [key: string]: UniformDataType };
-export type UniformViews = { [key: string]: TypedArray | Record<string, TypedArray>  | Record<string, TypedArray>[] };
+export type UniformViews = { [key: string]: TypedArray | Record<string, TypedArray> | Record<string, TypedArray>[] };
 
 /** Configuration for creating a UniformData instance */
 export interface UniformDataConfig {
   name: string;
   isGlobal: boolean;
   struct?: Struct;
-  type?: 'uniform' | 'storage';
+  type?: "uniform" | "storage";
   values: UniformDataValuesConfig;
 }
 
@@ -25,7 +35,6 @@ export type UniformLayoutEntry = {
   alignment: number;
   type: StructValue;
 };
-
 
 /** Callback types for change and rebuild events */
 type UniformChangeCallback = (id: string, start: number, end: number) => void;
@@ -62,9 +71,9 @@ export class UniformData {
   public readonly isGlobal: boolean;
   public readonly id: string;
   public readonly struct?: Struct;
-  public readonly type: 'uniform' | 'storage' | 'read-only-storage' = 'uniform';
+  public readonly type: "uniform" | "storage" | "read-only-storage" = "uniform";
 
-  private parent: any;
+  public parent: any;
   private arrayBuffer!: ArrayBuffer;
   private views!: UniformViews;
 
@@ -77,13 +86,13 @@ export class UniformData {
 
   constructor(parent: any, config: UniformDataConfig) {
     autobind(this);
-    const { name, isGlobal, struct, values, type = 'uniform' } = config;
+    const { name, isGlobal, struct, values, type = "uniform" } = config;
     this.parent = parent;
     this.name = name;
     this.isGlobal = isGlobal;
     this.struct = struct;
     this.type = type;
-    this.id = uuid('uniform_data');
+    this.id = uuid("uniform_data");
 
     if (isGlobal && !UniformData.hasName(name)) {
       UniformData.setByName(name, this);
@@ -95,7 +104,7 @@ export class UniformData {
     this.layout = new Map();
     const binding = Binding.getByName(this.name);
     if (binding) {
-       this.type = binding.bufferType;
+      this.type = binding.bufferType;
     }
     this.initializeLayoutAndBuffer();
     this.views = this.createViews(this.layout, this.arrayBuffer);
@@ -117,28 +126,30 @@ export class UniformData {
       this.arrayBuffer = new ArrayBuffer(this.struct.size);
     } else {
       // Build layout based on values (assuming basic types)
-      const binding = Binding.getByName(this.name);
-      if (!binding) {
-        console.error(`Binding not found for uniform data "${this.name}"`);
-        return;
-      }
-
       let offset = 0;
       for (const [key, value] of this.items.entries()) {
         let size = 0;
-        let type: GPUPlainType | string = 'f32'; // Default type for scalars
+        let type: GPUPlainType | string = "f32"; // Default type for scalars
 
-        if (value instanceof BufferData) {
+        if (value instanceof UniformDataArray) {
+          size = value.byteLength;
+          type = value.struct.name;
+        } else if (value instanceof BufferData) {
+          const binding = Binding.getByName(this.name);
+          if (!binding) {
+            console.error(`Binding not found for uniform data "${this.name}"`);
+            return;
+          }
           size = value.byteLength;
           type = binding.description.varType;
         } else if (value instanceof Texture) {
           size = 0;
           this.textures.set(key, value);
           continue;
-        } else if (typeof value === 'number') {
-          size = 4; 
-          type = 'f32';
-        } 
+        } else if (typeof value === "number") {
+          size = 4;
+          type = "f32";
+        }
 
         const alignment = isPlainType(type) ? getTypeAlignment(type as GPUPlainType) : isArrayType(type) ? getArrayTypeAlignment(type) : 0;
         offset = alignTo(offset, alignment) || 0;
@@ -155,12 +166,12 @@ export class UniformData {
     for (const [key, entry] of layout.entries()) {
       const offset = baseOffset + entry.offset;
       const type = entry.type;
-  
+
       if (Array.isArray(type)) {
         // Handle arrays
         const [elementType, count] = type;
         views[key] = [];
-  
+
         const stride = alignTo(entry.size / count, entry.alignment);
         for (let i = 0; i < count; i++) {
           const elementOffset = offset + i * stride;
@@ -171,7 +182,9 @@ export class UniformData {
           } else {
             // Create views for primitive types
             const viewConstructor = getViewType(elementType as GPUPlainType);
-            (views as unknown as Record<string, TypedArray[]>)[key].push(new viewConstructor(buffer, elementOffset, entry.size / 4) as TypedArray);
+            (views as unknown as Record<string, TypedArray[]>)[key].push(
+              new viewConstructor(buffer, elementOffset, entry.size / 4) as TypedArray,
+            );
           }
         }
       } else if (type instanceof Struct) {
@@ -191,7 +204,7 @@ export class UniformData {
     return views;
   }
 
-  private setValue(key: string, data: UniformDataType, start?:number, end?:number): void {
+  private setValue(key: string, data: UniformDataType, start?: number, end?: number): void {
     const view = this.views[key];
 
     if (num(data)) {
@@ -205,9 +218,9 @@ export class UniformData {
       const [struct, count] = layout?.type as [Struct, number];
       const stride = struct.size / 4;
       if (start !== undefined && end !== undefined) {
-        const viewIndex = start / stride | 0;
+        const viewIndex = (start / stride) | 0;
         const viewStart = start % stride;
-        const viewEnd = Math.min(end - (viewIndex * stride), stride);
+        const viewEnd = Math.min(end - viewIndex * stride, stride);
         const subdata = (data as BufferData).subarray(start, end);
         for (const [subKey, subView] of Object.entries(view[viewIndex])) {
           const typeLayout = struct.layout.get(subKey);
@@ -231,13 +244,13 @@ export class UniformData {
         }
       }
     } else if (isBufferView(view)) {
-        if (data instanceof BufferData) {
-          const subdata = data.subarray(start!, end!);
-          (view as TypedArray).set(subdata, start);
-        }
-        if (num(data)) {
-          (view as TypedArray)[start!] = data as number;
-        }
+      if (data instanceof BufferData) {
+        const subdata = data.subarray(start!, end!);
+        (view as TypedArray).set(subdata, start);
+      }
+      if (num(data)) {
+        (view as TypedArray)[start!] = data as number;
+      }
     } else if (isRecord(view)) {
       const struct = this.layout.get(key)?.type as Struct;
       start = start ?? 0;
@@ -256,7 +269,6 @@ export class UniformData {
     } else {
       console.warn(`Invalid data type for key "${key}"`);
     }
-
   }
 
   private setValues(values: Map<string, UniformDataType>): void {
@@ -292,7 +304,7 @@ export class UniformData {
     }
 
     this.items.set(name, value);
-    
+
     if (value instanceof BufferData) {
       if (value.byteLength !== layout.size) {
         console.warn(`Buffer size mismatch for "${name}": expected ${layout.size}, got ${value.byteLength}`);
@@ -300,13 +312,12 @@ export class UniformData {
       }
     }
 
-
     if (num(value)) {
       const view = this.views[name] as TypedArray;
       if (view[0] === value) return;
     }
 
-    if (typeof value === 'boolean') {
+    if (typeof value === "boolean") {
       const view = this.views[name] as TypedArray;
       value = Number(value);
       if (view[0] === Number(value)) return;
@@ -327,7 +338,7 @@ export class UniformData {
   }
 
   public getBufferUsage() {
-    return this.type === 'uniform' ? GPUBufferUsage.UNIFORM : GPUBufferUsage.STORAGE;
+    return this.type === "uniform" ? GPUBufferUsage.UNIFORM : GPUBufferUsage.STORAGE;
   }
 
   public getBufferDescriptor() {
@@ -357,7 +368,7 @@ export class UniformData {
         this.defineTextureProperty(key);
       } else if (value instanceof BufferData) {
         this.defineBufferProperty(key, value);
-      } else if (typeof value === 'number' || Array.isArray(value) || typeof value === 'object') {
+      } else if (typeof value === "number" || Array.isArray(value) || typeof value === "object") {
         this.defineValueProperty(key);
       }
     }
@@ -394,42 +405,41 @@ export class UniformData {
     });
   }
 
-/** Defines a property on the parent for a buffer data */
-private defineBufferProperty(name: string, bufferData: BufferData): void {
-  // Retrieve the view corresponding to the property name
-  const viewEntry = this.views[name] as TypedArray;
-  if (!viewEntry) {
-    console.error(`View for property "${name}" not found.`);
-    return;
+  /** Defines a property on the parent for a buffer data */
+  private defineBufferProperty(name: string, bufferData: BufferData): void {
+    // Retrieve the view corresponding to the property name
+    const viewEntry = this.views[name] as TypedArray;
+    if (!viewEntry) {
+      console.error(`View for property "${name}" not found.`);
+      return;
+    }
+    const offset = this.layout.get(name)!.offset / 4;
+
+    const updateBufferData = (start: number = 0, end: number = bufferData.length) => {
+      this.setValue(name, bufferData, start, end);
+      this.notifyChange(offset + start, offset + end);
+    };
+    bufferData.onChange((_, start, end) => updateBufferData(start, end));
+
+    updateBufferData();
+
+    Object.defineProperty(this.parent, name, {
+      get: () => bufferData,
+      set: (newValue: BufferData) => {
+        if (newValue instanceof BufferData) {
+          if (newValue === bufferData) return;
+          bufferData.offChange();
+          bufferData = newValue;
+          bufferData.onChange((_, start, end) => updateBufferData(start, end));
+          updateBufferData();
+        } else {
+          console.warn(`Value assigned to BufferData property "${name}" is not a BufferData instance.`);
+        }
+      },
+      enumerable: true,
+      configurable: true,
+    });
   }
-  const offset = this.layout.get(name)!.offset / 4;
-
-  const updateBufferData = (start: number = 0, end: number = bufferData.length) => {
-    this.setValue(name, bufferData, start, end);
-    this.notifyChange(offset + start, offset + end);
-  }
-  bufferData.onChange((_, start, end) => updateBufferData(start, end));
-
-  updateBufferData();
-
-  Object.defineProperty(this.parent, name, {
-    get: () => bufferData,
-    set: (newValue: BufferData) => {
-      if (newValue instanceof BufferData) {
-        if (newValue === bufferData) return;
-        bufferData.offChange();
-        bufferData = newValue;
-        bufferData.onChange((_, start, end) => updateBufferData(start, end));
-        updateBufferData();
-      } else {
-        console.warn(`Value assigned to BufferData property "${name}" is not a BufferData instance.`);
-      }
-    },
-    enumerable: true,
-    configurable: true,
-  });
-}
-
 
   /** Registers a callback to be called when values change */
   public onChange(callback: UniformChangeCallback): this {
@@ -479,7 +489,6 @@ private defineBufferProperty(name: string, bufferData: BufferData): void {
     this.changeCallbacks.forEach((cb) => cb(this.id, start, end));
   }
 
-
   /** For debugging: output the uniform data layout */
   public toString(): string {
     let str = `UniformData ${this.name} {\n`;
@@ -506,11 +515,11 @@ private defineBufferProperty(name: string, bufferData: BufferData): void {
   }
 
   public rebuild(): void {
-      this.initializeLayoutAndBuffer(); 
-      this.views = this.createViews(this.layout, this.arrayBuffer);
-      this.setValues(this.items);
-      this.defineProperties();
-      this.notifyRebuild();
+    this.initializeLayoutAndBuffer();
+    this.views = this.createViews(this.layout, this.arrayBuffer);
+    this.setValues(this.items);
+    this.defineProperties();
+    this.notifyRebuild();
   }
 
   /** Destroys the uniform data and cleans up resources */
