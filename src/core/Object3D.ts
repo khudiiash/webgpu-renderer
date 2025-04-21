@@ -52,7 +52,7 @@ export class Object3D extends EventEmitter {
             Euler.instance.setFromQuaternion(this.quaternion, this.rotation.order);
             this.rotation.copySilent(Euler.instance);
             this.updateMatrix();
-        }); 
+        });
         this.id = uuid('object');
         this.matrix = new Matrix4();
         this.matrixWorld = new Matrix4();
@@ -63,7 +63,7 @@ export class Object3D extends EventEmitter {
 
     lookAt(x: number | Vector3, y?: number, z?: number): void {
         // This method does not support objects having non-uniformly-scaled parent(s)
-        
+
         if (x instanceof Vector3) {
             _target.copy(x);
         } else {
@@ -137,12 +137,32 @@ export class Object3D extends EventEmitter {
         }
         child.parent = this;
         this.children.push(child);
+        this.sortChildren();
         child.updateMatrixWorld(true);
 
         if (child.isLight && this.scene && this.scene.isScene) {
             this.scene.addLight(child);
         }
+        if (this.scene) {
+            child.scene = this.scene;
+        }
+        this.sortChildren();
         return this;
+    }
+
+    sortChildren() {
+        const transparent: Object3D[] = [];
+        const others: Object3D[] = [];
+        for (let i = 0; i < this.children.length; i++) {
+            const child = this.children[i];
+            if (child.isMesh && child.material?.renderState?.transparent) {
+                transparent.push(child);
+            } else {
+                others.push(child);
+            }
+        }
+
+        this.children = [...others, ...transparent];
     }
 
     remove(child: Object3D) {
@@ -257,6 +277,14 @@ export class Object3D extends EventEmitter {
 
 		return this;
 	}
+
+    debugHierarchy(indent = '') {
+        console.log(indent + this.name);
+        for (let i = 0; i < this.children.length; i++) {
+            const child = this.children[i];
+            child.debugHierarchy(indent + '  ');
+        }
+    }
 
 
 

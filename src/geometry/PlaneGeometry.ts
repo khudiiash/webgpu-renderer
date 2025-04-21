@@ -40,7 +40,7 @@ class PlaneGeometry extends Geometry {
                 const x = ix * segment_width - width_half;
                 vertices.push(x, -y, 0);
                 normals.push(0, 0, 1);
-                uvs.push(ix / gridX, 1 - (iy / gridY));
+                uvs.push(ix / gridX, iy / gridY);
             }
         }
 
@@ -65,7 +65,7 @@ class PlaneGeometry extends Geometry {
 
     setHeights(heights: number[]) {
         const positions = this.attributes.position?.data as Float32Array;
-        const indices = this.indices?.data as Uint16Array | Uint32Array; 
+        const indices = this.indices?.data as Uint16Array | Uint32Array;
         const normals = this.attributes.normal?.data as Float32Array;
 
         if (!positions || !indices || !normals) {

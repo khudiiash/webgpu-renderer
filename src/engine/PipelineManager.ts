@@ -1,6 +1,6 @@
 import { BindGroupLayout } from "@/data/BindGroupLayout";
 import { Binding } from "@/data/Binding";
-import { Shader } from "@/materials/shaders/Shader";
+import { Shader } from "@/shaders/Shader";
 import { RenderState } from "@/renderer/RenderState";
 import { hashPipelineState } from "@/util/webgpu";
 
@@ -156,7 +156,7 @@ export class PipelineManager {
       primitive: renderState.getPrimitive(),
     };
 
-    if (params.renderState?.depthWrite === true) {
+    if (params.renderState?.useDepth) {
       pipelineDescriptor.depthStencil = renderState.getDepthStencil();
     }
 

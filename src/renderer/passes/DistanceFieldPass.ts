@@ -1,8 +1,10 @@
+import { Camera } from "@/camera";
+import { Scene } from "@/core";
 import { RenderPass } from "../RenderPass";
 import { UniformData } from "@/data";
 import { Vector2 } from "@/math";
 import { Struct } from "@/data/Struct";
-import { Shader } from "@/materials/shaders/Shader";
+import { Shader } from "@/shaders/Shader";
 import { BindGroupLayout } from "@/data/BindGroupLayout";
 import { Binding } from "@/data/Binding";
 
@@ -10,101 +12,107 @@ export class DistanceFieldPass extends RenderPass {
     numPasses: number = 0;
     jfaTextures!: GPUTexture[];
     uniforms!: UniformData;
-    seedPipeline!: GPUComputePipeline;
-    distancePipeline!: GPUComputePipeline;
-    jfaPipeline!: GPUComputePipeline;
+    seedPipeline!: GPURenderPipeline;
+    distancePipeline!: GPURenderPipeline;
+    jfaPipeline!: GPURenderPipeline;
     seedTexture!: GPUTexture;
     distanceTexture!: GPUTexture;
-    resolution: Vector2 = new Vector2(1, 1);
-    oneOverSize: Vector2 = new Vector2(1, 1);   
+    oneOverSize: Vector2 = new Vector2(1, 1);
     jfaLayout!: BindGroupLayout;
     seedLayout!: BindGroupLayout;
     distanceLayout!: BindGroupLayout;
     width: number = 1;
     height: number = 1;
-    accumulator: any;
+    sampler!: GPUSampler;
+    jfa: { bindGroup: GPUBindGroup, pipeline: GPURenderPipeline, renderPassDescriptor: GPURenderPassDescriptor }[] = [];
     jfaPipelineLayout!: GPUPipelineLayout;
-    jfa: { bindGroup: GPUBindGroup; pipeline: GPUComputePipeline; }[] = [];
 
     public init(): this {
         this.renderer.on('resize', () => this.createTextures());
+        this.oneOverSize = new Vector2(1 / this.width, 1 / this.height);
+        this.sampler = this.resources.getOrCreateSampler({
+            addressModeU: 'repeat',
+            addressModeV: 'repeat',
+        });
         this.uniforms = new UniformData(this, {
             isGlobal: true,
             name: 'DistanceFieldConfig',
             struct: new Struct('DistanceFieldConfig', {
                 oneOverSize: 'vec2f',
-                resolution: 'vec2u',
                 offset: 'f32',
             }),
             values: {
                 oneOverSize: this.oneOverSize,
-                resolution: this.resolution,
                 offset: 0.0,
             }
-        }) 
+        })
 
         this.seedLayout = new BindGroupLayout(this.device, 'Seed', 'Global', [
-            new Binding('InputTexture').texture().visibility('compute').var('input_texture', 'texture_2d<f32>'),
-            new Binding('OutputTexture').storageTexture({ format: 'rgba16float', access: 'write-only' }).visibility('compute').var('output_texture', 'texture_storage_2d<rgba16float, write>'),
-            new Binding('Uniforms').uniform().visibility('compute').var('uniforms', 'DistanceFieldConfig'),
+            new Binding('InputTexture').texture().var('input_texture', 'texture_2d<f32>'),
+            new Binding('Sampler').sampler().var('sampler_color', 'sampler'),
         ]);
 
         this.jfaLayout = new BindGroupLayout(this.device, 'JFA', 'Global', [
-            new Binding('InputTexture').storageTexture({ format: 'rgba16float', access: 'read-only' }).visibility('compute').var('input_texture', 'texture_storage_2d<rgba16float, read>'),
-            new Binding('OutputTexture').storageTexture({ format: 'rgba16float', access: 'write-only' }).visibility('compute').var('output_texture', 'texture_storage_2d<rgba16float, write>'),
+            new Binding('InputTexture').texture().var('input_texture', 'texture_2d<f32>'),
+            new Binding('Sampler').sampler().var('sampler_color', 'sampler'),
         ]);
 
         this.distanceLayout = new BindGroupLayout(this.device, 'Distance', 'Global', [
-            new Binding('InputTexture').storageTexture({ format: 'rgba16float', access: 'read-only' }).visibility('compute').var('input_texture', 'texture_storage_2d<rgba16float, read>'),
-            new Binding('OutputTexture').storageTexture({ format: 'rgba16float', access: 'write-only' }).visibility('compute').var('output_texture', 'texture_storage_2d<rgba16float, write>'),
-            new Binding('Uniforms').uniform().visibility('compute').var('uniforms', 'DistanceFieldConfig'),
+            new Binding('InputTexture').texture().var('input_texture', 'texture_2d<f32>'),
+            new Binding('Sampler').sampler().var('sampler_color', 'sampler'),
         ]);
-
 
         const seedShader = new Shader({
             name: 'SeedShader',
             layouts: [this.seedLayout],
-            compute: `
-                @compute @workgroup_size(8, 8)
-                fn seed_cs(@builtin(global_invocation_id) global_id: vec3u) {
-                    let coords = vec2<i32>(global_id.xy);
-                    let resolution = vec2f(uniforms.resolution);
-                    let uv = vec2f(coords) * uniforms.oneOverSize;
-                    let alpha = textureLoad(input_texture, coords, 0).a;
-                    let result = vec4f(uv * ceil(alpha), 0.0, .0);
-                    textureStore(output_texture, coords, result);
+            varyings: [
+                { name: 'uv', type: 'vec2f', location: 0 }
+            ],
+            chunks: ['Quad'],
+            fragment: `
+                @fragment(input) -> output {
+                    let uv = input.uv;
+                    let a = textureSample(input_texture, sampler_color, uv).a;
+                    output.color = vec4f(uv * ceil(a), 0.0, 1.0);
+                    return output;
                 }
-            `
+            `,
         })
 
         const distanceShader = new Shader({
             name: 'DistanceShader',
             layouts: [this.distanceLayout],
-            compute: `
-                @compute @workgroup_size(8, 8)
-                fn distance_cs(@builtin(global_invocation_id) global_id: vec3<u32>) {
-                    let coords = vec2i(global_id.xy);
-                    let vUv: vec2f = vec2f(coords) * uniforms.oneOverSize;
-                    let nearestSeed: vec2f = textureLoad(input_texture, coords).xy;
-                    let d: f32 = clamp(distance(vUv, nearestSeed), 0.0, 1.0);
-                    textureStore(output_texture, coords, vec4f(vec3f(d), 0.0));
+            chunks: ['Quad'],
+            varyings: [
+                { name: 'uv', type: 'vec2f', location: 0 }
+            ],
+            fragment: `
+                @fragment(input) -> output {
+                    let nearestSeed: vec2f = textureSample(input_texture, sampler_color, input.uv).xy;
+
+                    // Clamp by the size of our texture (1.0 in uv space).
+                    let d = clamp(distance(input.uv, nearestSeed), 0.0, 1.0);
+
+                    // Normalize and visualize the distance
+                    output.color = vec4f(vec3f(d), 1.0);
+                    return output;
                 }
             `
         })
 
-
-
         const seedPipelineLayout = this.pipelines.createPipelineLayout([this.seedLayout]);
-        this.seedPipeline = this.pipelines.createComputePipeline({
+        this.seedPipeline = this.pipelines.createRenderPipeline({
             layout: seedPipelineLayout,
             shader: seedShader,
+            targets: [{ format: this.renderer.format }]
         });
         this.jfaPipelineLayout = this.pipelines.createPipelineLayout([this.jfaLayout]);
 
         const distancePipelineLayout = this.pipelines.createPipelineLayout([this.distanceLayout]);
-        this.distancePipeline = this.pipelines.createComputePipeline({
+        this.distancePipeline = this.pipelines.createRenderPipeline({
             layout: distancePipelineLayout,
             shader: distanceShader,
+            targets: [{ format: this.renderer.format }]
         });
 
         this.createTextures();
@@ -116,92 +124,73 @@ export class DistanceFieldPass extends RenderPass {
         const { width, height } = this.renderer;
         this.width = width;
         this.height = height;
-        this.numPasses = Math.ceil(Math.log2(Math.max(this.width, this.height)));
-        if (this.seedTexture) {
-            this.seedTexture.destroy();
-        }
+        this.numPasses = Math.ceil(Math.log2(Math.max(width, height)));
         this.seedTexture = this.createStorageTexture('seed');
-        if (this.distanceTexture) {
-            this.distanceTexture.destroy();
-        }
         this.distanceTexture = this.createStorageTexture('distance');
-        this.resolution.set(this.width, this.height);
-        this.oneOverSize.set(1 / this.width, 1 / this.height);
-        if (this.accumulator) {
-            this.accumulator.destroy();
-        }
+        this.oneOverSize.set(1 / width, 1 / height);
 
-        this.accumulator = this.device.createTexture({
-            size: [this.width, this.height],
-            format: 'r32float',
-            usage: GPUTextureUsage.STORAGE_BINDING | 
-                   GPUTextureUsage.TEXTURE_BINDING
-        })
-
-        if (this.jfaTextures?.length) {
-            for (const texture of this.jfaTextures) {
-                texture.destroy();
-            }
-        }
         this.jfaTextures = [
             this.createStorageTexture('jfa0'),
             this.createStorageTexture('jfa1')
         ];
 
-        this.createJFA();
+        this.generateJFA();
     }
 
     generateJFAShader(step: number) {
-        const width = this.width;
-        const height = this.height;
-
-        const oneOverSize = [1 / width, 1 / height];
-        const resolution = [width, height];
+        const oneOverSize = this.oneOverSize;
         return new Shader({
-            name: `JFA${step}`,
             layouts: [this.jfaLayout],
-            compute: `
-                @compute @workgroup_size(8, 8)
-                fn jfa_cs(@builtin(global_invocation_id) global_id: vec3<u32>) {
-                    let coords = vec2<i32>(global_id.xy);
-                    let oneOverSize = vec2f(${oneOverSize[0]}, ${oneOverSize[1]});
-                    let step = f32(${step});
-                    let resolution = vec2f(${resolution[0]}, ${resolution[1]});
-                    let vUv = vec2f(coords) * oneOverSize;
-                    var nearestSeed: vec4f = vec4f(0);
-                    var nearestDist: f32 = 999999.9;
+            chunks: ['Quad'],
+            varyings: [
+                { name: 'uv', type: 'vec2f', location: 0 }
+            ],
+            fragment: `
 
-                    for (var y = -1.0; y <= 1.0; y += 1.0) {
-                        for (var x = -1.0; x <= 1.0; x += 1.0) {
-                            let sampleUV = vUv + vec2f(x, y) * step * oneOverSize;
-                            
+                @fragment(input) -> output {
+                    let vUv: vec2f = input.uv;
+                    let currentValue = textureSample(input_texture, sampler_color, vUv);
+                    var nearestSeed: vec4f = vec4f(0.0);
+                    var nearestDist: f32 = 999999.9;
+                    let step = f32(${step});
+                    let oneOverSize = vec2f(${oneOverSize.x}, ${oneOverSize.y});
+
+                    for (var y = -1.0; y <= 1.0; y+=1.0) {
+                        for (var x = -1.0; x <= 1; x+=1.0) {
+                            let sampleUV: vec2f = vUv + vec2f(x, y) * step * oneOverSize;
+
+                            // Check bounds
                             if (sampleUV.x < 0.0 || sampleUV.x > 1.0 || sampleUV.y < 0.0 || sampleUV.y > 1.0) {
                                 continue;
                             }
-                            
-                            let sampleCoords = vec2<i32>(sampleUV * resolution);
-                            let sampleValue = textureLoad(input_texture, sampleCoords);
-                            let sampleSeed = sampleValue.xy;
-                            
-                            // Only consider valid seeds
-                            if (sampleSeed.x != 0.0 || sampleSeed.y != 0.0) {
-                                let diff = sampleSeed - vUv;
-                                let dist = dot(diff, diff);
+
+                            let sampleValue: vec4f = textureSampleLevel(input_texture, sampler_color, sampleUV, 0);
+                            let sampleSeed: vec2f = sampleValue.xy;
+
+                            if (sampleValue.a != 0.0) {
+                                let diff: vec2f = sampleSeed - vUv;
+                                let dist: f32 = dot(diff, diff);
+
                                 if (dist < nearestDist) {
                                     nearestDist = dist;
-                                    nearestSeed = sampleValue;
+                                    nearestSeed = vec4f(sampleSeed, 0.0, 1.0);
                                 }
                             }
                         }
                     }
 
-                    textureStore(output_texture, coords, vec4f(0.1, 0.5, 0.0, 1.0));
+                    if (nearestSeed.x == 0.0 && nearestSeed.y == 0.0) {
+                        discard;
+                    }
+
+                    output.color = nearestSeed;
+                    return output;
                 }
             `
-        });
+        })
     }
 
-    createJFA() {
+    generateJFA() {
         let input = this.seedTexture;
         let output = this.jfaTextures[0];
         this.jfa = [];
@@ -210,23 +199,32 @@ export class DistanceFieldPass extends RenderPass {
             const shader = this.generateJFAShader(offset);
             const bindGroup = this.resources.createBindGroup(this.jfaLayout, {
                 InputTexture: input,
-                OutputTexture: output,
+                Sampler: this.sampler,
             });
-            const pipeline = this.pipelines.createComputePipeline({
+            const pipeline = this.pipelines.createRenderPipeline({
                 layout: this.jfaPipelineLayout,
                 shader,
-            })
+                targets: [{ format: this.renderer.format }]
+            });
+
+            let loadOp = (i === 0 || i == 1) ? 'clear' : 'load';
+            const renderPassDescriptor = {
+                colorAttachments: [{
+                    view: output.createView(),
+                    loadOp: loadOp as GPULoadOp,
+                    storeOp: 'store' as GPUStoreOp,
+                }]
+            }
 
             this.jfa.push({
                 bindGroup,
-                pipeline
+                pipeline,
+                renderPassDescriptor
             });
 
             input = output;
-            output = this.jfaTextures[(i + 1) % 2];
-
+            output = output === this.jfaTextures[0] ? this.jfaTextures[1] : this.jfaTextures[0];
         }
-
 
     }
 
@@ -235,12 +233,12 @@ export class DistanceFieldPass extends RenderPass {
         return this.device.createTexture({
             size: [this.width, this.height],
             label,
-            format: 'rgba16float',
-            usage: GPUTextureUsage.STORAGE_BINDING | 
-                   GPUTextureUsage.TEXTURE_BINDING
+            format: this.renderer.format,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT |
+                   GPUTextureUsage.TEXTURE_BINDING |
+                   GPUTextureUsage.COPY_DST,
         });
     }
-
 
     public beforeRender(): this {
         return this;
@@ -248,59 +246,61 @@ export class DistanceFieldPass extends RenderPass {
 
     public afterRender(): this {
         return this;
+
     }
 
-
-    public execute(encoder: GPUCommandEncoder): this {
+    public execute(encoder: GPUCommandEncoder, scene?: Scene, camera?: Camera): this {
         // Step 1: Seed pass
-        const seedPass = encoder.beginComputePass();
+        const seedPass = encoder.beginRenderPass({
+            colorAttachments: [{
+                view: this.seedTexture.createView(),
+                clearValue: [0, 0, 0, 1],
+                loadOp: 'clear',
+                storeOp: 'store'
+            }]
+        })
         seedPass.setPipeline(this.seedPipeline);
         const seedBindGroup = this.resources.createBindGroup(this.seedLayout, {
-            InputTexture: this.inputs.get('albedo_texture') as GPUTexture,
-            OutputTexture: this.seedTexture,
-            Uniforms: this.uniforms
+            InputTexture: this.inputs.get('pbr_texture') as GPUTexture,
+            Sampler: this.sampler,
         });
         seedPass.setBindGroup(0, seedBindGroup);
-        seedPass.dispatchWorkgroups(
-            Math.ceil(this.width / 8),
-            Math.ceil(this.height / 8)
-        );
+        seedPass.draw(6);
         seedPass.end();
 
         // Step 2: JFA passes
-        for (const jfaPass of this.jfa) {
-            const jfaPassEncoder = encoder.beginComputePass();
-            jfaPassEncoder.setPipeline(jfaPass.pipeline);
-            jfaPassEncoder.setBindGroup(0, jfaPass.bindGroup);
-            jfaPassEncoder.dispatchWorkgroups(
-                Math.ceil(this.width / 8),
-                Math.ceil(this.height / 8)
-            );
-            jfaPassEncoder.end();
+        for (const jfa of this.jfa) {
+            const jfaPass = encoder.beginRenderPass(jfa.renderPassDescriptor);
+            jfaPass.setPipeline(jfa.pipeline);
+            jfaPass.setBindGroup(0, jfa.bindGroup);
+            jfaPass.draw(6);
+            jfaPass.end();
         }
 
-
         // Step 3: Final distance computation
-        const distancePass = encoder.beginComputePass();
+        const distancePass = encoder.beginRenderPass({
+            colorAttachments: [{
+                view: this.distanceTexture.createView(),
+                loadOp: 'clear',
+                storeOp: 'store'
+            }]
+        });
         distancePass.setPipeline(this.distancePipeline);
         const bindGroup = this.resources.createBindGroup(this.distanceLayout, {
             InputTexture: this.jfaTextures[0],
-            OutputTexture: this.distanceTexture,
-            Uniforms: this.uniforms
+            Sampler: this.sampler,
         });
 
         distancePass.setBindGroup(0, bindGroup);
-        distancePass.dispatchWorkgroups(
-            Math.ceil(this.width / 8),
-            Math.ceil(this.height / 8)
-        );
+        distancePass.draw(6);
         distancePass.end();
 
         for (const [key, value] of this.inputs.entries()) {
             this.outputs.set(key, value);
         }
 
-        this.outputs.set('distance_texture', this.jfaTextures[0]);
+        //this.outputs.set('distance_texture', this.jfaTextures[0]);
+        this.outputs.set('distance_texture', this.distanceTexture);
         return this;
     }
 }

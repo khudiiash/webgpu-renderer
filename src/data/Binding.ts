@@ -30,7 +30,7 @@ type BindingDescriptor = {
 export class Binding {
     private static mapGroup = new Map<string | number, Binding[]>();
     private static map = new Map<string, Binding>();
-    isTextureCube: boolean;
+    public isTextureCube: boolean = false;
     static getGroup(group: string | number) {
         return this.mapGroup.get(group);
     }
@@ -116,6 +116,7 @@ export class Binding {
         this.description.bindingType = "texture";
         this.description.visibility = GPUShaderStage.FRAGMENT;
         this.description.layout = layout;
+        layout.viewDimension = "cube";
         this.isTextureCube = true;
         return this;
     }

@@ -6,6 +6,7 @@ import { Geometry } from "@/geometry";
 import { TextureLoader } from "./index.js";
 import { Object3D } from "../../core/Object3D.js";
 import { StandardMaterial } from "@/materials/StandardMaterial.js";
+import { VATLoader } from "./VATLoader.js";
 
 const COMPONENT_TYPES = {
   5120: Int8Array,
@@ -34,6 +35,7 @@ class GLTFLoader {
   private cache!: Map<number, Object3D>;
   private textureLoader!: TextureLoader;
   private materialCache!: Map<number, StandardMaterial>; // Cache for materials
+  private vatLoader!: VATLoader;
 
   constructor(_device: GPUDevice) {
     if (GLTFLoader.#instance) {
@@ -42,6 +44,7 @@ class GLTFLoader {
     this.cache = new Map();
     this.textureLoader = TextureLoader.getInstance();
     this.materialCache = new Map(); // Initialize material cache
+    this.vatLoader = new VATLoader(_device);
     GLTFLoader.#instance = this;
   }
 
@@ -90,8 +93,15 @@ class GLTFLoader {
 
   async load(url: string, instances = 0) {
     this.cache.clear();
+    this.materialCache.clear();
     this.instances = instances;
     this.data = await load(url, GLTF);
+    // const vatData = await this.vatLoader.processGLTF(
+    //     this.data.json,
+    //     this.data.buffers,
+    //     this.parseAccessor.bind(this),
+    //   );
+      //console.log(vatData);
     const parsed = await this.parse(this.data);
     return parsed;
   }
@@ -105,7 +115,6 @@ class GLTFLoader {
     return parsed;
   }
 
-  // Adjusted method to process primitives individually
   async parse(data: any) {
     const gltf = data.json;
     const buffers = data.buffers;
@@ -115,8 +124,7 @@ class GLTFLoader {
 
     return {
       scenes,
-      animations: [], // Adjust or implement animations if necessary
-      instancedMeshes: scene.find((node: any) => node.isInstancedMesh),
+      animations: [],
       scene,
     };
   }
@@ -205,8 +213,9 @@ class GLTFLoader {
 
         if (gltfMaterial.alphaMode === "BLEND" || gltfMaterial.alphaMode === "MASK") {
           material.renderState.transparent = true;
+          material.alpha_cutoff = gltfMaterial.alphaCutoff || 0.5;
         }
-        console.log(gltfMaterial);
+
         if (gltfMaterial.doubleSided) {
           material.renderState.cullMode = "none";
         }
@@ -222,6 +231,15 @@ class GLTFLoader {
         }
         if (pbr.roughnessFactor !== undefined) {
           material.roughness = pbr.roughnessFactor;
+        }
+
+        if (gltfMaterial.emissiveFactor !== undefined) {
+          material.emissive.fromArray(gltfMaterial.emissiveFactor);
+        }
+
+        if (gltfMaterial.emissiveTexture !== undefined) {
+          const texture = await this.loadTexture(gltf, buffers, gltfMaterial.emissiveTexture.index);
+          material.emissive_map?.setTexture(texture);
         }
 
         if (gltfMaterial.occlusionTexture !== undefined) {

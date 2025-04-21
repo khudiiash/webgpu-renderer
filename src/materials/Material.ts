@@ -1,6 +1,6 @@
 import { Mesh } from "@/core/Mesh";
 import { autobind, uuid } from "@/util/general";
-import { Shader, ShaderChunk, ShaderConfig, ShaderLibrary } from "@/materials/shaders"
+import { Shader, ShaderChunk, ShaderConfig, ShaderLibrary } from "@/shaders"
 import { UniformData } from "@/data/UniformData";
 import { RenderState } from "@/renderer/RenderState";
 import { EventEmitter } from "@/core/EventEmitter";
@@ -13,6 +13,7 @@ export type MaterialOptions = {
 export class Material extends EventEmitter {
     public name: string = 'Material';
     public id: string = uuid('material');
+    public shader!: Shader;
     public meshes: Mesh[] = [];
     public uniforms: Map<string, UniformData> = new Map();
     public renderState: RenderState;
@@ -38,10 +39,10 @@ export class Material extends EventEmitter {
     clone() {
         return new Material().copy(this);
     }
-  
+
     /**
      * Copy properties from another material
-     * @param {Material} source 
+     * @param {Material} source
      */
     copy(source: Material) {
         this.name = source.name;

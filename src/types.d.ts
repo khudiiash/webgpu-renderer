@@ -47,6 +47,8 @@ export type GPUPlainType =
   | "atomic<u32>"
   | "atomic<i32>";
 
+export type GPUArrayType = `array<${GPUPlainType}, ${number}>`;
+
 export type GPUAccess = "read" | "write" | "read_write";
 export type GPUTextureFormat =
   | "rgba8unorm"

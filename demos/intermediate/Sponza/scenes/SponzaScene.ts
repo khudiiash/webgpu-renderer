@@ -4,7 +4,7 @@ import { Vector3 } from '@/math';
 import { Mesh } from '@/core/Mesh';
 import { PlaneGeometry } from '@/geometry';
 import { StandardMaterial } from '@/materials/StandardMaterial';
-import { ShaderChunk } from '@/materials/shaders/ShaderChunk';
+import { ShaderChunk } from '@/shaders/ShaderChunk';
 import { GLTFLoader } from '@/util/loaders/GLTFLoader';
 import { PointLight } from '@/lights/PointLight';
 import { rand } from '@/util';
@@ -89,7 +89,7 @@ export class SponzaScene {
                 color = vec4(color.rgb * 0.5 * input.uv.y, 1.0);
             }}
         `);
-        
+
         grassMat.addChunk(grassChunk);
 
         const triangleGeometry = new TriangleGeometry();
@@ -111,21 +111,21 @@ export class SponzaScene {
                 var worldPos = output.position;
                 let height = 80.0;
                 let heightFactor = clamp(1.0 - (worldPos.y / height), 0.0, 1.0);
-                
+
                 let time = scene.time * 1.0; // Control overall wind speed
                 let baseWind = perlinNoise(vec2(
                     worldPos.x * 0.04 + time * 0.6,
                     worldPos.z * 0.04 + time * 0.4
                 )) * 2.0 - 2.0;
-                
+
                 let detailWind = perlinNoise(vec2(
                     worldPos.x * 0.05 + time * 1.0,
                     worldPos.z * 0.05 + time * 0.8
                 )) * 0.9;
-                
+
                 let windStrength = 5.0; // Adjust max wind displacement
                 let windEffect = (baseWind + detailWind) * heightFactor * heightFactor; // Square for more dramatic falloff
-                
+
                 output.position.z += windEffect * windStrength;
                 output.position.y += windEffect * windStrength * 0.2 * heightFactor;
             }}
@@ -156,13 +156,13 @@ export class SponzaScene {
                     // Time variables for looping
                     let loopDuration = 2.5;
                     let timeInLoop = fract(scene.time / loopDuration) * loopDuration;
-                    
+
                     // Base upward movement - using smoothstep for one-way movement
                     let baseHeight = 10.0;
                     let verticalOffset = instanceIndex * 0.2;
                     let heightProgress = fract((timeInLoop + verticalOffset) / loopDuration);
                     let height = baseHeight * heightProgress;  // Linear upward movement
-                    
+
                     // Horizontal movement
                     let horizontalScale = 2.0;
                     let noiseTime = scene.time * 2.0 + instanceIndex * 0.5;
@@ -170,12 +170,12 @@ export class SponzaScene {
                         perlinNoise(vec2(noiseTime * 0.5, instanceIndex)) - 0.5,
                         perlinNoise(vec2(noiseTime * 0.5 + 100.0, instanceIndex)) - 0.5
                     ) * horizontalScale;
-                    
+
                     // Calculate scale based on height
                     let heightRatio = height / baseHeight;
                     let scaleRange = vec2f(1.0, 0.2);
                     let scale = mix(scaleRange.x, scaleRange.y, heightRatio);
-                    
+
                     // Apply movement and scaling
                     output.local_position *= scale;
                     output.local_position.y += height;
@@ -193,7 +193,7 @@ export class SponzaScene {
                 @fragment(last) {{
                     let center = vec2f(0.0, 0.0);
                     let distFromCenter = length(input.local_position.xz) / 3.0;
-                    
+
                     // Create color variation
                     let baseColor = vec3f(1.0, 0.35, 0.0);      // Bright yellow core
                     let edgeColor = vec3f(1.0, 0.1, 0.0);       // Orange-red edges
@@ -216,9 +216,9 @@ export class SponzaScene {
         ]
         const flameColor = '#ff5522';
         for (const pos of positions) {
-            const flameMat = new StandardMaterial({ 
+            const flameMat = new StandardMaterial({
                 diffuse: flameColor,
-                emissive_factor: 10, 
+                emissive_factor: 10,
                 blending: 'additive-alpha',
                 opacity: 1.0,
                 transparent: true,
@@ -240,13 +240,13 @@ export class SponzaScene {
         const rangeX = 200;
         const rangeZ = 100;
         const particleGeometry = new PlaneGeometry(1, 1);
-        const particleMaterial = new StandardMaterial({ 
+        const particleMaterial = new StandardMaterial({
             useLight: true,
             diffuse_map: Texture2D.from(ParticleMap),
             blending: 'additive-alpha',
             transmission: 1.0,
             opacity: 1.0,
-            alpha_test: 0.0,
+            alpha_cutoff: 0.0,
             transparent: true,
             metalness: 0.9,
             roughness: 0.1,
@@ -270,7 +270,7 @@ export class SponzaScene {
                     temp.z * axis.x + s * axis.y, temp.z * axis.y - s * axis.x, c + temp.z * axis.z, 0.0,
                     0.0, 0.0, 0.0, 1.0
                 );
-                
+
                 // Get world space center
                 var worldPos = transform(model, vec3f(0), 1.0);
                 // Create translation matrices
@@ -286,7 +286,7 @@ export class SponzaScene {
                     0.0, 0.0, 1.0, 0.0,
                     worldPos.x, worldPos.y, worldPos.z, 1.0
                 );
-                
+
                 // Apply rotation around world space center
                 return fromOrigin * rotate * toOrigin * model;
             }
@@ -295,24 +295,24 @@ export class SponzaScene {
             let instanceIndex = f32(input.instance_index);
                 var worldPos = transform(model, vec3f(0), 1.0);
                 var normalizedPos = normalize(worldPos) * 40.0;
-                
+
                 // Control rotation speed and direction based on position and time
                 let rotationSpeed = 0.3; // Adjust this to control rotation speed
                 let maxRotation = 6.283185; // Maximum rotation angle;
-                
+
                 // Generate rotation angle based on position and time, similar to movement
                 let rotationAngle = perlinNoise(vec2(
-                    length(normalizedPos.xy), 
+                    length(normalizedPos.xy),
                     scene.time * rotationSpeed
                 )) * maxRotation;
-                
+
                 // Generate rotation axis based on position
                 let rotationAxis = normalize(vec3f(
                     perlinNoise(vec2(normalizedPos.x, scene.time * rotationSpeed)),
                     perlinNoise(vec2(normalizedPos.y, scene.time * rotationSpeed)),
                     perlinNoise(vec2(normalizedPos.z, scene.time * rotationSpeed))
                 ));
-                
+
                 model = rotateModel(model, rotationAxis, rotationAngle);
             }}
 
@@ -321,13 +321,13 @@ export class SponzaScene {
                 let posScale = 0.8;
                 let speedFactor = 0.05;
                 let maxTravel = 40.0; // Control maximum travel distance
-                
+
                 normalizedPos = normalize(worldPos) * posScale;
-                
+
                 let angleXY = perlinNoise(vec2(normalizedPos.x, normalizedPos.y + scene.time * speedFactor)) * 6.283185;
                 let angleZ = perlinNoise(vec2(normalizedPos.x * 2.0, normalizedPos.z + scene.time * speedFactor)) * 6.283185;
                 let speed = perlinNoise(vec2(length(normalizedPos.xy), scene.time * speedFactor)) * maxTravel;
-                
+
                 output.position += vec3(cos(angleXY), sin(angleXY), sin(angleZ)) * speed;
             }}
 
@@ -360,10 +360,10 @@ export class SponzaScene {
         if (this.point) {
             this.point.position.x = Math.cos(this.elapsed * 0.3) * 200;
         }
-        
+
         // Update camera
         this.camera.position.x = Math.cos(this.elapsed * 0.2) * 150;
-        
+
         // Update red cube
         if (this.redCube) {
             this.redCube.rotation.x += delta;

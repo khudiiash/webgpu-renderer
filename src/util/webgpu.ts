@@ -1,6 +1,6 @@
-import { Shader } from "@/materials/shaders/Shader";
+import { Shader } from "@/shaders/Shader";
 import { RenderState } from "@/renderer/RenderState";
-import { GPUPlainType, TypedArray, TypedArrayConstructorLike, } from "@/types";
+import { GPUArrayType, GPUPlainType, TypedArray, TypedArrayConstructorLike, } from "@/types";
 import { hashString } from "./general";
 
 export function align16(value: number): number {
@@ -34,7 +34,7 @@ export function arrayNeedsUint32(array: ArrayLike<number>): boolean {
 	}
 	return false;
 }
-  
+
 
 /** create view from buffer, byte offset, and size in bytes */
 export function createView<T extends TypedArray>(
@@ -196,12 +196,26 @@ const TYPE_ALIGNMENTS: Record<GPUPlainType, number> = {
 } as const;
 
 // Get the size of a type in bytes
-export function getTypeSize(type: GPUPlainType): number {
-    return TYPE_SIZES[type as keyof typeof TYPE_SIZES] || 0;
+export function getTypeSize(type: GPUPlainType | GPUArrayType): number {
+    if (type.includes("array")) {
+        const match = type.match(/array<([a-z\d]+), (\d+)>/);
+        if (!match) {
+            return 0;
+        }
+        return getTypeSize(match[1] as GPUPlainType) * parseInt(match[2]);
+    }
+    return TYPE_SIZES[type as GPUPlainType] || 0;
 }
 
 // Get the alignment of a type in bytes
 export function getTypeAlignment(type: GPUPlainType): number {
+    if (type.includes("array")) {
+        const match = type.match(/array<([a-z\d]+), (\d+)>/);
+        if (!match) {
+            return 0;
+        }
+        return getTypeAlignment(match[1] as GPUPlainType);
+    }
     return TYPE_ALIGNMENTS[type as keyof typeof TYPE_ALIGNMENTS] || 0;
 }
 

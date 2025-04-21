@@ -7,6 +7,7 @@ import { Matrix4 } from "@/math/Matrix4";
 
 export interface DirectionalLightOptions extends LightOptions {
   direction?: Vector3;
+  castShadow?: boolean;
 }
 
 class DirectionalLight extends Light {
@@ -22,11 +23,14 @@ class DirectionalLight extends Light {
 
   shadowCamera: OrthographicCamera;
   distance: number;
+    center: Vector3;
 
   constructor(options: DirectionalLightOptions = {}) {
     super(options);
     this.shadowCamera = new OrthographicCamera();
     this.distance = 0;
+    this.center = options.center ?? Vector3.ZERO;
+    this.castShadow = options.castShadow ?? true;
 
     this.uniforms.set(
       "DirectionalLight",
@@ -48,18 +52,38 @@ class DirectionalLight extends Light {
     super.updateMatrixWorld(fromParent);
     const shadowCamera = this.shadowCamera;
     const distance = this.position.magnitude();
-    if (this.distance !== distance) {
-      shadowCamera.leftOffset = -distance;
-      shadowCamera.rightOffset = distance;
-      shadowCamera.bottomOffset = -distance;
-      shadowCamera.topOffset = distance;
-      shadowCamera.far = distance * 1000;
-      shadowCamera.near = -distance * 0.001;
-      shadowCamera.updateProjectionMatrix();
-    }
-    shadowCamera.setPosition(this.position);
-    shadowCamera.lookAt(0, 0, 0);
-    this.view_projection.copy(shadowCamera.matrixViewProjection);
+    // make sure light is looking at the center of the scene
+    const m = Matrix4.instance.lookAt(this.position, this.center, Vector3.UP);
+    this.quaternion.setFromRotationMatrix(m);
+
+
+      if (this.distance !== distance) {
+        this.distance = distance; // Store the current distance for comparison next time
+
+        // Scale the shadow camera's orthographic frustum based on distance
+        // Using larger values for far-away lights and smaller values for close lights
+        const frustumSize = distance * 2; // Scale frustum with distance
+
+        shadowCamera.leftOffset = -frustumSize;
+        shadowCamera.rightOffset = frustumSize;
+        shadowCamera.bottomOffset = -frustumSize;
+        shadowCamera.topOffset = frustumSize;
+
+        // Adjust near and far planes
+        // Near plane should be close to the scene when light is far away
+        // Far plane should extend beyond the scene in the light direction
+        shadowCamera.near = -frustumSize; // Keep a small fixed near value
+        shadowCamera.far = frustumSize + frustumSize; // Scale with both distance and frustum size
+
+        shadowCamera.updateProjectionMatrix();
+      }
+
+      // Position and orient the shadow camera
+      shadowCamera.setPosition(this.position);
+      shadowCamera.lookAt(this.center);
+
+      // Update the view-projection matrix
+      this.view_projection.copy(shadowCamera.matrixViewProjection);
   }
 }
 

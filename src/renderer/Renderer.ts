@@ -8,12 +8,11 @@ import { EventCallback, EventEmitter } from "@/core/EventEmitter";
 import { RenderGraph } from "./RenderGraph";
 import { GeometryPass } from "./passes/GeometryPass";
 import { PipelineManager } from "@/engine";
-import { ShadingPass } from "./passes/ShadingPass";
-import { ProbeAllocationPass } from "./passes/ProbeAllocationPass";
-import { DistanceFieldPassFrag } from "./passes/DistanceFieldPassFrag";
-import { SkyPass } from "./passes/SkyPass";
+import { DeferredPass } from "./passes/DeferredPass";
 import { ShadowPass } from "./passes/ShadowPass";
-import { BloomPass } from "./passes/BloomPass";
+import { CullingPass } from "./passes/CullingPass";
+import { ForwardPass } from "./passes/ForwardPass";
+import { DistanceFieldPass } from "./passes/DistanceFieldPass";
 
 export class Renderer extends EventEmitter {
     public device!: GPUDevice;
@@ -84,6 +83,7 @@ export class Renderer extends EventEmitter {
         this.context.configure({
             device: this.device,
             format: this.format,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
         });
 
         const observer = new ResizeObserver((entries) => {
@@ -97,8 +97,8 @@ export class Renderer extends EventEmitter {
                 this.width = target.width;
                 this.height = target.height;
                 this.aspect = this.width / this.height;
-                this.fire("resize", { width: this.width, height: this.height, aspect: this.aspect });
                 this.onResize();
+                this.fire("resize", { width: this.width, height: this.height, aspect: this.aspect });
             }
         });
 
@@ -110,21 +110,19 @@ export class Renderer extends EventEmitter {
         if (!this.resources) {
             return;
         }
-        //this.resources.createDepthTexture('depth', this.width, this.height);
-        //this.initRenderPassDescriptor();
+        this.resources.createDepthTexture('depth_texture', this.width, this.height);
     }
 
     setResources(resources: ResourceManager) {
         this.resources = resources;
         this.pipelines = new PipelineManager(this.device);
-        this.resources.createDepthTexture("depth", this.canvas.width, this.canvas.height);
+        this.resources.createDepthTexture("depth_texture", this.canvas.width, this.canvas.height);
+        this.renderGraph.addPass(new CullingPass(this).init());
         this.renderGraph.addPass(new GeometryPass(this).init());
+        this.renderGraph.addPass(new DistanceFieldPass(this).init());
         this.renderGraph.addPass(new ShadowPass(this).init());
-        this.renderGraph.addPass(new DistanceFieldPassFrag(this).init());
-        // this.renderGraph.addPass(new ProbeAllocationPass(this).init());
-        this.renderGraph.addPass(new ShadingPass(this).init());
-        //this.renderGraph.addPass(new BloomPass(this).init());
-        //this.renderGraph.addPass(new ProbeVisualizationPass(this).init());
+        this.renderGraph.addPass(new DeferredPass(this).init());
+        this.renderGraph.addPass(new ForwardPass(this).init())
 
         this.ready = true;
     }
@@ -139,7 +137,7 @@ export class Renderer extends EventEmitter {
     }
 
     async render(scene: Scene, camera: Camera) {
-        scene.update();
+        scene.update(this);
 
         if (!this.ready) {
             return;

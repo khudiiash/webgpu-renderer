@@ -1,6 +1,6 @@
 import { Renderer } from '@/renderer/Renderer';
 import { EngineSettings, EngineDefaultSettings, EngineSettingsConfig } from '../settings/EngineSettings';
-import { ShaderLibrary } from '@/materials/shaders/ShaderLibrary';
+import { ShaderLibrary } from '@/shaders/ShaderLibrary';
 import { TextureLoader } from '@/util/loaders/TextureLoader';
 import { GLTFLoader } from '@/util/loaders/GLTFLoader';
 import { PipelineManager } from './PipelineManager';
@@ -15,7 +15,7 @@ export class Engine extends EventEmitter {
 
     static get settings() { return Engine.#instance?.settings || { ...EngineDefaultSettings }; }
     static get device() { return Engine.#instance?.device; }
-    
+
     static getInstance(settings: EngineSettingsConfig = {}) {
         if (!Engine.#instance) {
             Engine.#instance = new Engine(settings);
@@ -55,7 +55,7 @@ export class Engine extends EventEmitter {
             canvas.width = this.settings.width;
             canvas.height = this.settings.height;
         } else {
-            const fullscreen = this.settings.fullscreen; 
+            const fullscreen = this.settings.fullscreen;
             const width = fullscreen ? '100%' : `${this.settings.width}px`;
             const height = fullscreen ? '100%' : `${this.settings.height}px`;
             canvas = document.createElement('canvas');
@@ -72,7 +72,7 @@ export class Engine extends EventEmitter {
     async init() {
         this.renderer = await new Renderer(this.getOrCreateCanvas()).init();
         this.device = this.renderer.device;
-        
+
         // Initialize core systems
         PipelineManager.init(Engine.device);
         ResourceManager.init(Engine.device);
@@ -81,7 +81,7 @@ export class Engine extends EventEmitter {
         GLTFLoader.init(Engine.device);
 
         this.renderer.setResources(ResourceManager.getInstance());
-        
+
         return this;
     }
 }

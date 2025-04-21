@@ -6,7 +6,7 @@ import { autobind, uuid } from "@/util/general";
 import { arrayNeedsUint32 } from "@/util/webgpu";
 import { BufferData } from "@/data";
 import { Matrix3, Matrix4, Vector2 } from "@/math";
-import { ShaderAttribute, ShaderVarying } from "@/materials/shaders";
+import { ShaderAttribute, ShaderVarying } from "@/shaders";
 
 const _tempVec3 = new Vector3();
 

@@ -1,3 +1,3 @@
-export * from '../materials/shaders';
+export * from '@/shaders';
 export * from './Renderer';
 export * from './Renderable';

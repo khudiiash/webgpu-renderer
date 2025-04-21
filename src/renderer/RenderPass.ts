@@ -26,7 +26,7 @@ export abstract class RenderPass {
     public abstract init(): this;
 
     public abstract beforeRender(): this;
-    public abstract afterRender(): this;
+    public abstract afterRender(scene?: Scene, camera?: Camera): this;
     /**
      * Execute this render pass.
      * @param commandEncoder The GPUCommandEncoder used to record rendering commands.

@@ -5,7 +5,7 @@ import { Binding } from "@/data/Binding";
 import { BindGroupLayout } from "@/data/BindGroupLayout";
 import { Renderable } from "../Renderable";
 import { StandardMaterial } from "@/materials/StandardMaterial";
-import { Shader, ShaderConfig } from "@/materials/shaders/Shader";
+import { Shader, ShaderConfig } from "@/shaders/Shader";
 import { UniformData } from "@/data/UniformData";
 import { RenderState } from "../RenderState";
 
@@ -13,18 +13,26 @@ export class ShadowPass extends RenderPass {
   shadowTexture: any;
   renderPassDescriptor!: GPURenderPassDescriptor;
   private renderables: WeakMap<Mesh, Renderable> = new WeakMap();
+    shadowColorTexture: any;
 
   public init(): this {
     this.createTextures();
     this.renderer.on("resize", this.createTextures.bind(this));
 
+    const globalLayout = new BindGroupLayout(this.renderer.device, "Global", "Global", [
+        new Binding("Scene").uniform().var("scene", "Scene"),
+        new Binding("Camera").uniform().var("camera", "Camera"),
+        new Binding("LightCamera").uniform().var("light_camera", "Camera"),
+    ]);
+
     const shadowLayout = new BindGroupLayout(this.renderer.device, "ShadowPass", "Material", [
       new Binding("DiffuseMap").texture().var("diffuse_map", "texture_2d<f32>"),
       new Binding("Sampler").sampler().var("sampler_color", "sampler"),
+      new Binding("Material").uniform().var("material", "StandardMaterial"),
     ]);
 
     this.layouts = [
-      this.pipelines.getBindGroupLayoutDescriptor("Global"),
+      globalLayout,
       this.pipelines.getBindGroupLayoutDescriptor("Mesh"),
       shadowLayout,
     ];
@@ -34,15 +42,30 @@ export class ShadowPass extends RenderPass {
 
   private createTextures() {
     this.shadowTexture = this.resources.createTexture("shadow_texture", {
+      label: "Shadow Texture",
       size: { width: 2048 * 4, height: 2048 * 4 },
       format: "depth32float",
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
     });
+    this.shadowColorTexture = this.resources.createTexture("shadow_color_texture", {
+        label: "Shadow Color Texture",
+        size: { width: 2048 * 4, height: 2048 * 4 },
+        format: this.renderer.format,
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+    });
 
-    this.outputs = new Map([["shadow_texture", this.shadowTexture]]);
+    this.outputs = new Map([
+        ["shadow_texture", this.shadowTexture],
+        ["shadow_color", this.shadowColorTexture],
+    ]);
 
     this.renderPassDescriptor = {
-      colorAttachments: [],
+      colorAttachments: [{
+          view: this.shadowColorTexture.createView(),
+          clearValue: [0, 0, 0, 1],
+          loadOp: "clear",
+          storeOp: "store",
+      }],
       depthStencilAttachment: {
         view: this.shadowTexture.createView(),
         depthClearValue: 1.0,
@@ -54,13 +77,15 @@ export class ShadowPass extends RenderPass {
 
   createRenderable(mesh: Mesh, camera: Camera) {
     const material = mesh.material as StandardMaterial;
+    const renderable = new Renderable(mesh);
     const config: ShaderConfig = {
       name: "ShadowPass",
       defines: {
         USE_BILLBOARD: mesh.useBillboard,
+        USE_UV: true,
       },
       attributes: mesh.geometry.getShaderAttributes(),
-      varyings: [{ name: "uv", type: "vec2f", location: 0 }],
+      varyings: mesh.varyings,
       layouts: this.layouts,
       chunks: ["ShadowPass", ...mesh.chunks],
     };
@@ -71,24 +96,47 @@ export class ShadowPass extends RenderPass {
       this.resources.createBindGroup(this.layouts[0], {
         Scene: mesh.scene?.uniforms.get("Scene") || UniformData.getByName("Scene")!,
         Camera: camera.uniforms.get("Camera")!,
+        LightCamera: camera.uniforms.get("Camera")!,
       }),
       this.resources.createBindGroup(this.layouts[1], {
-        MeshInstances: mesh.uniforms.get("MeshInstances")!,
+        //MeshInstances: mesh.uniforms.get("MeshInstances")!,
+        // in case we want to draw shadows only for visible instances
+        MeshInstances: renderable.visibilityInfo?.visibleInstancesBuffer || mesh.uniforms.get("MeshInstances")!,
       }),
       this.resources.createBindGroup(this.layouts[2], {
         DiffuseMap: material.diffuse_map,
         Sampler: this.resources.defaultSampler,
+        Material: material.uniforms.get("StandardMaterial")!,
       }),
     ];
     const pipelineLayout = this.pipelines.createPipelineLayout(this.layouts);
-    const renderState = new RenderState({ depthFormat: "depth32float", cullMode: "back" });
+    const renderState = mesh.material.renderState;
+    renderState.depthWrite = true;
     const pipeline = this.pipelines.createRenderPipeline({
       shader,
       layout: pipelineLayout,
       vertexLayouts: mesh.geometry.getVertexAttributesLayout(),
       renderState: renderState,
+      targets: [
+          {
+              format: this.renderer.format,
+              blend: {
+                    color: {
+                        operation: 'add',
+                        srcFactor: 'one-minus-src-alpha',
+                        dstFactor: 'one',
+                    },
+                    alpha: {
+                        operation: "add",
+                        srcFactor: "one",
+                        dstFactor: "one",
+                    }
+              }
+
+          },
+      ],
+
     });
-    const renderable = new Renderable(mesh);
     renderable.savePassData(this, { pipeline, bindGroups });
     this.renderables.set(mesh, renderable);
 
@@ -105,12 +153,13 @@ export class ShadowPass extends RenderPass {
   public afterRender(): this {
     return this;
   }
-  private draw(object: Object3D, camera: Camera, pass: GPURenderPassEncoder) {
+  private draw(object: Object3D, camera: Camera, lightCamera: Camera, pass: GPURenderPassEncoder) {
     if (object instanceof Mesh && object.castShadow) {
       let renderable = this.renderables.get(object) || this.createRenderable(object, camera);
       const bindGroup0 = this.resources.createBindGroup(this.layouts[0], {
-        Scene: object.scene.uniforms.get("Scene")!,
+        Scene: object.scene ? object.scene.uniforms.get("Scene")! : UniformData.getByName("Scene")!,
         Camera: camera.uniforms.get("Camera")!,
+        LightCamera: lightCamera.uniforms.get("Camera")!,
       });
       renderable.applyPassData(this);
       renderable.bindGroups[0] = bindGroup0;
@@ -118,7 +167,7 @@ export class ShadowPass extends RenderPass {
     }
 
     for (let child of object.children) {
-      this.draw(child, camera, pass);
+      this.draw(child, camera, lightCamera, pass);
     }
   }
 
@@ -126,7 +175,10 @@ export class ShadowPass extends RenderPass {
     const pass = encoder.beginRenderPass(this.renderPassDescriptor);
     for (let i = 0; i < scene.directionalLightsNum; i++) {
       const light = scene.directionalLights.getItem(i).parent;
-      this.draw(scene, light.shadowCamera, pass);
+      if (!light.castShadow) {
+          continue;
+      }
+      this.draw(scene, camera, light.shadowCamera, pass);
     }
     pass.end();
 

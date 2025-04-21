@@ -4,13 +4,19 @@ import { sha256 } from "js-sha256";
 
 const weakMap = new WeakMap();
 
+export function compareStrings(a: string, b: string): number {
+    const aNum = a.replace(/\D+/g, "");
+    const bNum = b.replace(/\D+/g, "");
+    return parseInt(aNum) - parseInt(bNum);
+}
+
 export function arraysEqual(a: BufferData | Float32Array | ArrayLike<number>, b: BufferData | Float32Array | ArrayLike<number>, start: number = 0, end: number = a?.length ?? 0, precision: number = 1e-6): boolean {
     // Early returns for obvious cases
     // 1e-6 is the default precision (0.000001)
 
     if (a === b) return true;
     if (!a || !b) return false;
-    
+
     const len = a.length;
     if (len !== b.length) return false;
     if (weakMap.has(a)) {
@@ -83,6 +89,10 @@ export function num(...args: any[]): boolean {
     return true;
 }
 
+export function defined(v: any): boolean {
+    return v !== undefined && v !== null;
+}
+
 export function isArrayOrBuffer(v: any): boolean {
     return Array.isArray(v) || v instanceof Float32Array;
 }
@@ -101,4 +111,3 @@ export function autobind(context: any) {
 export function capString(str: string): string {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
-

@@ -26,10 +26,10 @@ export class RenderGraph {
     }
   }
 
-  public afterRender(): void {
+  public afterRender(scene?: Scene, camera?: Camera): void {
     for (const pass of this.passes) {
       if (!pass.afterRender) continue;
-      pass.afterRender();
+      pass.afterRender(scene, camera);
     }
   }
 
@@ -51,7 +51,7 @@ export class RenderGraph {
     }
     this.renderer.device.queue.submit([commandEncoder.finish()]);
 
-    this.afterRender();
+    this.afterRender(scene, camera);
   }
 
   // Clear the graph (remove all passes)

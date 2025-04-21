@@ -1,7 +1,9 @@
+import { Mesh } from '@/core/Mesh';
 import { BoundingSphere } from './BoundingSphere';
 import { Plane } from './Plane';
 import { Vector3 } from './Vector3';
 import { BufferData } from '@/data/BufferData';
+import { Geometry } from '@/geometry/Geometry';
 
 const _sphere = new BoundingSphere();
 
@@ -9,11 +11,11 @@ class Frustum extends BufferData {
     planes: Plane[];
 
     constructor(p0 = new Plane(), p1 = new Plane(), p2 = new Plane(), p3 = new Plane(), p4 = new Plane(), p5 = new Plane()) {
-        super(6 * 4);
+        super(6, 4);
         this.planes = [p0, p1, p2, p3, p4, p5];
     }
 
-    intersectsObject(object: { boundingSphere?: BoundingSphere | null, computeBoundingSphere: () => void, matrixWorld: any, geometry: { boundingSphere: BoundingSphere | null, computeBoundingSphere: () => void } }): boolean {
+    intersectsObject(object: Geometry | Mesh): boolean {
         if (object.boundingSphere !== undefined) {
             if (object.boundingSphere === null) object.computeBoundingSphere();
             _sphere.copy(object.boundingSphere as BoundingSphere).applyMatrix4(object.matrixWorld);
@@ -39,6 +41,65 @@ class Frustum extends BufferData {
         planes[3].setComponents(me3 - me1, me7 - me5, me11 - me9, me15 - me13).normalize();
         planes[4].setComponents(me3 - me2, me7 - me6, me11 - me10, me15 - me14).normalize();
         planes[5].setComponents(me2, me6, me10, me14).normalize();
+
+        for (let i = 0; i < 6; i++) {
+            const plane = planes[i];
+            this.set(plane.data, i * 4);
+        }
+
+        return this;
+    }
+
+    /**
+    *
+    * @param {Matrix} m - projection view matrix
+    * @returns this
+    */
+    setFromMatrix(m: Float32Array): this {
+        const planes = this.planes;
+        const me = m;
+        // left plane
+        planes[0].setComponents(
+            me[3] + me[0],
+            me[7] + me[4],
+            me[11] + me[8],
+            me[15] + me[12]
+        ).normalize();
+        // right plane
+        planes[1].setComponents(
+            me[3] - me[0],
+            me[7] - me[4],
+            me[11] - me[8],
+            me[15] - me[12]
+        ).normalize();
+
+        // top plane
+        planes[2].setComponents(
+            me[3] - me[1],
+            me[7] - me[5],
+            me[11] - me[9],
+            me[15] - me[13]
+        ).normalize();
+
+        // bottom plane
+        planes[3].setComponents(
+            me[3] + me[1],
+            me[7] + me[5],
+            me[11] + me[9],
+            me[15] + me[13]
+        ).normalize();
+
+        // near plane
+        planes[4].setComponents( me[2], me[6], me[10], me[14] ).normalize();
+
+        // far plane
+        planes[5].setComponents(
+            me[3] - me[2],
+            me[7] - me[6],
+            me[11] - me[10],
+            me[15] - me[14]
+        ).normalize();
+
 
         for (let i = 0; i < 6; i++) {
             const plane = planes[i];

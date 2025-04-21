@@ -26,12 +26,16 @@ export class Camera extends Object3D {
     view: "mat4x4f",
     projection: "mat4x4f",
     view_projection: "mat4x4f",
+    prev_view_projection: "mat4x4f",
     view_projection_inverse: "mat4x4f",
+    frustum: "array<vec4f, 6>",
     position: "vec3f",
+    prev_position: "vec3f",
     direction: "vec3f",
     near: "f32",
     far: "f32",
   });
+    prevPosition: UniformDataType;
 
   constructor() {
     super();
@@ -47,6 +51,8 @@ export class Camera extends Object3D {
     this.matrixProjection = new Matrix4();
     this.matrixViewProjection = new Matrix4();
     this.matrixViewProjectionInverse = new Matrix4();
+    this.prevViewProjection = new Matrix4();
+    this.prevPosition = new Vector3();
 
     this.uniforms = new Map<string, UniformData>();
     this.uniforms.set(
@@ -59,8 +65,11 @@ export class Camera extends Object3D {
           view: this.matrixView,
           projection: this.matrixProjection,
           view_projection: this.matrixViewProjection,
+          prev_view_projection: this.prevViewProjection,
           view_projection_inverse: this.matrixViewProjectionInverse,
+          frustum: this.frustum,
           position: this.position,
+          prev_position: this.prevPosition,
           direction: this.forward,
           near: 0.1,
           far: 1000,
@@ -72,7 +81,7 @@ export class Camera extends Object3D {
   }
 
   updateFrustum() {
-    this.frustum.setFromProjectionMatrix(this.matrixViewProjection);
+    this.frustum.setFromMatrix(this.matrixViewProjection);
   }
 
   _onResize({ aspect }: { aspect: number }) {
@@ -95,6 +104,7 @@ export class Camera extends Object3D {
     this.matrixView.copy(this.matrixWorld).invert();
     this.matrixViewProjection.multiplyMatrices(this.matrixProjection, this.matrixView);
     this.matrixViewProjectionInverse.copy(this.matrixViewProjection).invert();
+    this.updateFrustum();
   }
 
   updateProjectionMatrix() {

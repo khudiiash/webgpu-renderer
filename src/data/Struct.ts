@@ -56,7 +56,7 @@ export class Struct {
   private computeLayoutEntry(value: StructValue): Omit<StructLayoutEntry, 'offset' | 'type'> {
     let size: number;
     let alignment: number;
-    let viewType: StructViewType; 
+    let viewType: StructViewType;
 
     if (Array.isArray(value)) {
       const [elementType, count] = value;
@@ -172,7 +172,7 @@ export class Struct {
       str += `\t${key}: ${typeStr},\n`;
     }
     str += `}\n`;
-    if (/\[object/.test(str)) {  
+    if (/\[object/.test(str)) {
       debugger
     }
     return str;

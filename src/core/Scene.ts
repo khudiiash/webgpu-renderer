@@ -6,19 +6,22 @@ import { UniformDataArray } from "@/data/UniformDataArray";
 import { DirectionalLight } from "@/lights/DirectionalLight";
 import { PointLight } from "@/lights/PointLight";
 import { Struct } from "@/data/Struct";
-import { SphereGeometry } from "@/geometry";
-import { Mesh } from "./Mesh";
-import { StandardMaterial } from "@/materials";
-import { ShaderChunk } from "@/materials/shaders/ShaderChunk";
+import { TextureCube } from "@/data/TextureCube";
+import { Vector2 } from "@/math";
+import { Renderer } from "@/renderer";
 
 interface SceneConfig {
     backgroundColor?: Color | string | number;
     ambientColor?: Color | string | number;
-    groundColor?: Color | string | number;
-    skyColor?: Color | string | number;
-    indirectIntensity?: number;
     ambientIntensity?: number;
-    fog?: { start?: number; end?: number; color?: number | string | Color; density?: number; type?: number };
+    fog?: {
+        start?: number;
+        end?: number;
+        color?: number | string | Color;
+        density?: number;
+        type?: number;
+    };
+    environment?: TextureCube;
 }
 
 class Scene extends Object3D {
@@ -27,13 +30,14 @@ class Scene extends Object3D {
 
     static struct = new Struct("Scene", {
         pointLights: [PointLight.struct, Scene.MAX_POINT_LIGHTS],
-        directionalLights: [DirectionalLight.struct, Scene.MAX_DIRECTIONAL_LIGHTS],
+        directionalLights: [
+            DirectionalLight.struct,
+            Scene.MAX_DIRECTIONAL_LIGHTS,
+        ],
         fog: Fog.struct,
-        ambientColor: "vec4f",
-        backgroundColor: "vec4f",
-        groundColor: "vec4f",
-        skyColor: "vec4f",
-        indirectIntensity: "f32",
+        ambient: "vec4f",
+        background: "vec4f",
+        resolution: "vec2f",
         time: "f32",
 
         directionalLightsNum: "u32",
@@ -49,11 +53,8 @@ class Scene extends Object3D {
     public lights: Object3D[];
     public instances: Map<unknown, unknown>;
 
-    public ambientColor!: Color;
-    public backgroundColor!: Color;
-    public groundColor!: Color;
-    public skyColor!: Color;
-    public indirectIntensity: number = 1.0;
+    public ambient!: Color;
+    public background!: Color;
     public pointLights!: UniformDataArray;
     public directionalLights!: UniformDataArray;
     public directionalLightsNum!: number;
@@ -65,6 +66,7 @@ class Scene extends Object3D {
     private _time: number = 0;
     private _frame: number = 0;
     private _last: number = performance.now();
+    resolution: Vector2;
 
     constructor(config: SceneConfig = {}) {
         super();
@@ -74,27 +76,32 @@ class Scene extends Object3D {
         this.cameras = [];
         this.meshes = [];
         this.lights = [];
+        this.resolution = new Vector2(0, 0);
         this.instances = new Map();
 
-        const backgroundColor = new Color(config.backgroundColor || "#000000");
-        const ambientColor = new Color(config.ambientColor || "#000000");
-        const groundColor = new Color(config.groundColor || "#000000");
-        const skyColor = new Color(config.skyColor || "#000000");
+        const background = new Color(config.backgroundColor || "#000000");
+        const ambient = new Color(config.ambientColor || "#000000");
+        const environment = config.environment ?? TextureCube.DEFAULT;
 
         if (typeof config.ambientIntensity === "number") {
-            ambientColor.a = config.ambientIntensity;
+            ambient.a = config.ambientIntensity;
         }
 
-        const directionalLights = new UniformDataArray(DirectionalLight.struct, Scene.MAX_DIRECTIONAL_LIGHTS).onChange(
-            () => (this.directionalLightsNum = directionalLights.size),
-        );
+        const directionalLights = new UniformDataArray(
+            DirectionalLight.struct,
+            Scene.MAX_DIRECTIONAL_LIGHTS,
+        ).onChange(() => (this.directionalLightsNum = directionalLights.size));
 
-        const pointLights = new UniformDataArray(PointLight.struct, Scene.MAX_POINT_LIGHTS).onChange(
-            () => (this.pointLightsNum = pointLights.size),
-        );
+        const pointLights = new UniformDataArray(
+            PointLight.struct,
+            Scene.MAX_POINT_LIGHTS,
+        ).onChange(() => (this.pointLightsNum = pointLights.size));
 
         const fog = new Fog({
-            color: config.fog?.color === undefined ? new Color(backgroundColor) : new Color(config.fog.color),
+            color:
+                config.fog?.color === undefined
+                    ? new Color(background)
+                    : new Color(config.fog.color),
             start: config.fog?.start || 500,
             end: config.fog?.end || 1000,
             density: config.fog?.density || 0.00025,
@@ -109,17 +116,16 @@ class Scene extends Object3D {
                 struct: Scene.struct,
                 values: {
                     fog,
-                    ambientColor,
-                    backgroundColor,
-                    groundColor,
-                    skyColor,
-                    indirectIntensity: config.indirectIntensity || 1.0,
+                    ambient,
+                    background,
+                    resolution: this.resolution,
                     time: 0,
                     frame: 0,
                     directionalLightsNum: 0,
                     pointLightsNum: 0,
                     directionalLights,
                     pointLights,
+                    environment,
                 },
             }),
         );
@@ -140,15 +146,22 @@ class Scene extends Object3D {
         if (object.isCamera) {
             this.camera = object;
         }
+
         return this;
     }
 
     public addLight(light: Object3D): this {
         if (light.isDirectionalLight) {
-            this.directionalLights.add((light as DirectionalLight).uniforms.get("DirectionalLight") as UniformData);
+            this.directionalLights.add(
+                (light as DirectionalLight).uniforms.get(
+                    "DirectionalLight",
+                ) as UniformData,
+            );
         }
         if (light.isPointLight) {
-            this.pointLights.add((light as PointLight).uniforms.get("PointLight") as UniformData);
+            this.pointLights.add(
+                (light as PointLight).uniforms.get("PointLight") as UniformData,
+            );
         }
         return this;
     }
@@ -163,11 +176,17 @@ class Scene extends Object3D {
         if (object.isLight) {
             if (object.isDirectionalLight) {
                 this.directionalLights.remove(
-                    (object as DirectionalLight).uniforms.get("DirectionalLight") as UniformData,
+                    (object as DirectionalLight).uniforms.get(
+                        "DirectionalLight",
+                    ) as UniformData,
                 );
             }
             if (object.isPointLight) {
-                this.pointLights.remove((object as PointLight).uniforms.get("PointLight") as UniformData);
+                this.pointLights.remove(
+                    (object as PointLight).uniforms.get(
+                        "PointLight",
+                    ) as UniformData,
+                );
             }
             const i = this.lights.indexOf(object);
             if (i >= 0) this.lights.splice(i, 1);
@@ -178,11 +197,12 @@ class Scene extends Object3D {
         return this;
     }
 
-    update() {
+    update(renderer: Renderer) {
         const now = performance.now();
         this._time += (now - this._last) / 1000;
         this._last = now;
         this._frame++;
+        this.resolution.set(renderer.width, renderer.height);
 
         this.time = this._time;
         this.frame = this._frame;

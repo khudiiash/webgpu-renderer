@@ -25,6 +25,7 @@
     "vitest": "^2.1.8"
   },
   "dependencies": {
+    "@gltf-transform/core": "^4.1.3",
     "@loaders.gl/core": "^4.3.3",
     "@loaders.gl/gltf": "^4.3.3",
     "js-sha256": "^0.11.0",

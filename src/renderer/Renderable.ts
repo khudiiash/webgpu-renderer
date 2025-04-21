@@ -5,6 +5,8 @@ import { Material } from "@/materials/Material";
 import { Geometry } from "@/geometry/Geometry";
 import { BufferAttribute } from "@/geometry/BufferAttribute";
 import { RenderPass } from "./RenderPass";
+import { MeshVisibilityInfo } from "@/data/MeshVisibilityInfo";
+import { ShadowPass } from "./passes/ShadowPass";
 
 type PassData = {
     pipeline: GPURenderPipeline | GPUComputePipeline;
@@ -19,12 +21,14 @@ export class Renderable {
     public geometry!: Geometry;
     public pipeline!: GPURenderPipeline | GPUComputePipeline;
     public bindGroups: GPUBindGroup[] = [];
+    public visibilityInfo!: MeshVisibilityInfo;
 
     private resources: ResourceManager = ResourceManager.getInstance();
     isIndexed: boolean = false;
     indexBuffer?: GPUBuffer;
     vertexBuffers: GPUBuffer[] = [];
     passData: Map<RenderPass, PassData> = new Map();
+    pass: RenderPass;
 
     constructor(mesh: Mesh) {
         if (Renderable.cache.has(mesh)) {
@@ -37,9 +41,11 @@ export class Renderable {
         this.id = uuid("renderable");
 
         this.initialize();
+        Renderable.cache.set(mesh, this);
     }
 
     savePassData(pass: RenderPass, data: PassData) {
+        this.pass = pass;
         this.passData.set(pass, data);
     }
 
@@ -84,7 +90,7 @@ export class Renderable {
             console.error("Pipeline or BindGroup not set, cannot render");
             return;
         }
-        pass.setPipeline(this.pipeline);
+        pass.setPipeline(this.pipeline as GPURenderPipeline);
 
         for (let i = 0; i < this.bindGroups.length; i++) {
             pass.setBindGroup(i, this.bindGroups[i]);
@@ -96,13 +102,22 @@ export class Renderable {
 
         if (this.isIndexed && this.indexBuffer) {
             pass.setIndexBuffer(this.indexBuffer, this.geometry.indices.format);
-            pass.drawIndexed(this.geometry.indices.count, this.mesh.count);
+        }
+
+        if (this.visibilityInfo) {
+            if (this.isIndexed) {
+                pass.drawIndexedIndirect(this.visibilityInfo.drawCommandBuffer, 0);
+            } else {
+                pass.drawIndirect(this.visibilityInfo.drawCommandBuffer, 0);
+            }
         } else {
-            pass.draw(this.geometry.vertexCount, this.mesh.count);
+            if (this.isIndexed) {
+                pass.drawIndexed(this.geometry.indices.count, this.mesh.count);
+            } else {
+                pass.draw(this.geometry.vertexCount, this.mesh.count);
+            }
         }
     }
-
-    compute(pass: GPUComputePassEncoder) {}
 
     dispose() {
         // Clean up resources

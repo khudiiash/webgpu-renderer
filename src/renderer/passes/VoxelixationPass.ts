@@ -3,7 +3,7 @@ import { Mesh, Object3D, Scene } from "@/core";
 import { RenderPass } from "../RenderPass";
 import { Renderable } from "../Renderable";
 import { UniformData } from "@/data";
-import { Shader, ShaderConfig } from "@/materials/shaders/Shader";
+import { Shader, ShaderConfig } from "@/shaders/Shader";
 import { StandardMaterial } from "@/materials";
 import { Struct } from "@/data/Struct";
 import { Vector3 } from "@/math";
@@ -33,19 +33,11 @@ export class VoxelizationPass extends RenderPass {
                 worldSize: this.worldSize,
             },
         });
+        const layout = new BindGroupLayout(this, "Voxel", "Global", [
+            new Binding("Voxels")
+        ])
         this.layouts = [
-            null,
-            new BindGroupLayout(this.device, "Mesh", "Mesh", [
-                new Binding("MeshInstances").storage("read").var("instances", "array<mat4x4f>"),
-                new Binding("MeshVertices").storage("read").var("vertices", "array<vec3f>"),
-                new Binding("MeshIndices").storage("read").var("indices", "array<uint32>"),
-            ]),
-            new BindGroupLayout(this.device, "StandardMaterial", "Material", [
-                new Binding("StandardMaterial").uniform().var("material", "StandardMaterial"),
-                new Binding("DiffuseMap").texture().var("diffuse_map", "texture2d<f32>"),
-                new Binding("NormalMap").texture().var("normal_map", "texture2d<f32>"),
-                new Binding("Sampler").sampler().var("sampler_color", "sampler"),
-            ]),
+
         ];
         return this;
     }
@@ -85,8 +77,8 @@ export class VoxelizationPass extends RenderPass {
               return all(triMin <= boxMax) && all(triMax >= boxMin);
             }
 
-            @compute @workgroup_size(8, 8, 8)
-            fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+            @compute(input) @workgroup_size(8, 8, 8) {
+              let global_id = input.global_invocation_id;
               if (any(global_id >= vec3<u32>(uniforms.dimensions))) {
                 return;
               }
@@ -185,6 +177,8 @@ export class VoxelizationPass extends RenderPass {
     }
     public execute(encoder: GPUCommandEncoder, scene?: Scene, camera?: Camera): this {
         const pass = encoder.beginComputePass();
+        pass.end();
+        this.voxelize(scene!, camera!, pass);
         return this;
     }
 }

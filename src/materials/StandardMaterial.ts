@@ -5,7 +5,7 @@ import { UniformData } from "@/data/UniformData";
 import { RenderState, RenderStateOptions } from "@/renderer/RenderState";
 import { Texture2D } from "@/data/Texture2D";
 import { Struct } from "@/data/Struct";
-import { boolToNum } from "@/util/general";
+import { boolToNum, defined } from "@/util/general";
 import { Vector2 } from "@/math";
 import { TextureCube } from "@/data/TextureCube";
 
@@ -21,7 +21,7 @@ export interface StandardMaterialOptions extends RenderStateOptions {
     roughness?: number;
     emissive_factor?: number;
     specular_factor?: number;
-    alpha_test?: number;
+    alpha_cutoff?: number;
     transmission?: number;
     uv_scale?: [number, number];
     height_scale?: number;
@@ -58,7 +58,7 @@ class StandardMaterial extends Material {
         opacity: "f32",
         metalness: "f32",
         roughness: "f32",
-        alpha_test: "f32",
+        alpha_cutoff: "f32",
         transmission: "f32",
 
         height_scale: "f32",
@@ -80,7 +80,7 @@ class StandardMaterial extends Material {
     opacity!: number;
     metalness!: number;
     roughness!: number;
-    alpha_test!: number;
+    alpha_cutoff!: number;
     transmission!: number;
     invert_normal!: boolean;
 
@@ -100,12 +100,14 @@ class StandardMaterial extends Material {
     constructor(options: StandardMaterialOptions = {}) {
         super();
 
+        const transparent = options.opacity !== undefined && options.opacity < 1.0;
+
         this.renderState = new RenderState({
             cullMode: options.cullMode || "back",
             depthTest: options.depthTest ?? true,
             depthWrite: options.depthWrite ?? true,
             blending: options.blending || "normal",
-            transparent: options.transparent || false,
+            transparent: transparent,
             depthCompare: options.depthCompare || "less",
             topology: options.topology || "triangle-list",
             frontFace: options.frontFace || "ccw",
@@ -116,9 +118,9 @@ class StandardMaterial extends Material {
         const emissive = new Color(0, 0, 0, 0);
         if (options.emissive_factor) {
             options.useEmissive = true;
-            if (options.emissive) {
+            if (defined(options.emissive)) {
                 emissive.set(options.emissive);
-            } else if (options.diffuse) {
+            } else if (defined(options.diffuse)) {
                 emissive.set(options.diffuse);
             }
             emissive.a = options.emissive_factor ?? 1.0;
@@ -131,18 +133,20 @@ class StandardMaterial extends Material {
                 struct: StandardMaterial.struct,
                 isGlobal: false,
                 values: {
-                    ambient: new Color(options.ambient || "#000000"),
-                    diffuse: new Color(options.diffuse || "#FFFFFF"),
-                    specular: new Color(options.specular || "#FFFFFF"),
+                    ambient: new Color(options.ambient ?? "#000000"),
+                    diffuse: new Color(options.diffuse ?? "#FFFFFF"),
+                    specular: new Color(options.specular ?? "#FFFFFF"),
                     emissive: emissive,
-                    sheen: new Color(options.sheen || "#000000"),
+                    sheen: new Color(options.sheen ?? "#000000"),
                     ao: new Color(options.ao || "#FFFFFF"),
                     opacity: options.opacity || 1.0,
                     metalness: options.metalness ?? 0.0,
                     roughness: options.roughness ?? 0.5,
-                    alpha_test: options.alpha_test ?? 0.5,
+                    alpha_cutoff: options.alpha_cutoff?? 0.5,
                     transmission: options.transmission ?? 0.0,
-                    uv_scale: options.uv_scale ? new Vector2(...options.uv_scale) : new Vector2(1, 1),
+                    uv_scale: options.uv_scale
+                        ? new Vector2(...options.uv_scale)
+                        : new Vector2(1, 1),
                     height_scale: options.height_scale ?? 0.1,
                     invert_normal: boolToNum(options.invert_normal, 0),
 
@@ -163,7 +167,8 @@ class StandardMaterial extends Material {
                     metalness_map: options.metalness_map || Texture2D.DEFAULT,
                     roughness_map: options.roughness_map || Texture2D.DEFAULT,
                     alpha_map: options.alpha_map || Texture2D.DEFAULT,
-                    transmission_map: options.transmission_map || Texture2D.DEFAULT,
+                    transmission_map:
+                        options.transmission_map || Texture2D.DEFAULT,
                 },
             }),
         );

@@ -2,8 +2,7 @@ import { Texture } from "@/data/Texture";
 import { BufferData } from "@/data/BufferData";
 import { UniformData } from "@/data/UniformData";
 import { EventCallback, EventEmitter } from "@/core/EventEmitter";
-import { Shader } from "@/materials/shaders/Shader";
-import { Renderable } from "@/renderer/Renderable";
+import { Shader } from "@/shaders/Shader";
 import { BindGroupLayout } from "@/data/BindGroupLayout";
 import { autobind, hashString } from "@/util/general";
 import { BufferAttribute } from "@/geometry";
@@ -130,10 +129,15 @@ export class ResourceManager extends EventEmitter {
     }
 
     createDepthTexture(name: string, width: number, height: number) {
+        const prev = this.textures.get(name);
+        if (prev && prev.width === width && prev.height === height) {
+            return;
+        }
         if (this.textures.has(name)) {
             this.destroyTexture(name);
         }
         const texture = this.device.createTexture({
+            label: name,
             size: [width, height, 1],
             format: "depth32float",
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
@@ -175,6 +179,14 @@ export class ResourceManager extends EventEmitter {
             addressModeV: "repeat",
             addressModeW: "repeat",
         });
+    }
+
+    createIndirectBuffer(size: number) {
+        const buffer = this.device.createBuffer({
+            size,
+            usage: GPUBufferUsage.INDIRECT | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+        });
+        return buffer;
     }
 
     /**
@@ -466,6 +478,10 @@ export class ResourceManager extends EventEmitter {
         }
 
         return buffer;
+    }
+
+    getBuffer(id: string): GPUBuffer | undefined {
+        return this.buffers.get(id);
     }
 
     getBufferByName(name: string): GPUBuffer | undefined {

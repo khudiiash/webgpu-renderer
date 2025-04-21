@@ -1,11 +1,13 @@
 import { BufferAttribute } from '@/geometry/BufferAttribute';
 import { Vector3 } from './Vector3';
+import { BufferData } from '@/data/BufferData';
 
-export class BoundingBox {
+export class BoundingBox extends BufferData {
     public min: Vector3;
     public max: Vector3;
 
     constructor(min = new Vector3(), max = new Vector3()) {
+        super([min.x, min.y, min.z, max.x, max.y, max.z]);
         this.min = min;
         this.max = max;
     }
@@ -26,6 +28,8 @@ export class BoundingBox {
             this.max.y = Math.max(this.max.y, y);
             this.max.z = Math.max(this.max.z, z);
         }
+
+        super.setSilent([this.min.x, this.min.y, this.min.z, this.max.x, this.max.y, this.max.z]);
     }
 
     public getCenter(out: Vector3 = new Vector3() ): Vector3 {
@@ -39,7 +43,7 @@ export class BoundingBox {
         if (!points.length) {
             return;
         }
-    
+
 
         for (const p of points) {
             const [x, y, z] = p;
@@ -50,6 +54,8 @@ export class BoundingBox {
             this.max.y = Math.max(this.max.y, y);
             this.max.z = Math.max(this.max.z, z);
         }
+
+        super.setSilent([this.min.x, this.min.y, this.min.z, this.max.x, this.max.y, this.max.z]);
     }
 
     public containsPoint(x: number, y: number, z: number): boolean {

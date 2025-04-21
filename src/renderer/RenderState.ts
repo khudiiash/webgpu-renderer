@@ -8,6 +8,7 @@ export interface RenderStateOptions {
   depthTest?: boolean;
   depthWrite?: boolean;
   depthCompare?: GPUCompareFunction;
+  useDepth?: boolean;
   depthFormat?: GPUDepthTextureFormat;
   stencilTest?: boolean;
   blending?: "normal" | "additive" | "additive-alpha" | "multiply" | "screen" | "darken" | "lighten" | "subtract";
@@ -21,11 +22,14 @@ export class RenderState {
   frontFace: "ccw" | "cw" = "ccw";
   depthTest: boolean = true;
   depthWrite: boolean = true;
+  useDepth: boolean = true;
   depthCompare: GPUCompareFunction = "less";
   depthFormat: GPUDepthTextureFormat = "depth32float";
   stencilTest: boolean = false;
   blending: "normal" | "additive" | "multiply" | "screen" | "darken" | "lighten" | "subtract" = "normal";
   transparent: boolean = false;
+  alphaToCoverage: boolean = true;
+  multisampleCount: number = 4;
 
   private callbacks: ((state: RenderState) => {})[] = [];
 
@@ -57,7 +61,7 @@ export class RenderState {
     ];
   }
 
-  getBlendState() {
+  getBlendState(): GPUBlendState | undefined {
     if (!this.transparent) {
       return undefined;
     }
@@ -172,11 +176,11 @@ export class RenderState {
     };
   }
 
-  getMultisample() {
+  getMultisample(): GPUMultisampleState {
     return {
-      count: 1,
-      mask: 0xffffffff,
-      alphaToCoverageEnabled: this.transparent,
+      count: this.multisampleCount ?? 1,
+      mask: 0x000000,
+      alphaToCoverageEnabled: this.alphaToCoverage ?? false,
     };
   }
 

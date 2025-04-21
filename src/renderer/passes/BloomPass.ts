@@ -5,7 +5,7 @@ import { BindGroupLayout } from "@/data/BindGroupLayout";
 import { Binding } from "@/data/Binding";
 import { UniformData } from "@/data";
 import { Struct } from "@/data/Struct";
-import { Shader } from "@/materials/shaders/Shader";
+import { Shader } from "@/shaders/Shader";
 
 export class BloomPass extends RenderPass {
     uniform!: UniformData;

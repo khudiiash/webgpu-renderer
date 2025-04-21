@@ -15,7 +15,7 @@ class BoxGeometry extends Geometry {
       this.width = width;
       this.height = height;
       this.depth = depth;
-  
+
       this.parameters = {
         width: width,
         height: height,
@@ -24,42 +24,42 @@ class BoxGeometry extends Geometry {
         heightSegments: heightSegments,
         depthSegments: depthSegments
       };
-  
+
       const scope = this;
-  
+
       // segments
-  
+
       widthSegments = Math.floor( widthSegments );
       heightSegments = Math.floor( heightSegments );
       depthSegments = Math.floor( depthSegments );
-  
+
       // buffers
-  
+
       const indices: number[] = [];
       const vertices: number[] = [];
       const normals: number[] = [];
       const uvs: number[] = [];
-  
+
       // helper variables
       let numberOfVertices = 0;
       let groupStart = 0;
-  
+
       // build each side of the box geometry
-  
+
       buildPlane( 'z', 'y', 'x', - 1, - 1, depth, height, width, depthSegments, heightSegments, 0 ); // px
       buildPlane( 'z', 'y', 'x', 1, - 1, depth, height, - width, depthSegments, heightSegments, 1 ); // nx
       buildPlane( 'x', 'z', 'y', 1, 1, width, depth, height, widthSegments, depthSegments, 2 ); // py
       buildPlane( 'x', 'z', 'y', 1, - 1, width, depth, - height, widthSegments, depthSegments, 3 ); // ny
       buildPlane( 'x', 'y', 'z', 1, - 1, width, height, depth, widthSegments, heightSegments, 4 ); // pz
       buildPlane( 'x', 'y', 'z', - 1, - 1, width, height, - depth, widthSegments, heightSegments, 5 ); // nz
-  
+
       // build geometry
-  
+
       this.setIndices(indices);
       this.setAttribute('position', new Float32BufferAttribute( vertices, 3 ) );
       this.setAttribute('normal', new Float32BufferAttribute( normals, 3 ) );
       this.setAttribute('uv', new Float32BufferAttribute( uvs, 2 ) );
-  
+
       function buildPlane(
         u: 'x' | 'y' | 'z',
         v: 'x' | 'y' | 'z',
@@ -75,21 +75,21 @@ class BoxGeometry extends Geometry {
       ) {
         const segmentWidth = width / gridX;
         const segmentHeight = height / gridY;
-  
+
         const widthHalf = width / 2;
         const heightHalf = height / 2;
         const depthHalf = depth / 2;
-  
+
         const gridX1 = gridX + 1;
         const gridY1 = gridY + 1;
-  
+
         let vertexCounter = 0;
         let groupCount = 0;
-  
+
         const vector = new Vector3();
-  
+
         // generate vertices, normals and uvs
-  
+
         for (let iy = 0; iy < gridY1; iy++) {
           const y = iy * segmentHeight - heightHalf;
 
@@ -110,12 +110,12 @@ class BoxGeometry extends Geometry {
             normals.push( vector.x, vector.y, vector.z );
             // uvs
             uvs.push( ix / gridX );
-            uvs.push( 1 - ( iy / gridY ) );
+            uvs.push( iy / gridY );
             vertexCounter += 1;
           }
-  
+
         }
-  
+
         // indices
         for ( let iy = 0; iy < gridY; iy ++ ) {
           for ( let ix = 0; ix < gridX; ix ++ ) {
@@ -127,7 +127,7 @@ class BoxGeometry extends Geometry {
             indices.push( b, c, d );
             groupCount += 6;
           }
-  
+
         }
         scope.addGroup(groupStart, groupCount, materialIndex);
         groupStart += groupCount;
@@ -140,9 +140,9 @@ class BoxGeometry extends Geometry {
         normals: normals,
         uvs: uvs,
       });
-  
+
     }
-    
+
 }
 
 export { BoxGeometry };
